@@ -57,14 +57,11 @@ const Home: React.FC = () => {
         {/* Hero Section */}
         <div className="text-center space-y-3 animate-fade-in">
           <div className="relative inline-block">
-            <JackieIcon size={100} className="animate-float" />
-            <div className="absolute -bottom-1 -right-1 bg-card rounded-full p-1 shadow-card border border-border">
-              <CoinIcon size={28} className="animate-coin-flip" />
-            </div>
+            <JackieIcon size={120} className="animate-float drop-shadow-lg" />
           </div>
           
           <h2 className="text-3xl font-display font-bold text-gradient-gold">
-            Win up to {formatJC(maxPrize)} JC!
+            Win 1M $JC!
           </h2>
           <p className="text-muted-foreground max-w-xs mx-auto">
             Answer 15 questions to climb the prize ladder. Use lifelines wisely!
