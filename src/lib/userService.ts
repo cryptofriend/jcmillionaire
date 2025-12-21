@@ -117,6 +117,21 @@ export function getStoredUserId(): string | null {
  */
 export function clearStoredUser(): void {
   localStorage.removeItem(USER_STORAGE_KEY);
+  localStorage.removeItem('jc_wallet_address');
+}
+
+/**
+ * Persist user data to localStorage
+ */
+export function persistUser(user: { id: string; verification_level?: string; nullifier_hash?: string }): void {
+  localStorage.setItem(USER_STORAGE_KEY, user.id);
+}
+
+/**
+ * Get stored wallet address
+ */
+export function getStoredWalletAddress(): string | null {
+  return localStorage.getItem('jc_wallet_address');
 }
 
 /**
