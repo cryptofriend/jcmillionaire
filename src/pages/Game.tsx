@@ -401,11 +401,12 @@ const Game: React.FC = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Main Content */}
         <main className="flex-1 flex flex-col px-4 py-6 gap-6 overflow-y-auto hide-scrollbar">
-          {/* Lifelines */}
+        {/* Lifelines - 1 by default, more via invites */}
           <Lifelines
             usedLifelines={usedLifelines}
             onUseLifeline={handleUseLifeline}
             disabled={showResult}
+            availableLifelines={1}
           />
 
           {/* Question Card */}
