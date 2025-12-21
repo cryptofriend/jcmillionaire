@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useCallback, useEffect, u
 import { GameState, User, Attempts, DayState, Run, QuestionWithHiddenChoices, PrizeLadderItem } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
 import { DEFAULT_PRIZE_LADDER } from '@/lib/constants';
+import { loadStoredUser } from '@/lib/userService';
 
 type GameAction =
   | { type: 'SET_USER'; payload: User | null }
@@ -183,10 +184,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Initialize app data
+  // Initialize app data and restore user session
   useEffect(() => {
     const init = async () => {
       setIsLoading(true);
+      
+      // Try to restore user from localStorage
+      const { user } = await loadStoredUser();
+      if (user) {
+        console.log('Restored user session:', user.id);
+        dispatch({ type: 'SET_USER', payload: user });
+      }
+      
       await Promise.all([fetchDayState(), fetchPrizeLadder()]);
       setIsLoading(false);
     };

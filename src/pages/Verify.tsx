@@ -5,6 +5,8 @@ import { JackieIcon } from '@/components/icons/JackieIcon';
 import { useGame } from '@/contexts/GameContext';
 import { Shield, Fingerprint, Eye, ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { createOrGetUser } from '@/lib/userService';
+import { toast } from 'sonner';
 
 const Verify: React.FC = () => {
   const navigate = useNavigate();
@@ -19,21 +21,24 @@ const Verify: React.FC = () => {
   const handleVerify = async () => {
     setIsVerifying(true);
     
-    // Simulate World ID verification flow
-    // In production, this would use MiniKit.commands.verify()
     try {
-      // Simulated delay for demo
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Simulate World ID verification flow
+      // In production, this would use MiniKit.commands.verify() to get the real nullifier
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Mock user creation - in production this calls backend with World ID proof
-      const mockUser = {
-        id: crypto.randomUUID(),
-        nullifierHash: `mock_nullifier_${Date.now()}`,
-        verificationLevel,
-        createdAt: new Date().toISOString(),
-      };
+      // Generate a mock nullifier hash - in production this comes from World ID
+      // For testing, we use a consistent hash based on verification level so the same user is returned
+      const mockNullifierHash = `world_id_nullifier_${verificationLevel}_test_user`;
       
-      dispatch({ type: 'SET_USER', payload: mockUser });
+      // Create or get user in database
+      const { user, error } = await createOrGetUser(mockNullifierHash, verificationLevel);
+      
+      if (error || !user) {
+        throw new Error(error || 'Failed to create user');
+      }
+      
+      console.log('User verified:', user.id);
+      dispatch({ type: 'SET_USER', payload: user });
       setIsSuccess(true);
       
       // Navigate to home after short delay
@@ -43,6 +48,7 @@ const Verify: React.FC = () => {
       
     } catch (error) {
       console.error('Verification failed:', error);
+      toast.error(error instanceof Error ? error.message : 'Verification failed');
       setIsVerifying(false);
     }
   };
