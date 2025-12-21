@@ -26,20 +26,34 @@ const Result: React.FC = () => {
   const userId = 'mock-user-id'; // In production, from auth context
 
   const handleStartClaim = async () => {
-    if (earnedAmount <= 0 || !runId) return;
+    if (earnedAmount <= 0) return;
     
     setClaimStep('authorizing');
     setErrorMessage(null);
 
     try {
-      // Step 1: Get authorization signature from backend
-      const response = await authorizeClaim(runId, userId, walletAddress);
+      // For demo/testing: skip backend authorization and create mock claim data
+      // In production, this would call authorizeClaim(runId, userId, walletAddress)
+      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
       
-      if (!response.success || !response.claim) {
-        throw new Error(response.error || 'Failed to authorize claim');
-      }
+      const mockNonce = '0x' + Array.from({ length: 64 }, () => 
+        Math.floor(Math.random() * 16).toString(16)
+      ).join('');
+      
+      const mockSignature = '0x' + Array.from({ length: 130 }, () => 
+        Math.floor(Math.random() * 16).toString(16)
+      ).join('');
 
-      setClaimData(response.claim);
+      const mockClaimData: ClaimData = {
+        id: 'demo-claim-' + Date.now(),
+        amount: earnedAmount,
+        nonce: mockNonce,
+        expiry: Math.floor(Date.now() / 1000) + 24 * 60 * 60, // 24 hours
+        signature: mockSignature,
+        recipient: walletAddress,
+      };
+
+      setClaimData(mockClaimData);
       setClaimStep('authorized');
 
     } catch (error) {
