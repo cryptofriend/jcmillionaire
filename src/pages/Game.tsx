@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { QuestionCard } from '@/components/game/QuestionCard';
@@ -7,10 +7,17 @@ import { Timer } from '@/components/game/Timer';
 import { PrizeLadder } from '@/components/game/PrizeLadder';
 import { useGame } from '@/contexts/GameContext';
 import { LIFELINES, LifelineType, QUESTION_TIME_LIMIT_SECONDS, formatJC } from '@/lib/constants';
-import { QuestionWithHiddenChoices, AnswerStats } from '@/lib/types';
-import { X, AlertTriangle, Trophy, Rocket, HandCoins } from 'lucide-react';
+import { QuestionWithHiddenChoices, AnswerStats, Run } from '@/lib/types';
+import { X, AlertTriangle, Trophy, Rocket, HandCoins, Loader2 } from 'lucide-react';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { cn } from '@/lib/utils';
+import {
+  createRun,
+  recordAnswer,
+  updateLifelinesUsed,
+  completeRun,
+  getTodayDayId,
+} from '@/lib/gameService';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -114,7 +121,12 @@ const formatCountdown = (ms: number) => {
 const Game: React.FC = () => {
   const navigate = useNavigate();
   const { state } = useGame();
-  const { prizeLadder, isVerified } = state;
+  const { prizeLadder, isVerified, user } = state;
+
+  // Database run tracking
+  const [currentRun, setCurrentRun] = useState<Run | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const questionStartTimeRef = useRef<number>(Date.now());
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState<QuestionWithHiddenChoices>(mockQuestions[0]);
@@ -133,6 +145,37 @@ const Game: React.FC = () => {
   const [claimedEarly, setClaimedEarly] = useState(false);
   const [hasPlayedToday, setHasPlayedToday] = useState(false);
   const [countdown, setCountdown] = useState(getTimeUntilMidnight());
+
+  // Initialize game run in database
+  useEffect(() => {
+    const initRun = async () => {
+      if (!user) {
+        setIsInitializing(false);
+        return;
+      }
+
+      try {
+        const { run, error } = await createRun({
+          userId: user.id,
+          dayId: getTodayDayId(),
+        });
+
+        if (error) {
+          console.error('Failed to create run:', error);
+        } else if (run) {
+          console.log('Created run:', run.id);
+          setCurrentRun(run);
+        }
+      } catch (err) {
+        console.error('Error initializing run:', err);
+      } finally {
+        setIsInitializing(false);
+        questionStartTimeRef.current = Date.now();
+      }
+    };
+
+    initRun();
+  }, [user]);
 
   // Countdown timer for "come back tomorrow" screen
   useEffect(() => {
@@ -185,7 +228,7 @@ const Game: React.FC = () => {
     return () => clearInterval(interval);
   }, [showResult, isGameOver, isPaused, showCheckpointDialog, currentQuestionIndex]);
 
-  const handleTimeUp = useCallback(() => {
+  const handleTimeUp = useCallback(async () => {
     setShowResult(true);
     setIsCorrect(false);
     setIsGameOver(true);
@@ -193,15 +236,40 @@ const Game: React.FC = () => {
     const safeHavens = prizeLadder.filter(p => p.isSafeHaven && p.questionNumber < currentQuestionIndex + 1);
     const safeHavenAmount = safeHavens.length > 0 ? safeHavens[safeHavens.length - 1].prizeAmount : 0;
     setEarnedAmount(safeHavenAmount);
-  }, [currentQuestionIndex, prizeLadder]);
 
-  const handleAnswer = (choice: 'A' | 'B' | 'C' | 'D') => {
+    // Complete run in database
+    if (currentRun) {
+      await completeRun({
+        runId: currentRun.id,
+        reachedQ: currentQuestionIndex + 1,
+        earnedTier: safeHavens.length,
+        earnedAmount: safeHavenAmount,
+        status: 'completed',
+      });
+    }
+  }, [currentQuestionIndex, prizeLadder, currentRun]);
+
+  const handleAnswer = async (choice: 'A' | 'B' | 'C' | 'D') => {
     if (showResult || selectedChoice) return;
     
+    const timeTaken = Date.now() - questionStartTimeRef.current;
     setSelectedChoice(choice);
     
-    setTimeout(() => {
-      const correct = correctAnswers[currentQuestion.id] === choice;
+    const correct = correctAnswers[currentQuestion.id] === choice;
+    
+    // Record answer in database
+    if (currentRun) {
+      await recordAnswer({
+        runId: currentRun.id,
+        questionId: currentQuestion.id,
+        questionNumber: currentQuestionIndex + 1,
+        selected: choice,
+        isCorrect: correct,
+        timeTakenMs: timeTaken,
+      });
+    }
+    
+    setTimeout(async () => {
       setIsCorrect(correct);
       setShowResult(true);
       
@@ -210,6 +278,17 @@ const Game: React.FC = () => {
         const safeHavens = prizeLadder.filter(p => p.isSafeHaven && p.questionNumber < currentQuestionIndex + 1);
         const safeHavenAmount = safeHavens.length > 0 ? safeHavens[safeHavens.length - 1].prizeAmount : 0;
         setEarnedAmount(safeHavenAmount);
+
+        // Complete run in database
+        if (currentRun) {
+          await completeRun({
+            runId: currentRun.id,
+            reachedQ: currentQuestionIndex + 1,
+            earnedTier: safeHavens.length,
+            earnedAmount: safeHavenAmount,
+            status: 'completed',
+          });
+        }
       } else {
         // Check if this is a claim checkpoint (after answering Q5, Q10, or Q15)
         const questionNumber = currentQuestionIndex + 1;
@@ -223,17 +302,40 @@ const Game: React.FC = () => {
         // Check if won all questions
         if (currentQuestionIndex >= mockQuestions.length - 1) {
           setIsGameOver(true);
-          setEarnedAmount(prizeLadder[currentQuestionIndex]?.prizeAmount || 0);
+          const finalAmount = prizeLadder[currentQuestionIndex]?.prizeAmount || 0;
+          setEarnedAmount(finalAmount);
+
+          // Complete run in database
+          if (currentRun) {
+            await completeRun({
+              runId: currentRun.id,
+              reachedQ: currentQuestionIndex + 1,
+              earnedTier: currentQuestionIndex + 1,
+              earnedAmount: finalAmount,
+              status: 'completed',
+            });
+          }
         }
       }
     }, 1500);
   };
 
-  const handleClaimNow = () => {
+  const handleClaimNow = async () => {
     // User chooses to claim current prize and end game
     setClaimedEarly(true);
     setIsGameOver(true);
     setShowCheckpointDialog(false);
+
+    // Complete run in database
+    if (currentRun) {
+      await completeRun({
+        runId: currentRun.id,
+        reachedQ: currentQuestionIndex + 1,
+        earnedTier: currentQuestionIndex + 1,
+        earnedAmount: earnedAmount,
+        status: 'completed',
+      });
+    }
   };
 
   const handleKeepGoing = () => {
@@ -249,6 +351,7 @@ const Game: React.FC = () => {
       setTimeRemaining(QUESTION_TIME_LIMIT_SECONDS);
       setShowHint(false);
       setShowStats(false);
+      questionStartTimeRef.current = Date.now();
     }
   };
 
@@ -262,13 +365,20 @@ const Game: React.FC = () => {
       setTimeRemaining(QUESTION_TIME_LIMIT_SECONDS);
       setShowHint(false);
       setShowStats(false);
+      questionStartTimeRef.current = Date.now();
     }
   };
 
-  const handleUseLifeline = (lifeline: LifelineType) => {
+  const handleUseLifeline = async (lifeline: LifelineType) => {
     if (usedLifelines.has(lifeline) || showResult) return;
     
-    setUsedLifelines(new Set([...usedLifelines, lifeline]));
+    const newLifelines = new Set([...usedLifelines, lifeline]);
+    setUsedLifelines(newLifelines);
+
+    // Update lifelines in database
+    if (currentRun) {
+      await updateLifelinesUsed(currentRun.id, Array.from(newLifelines));
+    }
     
     switch (lifeline) {
       case LIFELINES.FIFTY_FIFTY:
@@ -291,12 +401,23 @@ const Game: React.FC = () => {
     }
   };
 
-  const handleQuit = () => {
+  const handleQuit = async () => {
     const safeHavens = prizeLadder.filter(p => p.isSafeHaven && p.questionNumber <= currentQuestionIndex);
     const safeHavenAmount = safeHavens.length > 0 ? safeHavens[safeHavens.length - 1].prizeAmount : 0;
     setEarnedAmount(safeHavenAmount);
     setIsGameOver(true);
     setShowQuitDialog(false);
+
+    // Complete run as abandoned
+    if (currentRun) {
+      await completeRun({
+        runId: currentRun.id,
+        reachedQ: currentQuestionIndex,
+        earnedTier: safeHavens.length,
+        earnedAmount: safeHavenAmount,
+        status: 'abandoned',
+      });
+    }
   };
 
   const handleViewResult = () => {
@@ -304,13 +425,24 @@ const Game: React.FC = () => {
       state: { 
         earnedAmount, 
         reachedQuestion: currentQuestionIndex + 1,
-        isWinner: (isCorrect && currentQuestionIndex >= mockQuestions.length - 1) || claimedEarly
+        isWinner: (isCorrect && currentQuestionIndex >= mockQuestions.length - 1) || claimedEarly,
+        runId: currentRun?.id, // Pass the run ID for claiming
       } 
     });
   };
 
   // Check if current question number is NOT a checkpoint (for showing next button)
   const isCheckpointQuestion = CLAIM_CHECKPOINTS.includes(currentQuestionIndex + 1);
+
+  // Show loading while initializing run
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen gradient-hero flex flex-col items-center justify-center px-4 gap-6">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+        <p className="text-muted-foreground">Starting game...</p>
+      </div>
+    );
+  }
 
   if (isGameOver) {
     return (
