@@ -1,0 +1,189 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { run_id, user_id } = await req.json();
+
+    console.log('Claim rewards request:', { run_id, user_id });
+
+    // Validate required fields
+    if (!run_id || !user_id) {
+      console.error('Missing required fields');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Missing required fields: run_id, user_id' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get the run and verify it belongs to the user and is claimable
+    const { data: run, error: runError } = await supabase
+      .from('runs')
+      .select('*')
+      .eq('id', run_id)
+      .eq('user_id', user_id)
+      .maybeSingle();
+
+    if (runError) {
+      console.error('Error fetching run:', runError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Failed to fetch run' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!run) {
+      console.error('Run not found or does not belong to user');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Run not found or unauthorized' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if run is completed and has earnings
+    if (run.status !== 'completed') {
+      console.error('Run is not completed');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Run is not completed' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (run.earned_amount <= 0) {
+      console.error('No earnings to claim');
+      return new Response(
+        JSON.stringify({ success: false, error: 'No earnings to claim' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if already claimed
+    const { data: existingClaim } = await supabase
+      .from('claims')
+      .select('id, status')
+      .eq('run_id', run_id)
+      .maybeSingle();
+
+    if (existingClaim && existingClaim.status === 'confirmed') {
+      console.error('Already claimed:', existingClaim);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Rewards already claimed' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const amount = run.earned_amount;
+
+    // Create or update the claim record as confirmed
+    if (existingClaim) {
+      // Update existing claim to confirmed
+      const { error: updateError } = await supabase
+        .from('claims')
+        .update({ status: 'confirmed' })
+        .eq('id', existingClaim.id);
+
+      if (updateError) {
+        console.error('Error updating claim:', updateError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Failed to update claim' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      // Create new claim as confirmed directly
+      const { error: claimError } = await supabase
+        .from('claims')
+        .insert({
+          run_id,
+          user_id,
+          day_id: run.day_id,
+          amount,
+          nonce: 'db-claim-' + Date.now(),
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          status: 'confirmed',
+        });
+
+      if (claimError) {
+        console.error('Error creating claim:', claimError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Failed to create claim' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // Update user balance - upsert to handle first-time claims
+    const { data: existingBalance } = await supabase
+      .from('user_balances')
+      .select('total_claimed')
+      .eq('user_id', user_id)
+      .maybeSingle();
+
+    if (existingBalance) {
+      // Update existing balance
+      const { error: balanceError } = await supabase
+        .from('user_balances')
+        .update({ total_claimed: existingBalance.total_claimed + amount })
+        .eq('user_id', user_id);
+
+      if (balanceError) {
+        console.error('Error updating balance:', balanceError);
+        // Don't fail the claim, just log the error
+      }
+    } else {
+      // Insert new balance record
+      const { error: balanceError } = await supabase
+        .from('user_balances')
+        .insert({
+          user_id,
+          total_claimed: amount,
+        });
+
+      if (balanceError) {
+        console.error('Error inserting balance:', balanceError);
+        // Don't fail the claim, just log the error
+      }
+    }
+
+    // Get updated balance
+    const { data: updatedBalance } = await supabase
+      .from('user_balances')
+      .select('total_claimed')
+      .eq('user_id', user_id)
+      .maybeSingle();
+
+    console.log('Claim successful. Amount:', amount, 'New total:', updatedBalance?.total_claimed);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        amount,
+        totalBalance: updatedBalance?.total_claimed || amount,
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error: unknown) {
+    console.error('Error in claim-rewards:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(
+      JSON.stringify({ success: false, error: errorMessage }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});

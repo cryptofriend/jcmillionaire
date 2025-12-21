@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { PoolStats } from '@/components/game/PoolStats';
-import { AttemptsDisplay } from '@/components/game/AttemptsDisplay';
+import { UserBalance } from '@/components/game/UserBalance';
 import { useGame } from '@/contexts/GameContext';
 import { formatJC } from '@/lib/constants';
 import { Play, UserCheck, Share2, Trophy, ChevronRight } from 'lucide-react';
@@ -70,6 +70,7 @@ const Home: React.FC = () => {
 
         {/* Stats Cards */}
         <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-1">
+          <UserBalance />
           <PoolStats dayState={dayState} />
         </div>
 
