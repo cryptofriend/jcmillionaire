@@ -112,7 +112,7 @@ export function formatTokenAmount(amount: number, decimals = 18): string {
 /**
  * World Chain explorer URL
  */
-export const WORLD_CHAIN_EXPLORER = 'https://worldchain-mainnet.explorer.alchemy.com';
+export const WORLD_CHAIN_EXPLORER = 'https://worldscan.org';
 
 export function getExplorerTxUrl(txHash: string): string {
   return `${WORLD_CHAIN_EXPLORER}/tx/${txHash}`;
