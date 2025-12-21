@@ -140,17 +140,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           },
         });
       } else {
-        // Default state for new user today
+        // Default state for new user today - unlimited for testing
         dispatch({
           type: 'SET_ATTEMPTS',
           payload: {
             userId: state.user.id,
             dayId: today,
             freeGranted: true,
-            earnedFromReferrals: 0,
+            earnedFromReferrals: 9999,
             used: 0,
-            cap: 10,
-            remaining: 1,
+            cap: 9999,
+            remaining: 9999,
           },
         });
       }
