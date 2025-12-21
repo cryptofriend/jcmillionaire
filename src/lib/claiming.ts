@@ -16,8 +16,8 @@ export const CLAIM_CONTRACT_ABI = [
   },
 ] as const;
 
-// Claim contract address - UPDATE THIS after deploying the contract
-export const CLAIM_CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000'; // TODO: Deploy and update
+// Claim contract address on World Chain
+export const CLAIM_CONTRACT_ADDRESS = '0x15E003d978400dA10Fc6B8B641E76533871aB49d';
 
 export interface ClaimData {
   id: string;
