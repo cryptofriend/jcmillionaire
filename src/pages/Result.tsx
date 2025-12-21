@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { formatJC, JC_TOKEN_ADDRESS } from '@/lib/constants';
-import { authorizeClaim, confirmClaim, getExplorerTxUrl, ClaimData, CLAIM_CONTRACT_ADDRESS } from '@/lib/claiming';
-import { Share2, Trophy, Home, Loader2, CheckCircle, ExternalLink, Wallet, AlertCircle, Clock, ArrowRight } from 'lucide-react';
+import { authorizeClaim, confirmClaim, getExplorerTxUrl, ClaimData, CLAIM_CONTRACT_ADDRESS, CLAIM_CONTRACT_ABI } from '@/lib/claiming';
+import { isInWorldApp, sendTransaction as sendMiniKitTransaction, getWalletAddress } from '@/lib/minikit';
+import { Share2, Trophy, Home, Loader2, CheckCircle, ExternalLink, Wallet, AlertCircle, Clock, ArrowRight, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGame } from '@/contexts/GameContext';
 
@@ -20,10 +21,15 @@ const Result: React.FC = () => {
   const [claimData, setClaimData] = useState<ClaimData | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [inWorldApp, setInWorldApp] = useState(false);
 
-  // Mock wallet address - in production this comes from World ID/MiniKit
-  const walletAddress = '0x1234567890123456789012345678901234567890';
-  const userId = 'mock-user-id'; // In production, from auth context
+  // Check if we're in World App on mount
+  useEffect(() => {
+    setInWorldApp(isInWorldApp());
+  }, []);
+
+  // Get wallet address - from World App or use mock for demo
+  const walletAddress = getWalletAddress() || '0x1234567890123456789012345678901234567890';
 
   const handleStartClaim = async () => {
     if (earnedAmount <= 0) return;
@@ -80,29 +86,58 @@ const Result: React.FC = () => {
     setClaimStep('submitting');
 
     try {
-      // In production, use MiniKit.commands.sendTransaction
-      // For demo, simulate transaction
-      console.log('Submitting claim transaction:', {
-        to: CLAIM_CONTRACT_ADDRESS,
-        amount: claimData.amount,
-        nonce: claimData.nonce,
-        expiry: claimData.expiry,
-        signature: claimData.signature,
-      });
+      let resultTxHash: string;
 
-      // Simulate transaction submission
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      if (inWorldApp) {
+        // Real transaction via MiniKit in World App
+        console.log('Submitting real claim transaction via MiniKit:', {
+          to: CLAIM_CONTRACT_ADDRESS,
+          amount: claimData.amount,
+          nonce: claimData.nonce,
+          expiry: claimData.expiry,
+        });
+
+        const result = await sendMiniKitTransaction({
+          contractAddress: CLAIM_CONTRACT_ADDRESS,
+          abi: CLAIM_CONTRACT_ABI,
+          functionName: 'claim',
+          args: [
+            BigInt(claimData.amount),
+            claimData.nonce,
+            BigInt(claimData.expiry),
+            claimData.signature,
+          ],
+        });
+
+        if (!result.success || !result.transactionHash) {
+          throw new Error(result.error || 'Transaction failed');
+        }
+
+        resultTxHash = result.transactionHash;
+        console.log('Transaction submitted successfully:', resultTxHash);
+      } else {
+        // Demo mode - simulate transaction
+        console.log('Demo mode - simulating claim transaction:', {
+          to: CLAIM_CONTRACT_ADDRESS,
+          amount: claimData.amount,
+          nonce: claimData.nonce,
+          expiry: claimData.expiry,
+          signature: claimData.signature,
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Mock transaction hash
+        resultTxHash = '0x' + Array.from({ length: 64 }, () => 
+          Math.floor(Math.random() * 16).toString(16)
+        ).join('');
+      }
       
-      // Mock transaction hash
-      const mockTxHash = '0x' + Array.from({ length: 64 }, () => 
-        Math.floor(Math.random() * 16).toString(16)
-      ).join('');
-      
-      setTxHash(mockTxHash);
+      setTxHash(resultTxHash);
       setClaimStep('confirming');
 
-      // Step 3: Confirm the claim in backend
-      const confirmResponse = await confirmClaim(claimData.id, mockTxHash);
+      // Confirm the claim in backend
+      const confirmResponse = await confirmClaim(claimData.id, resultTxHash);
       
       if (!confirmResponse.success) {
         console.warn('Failed to confirm claim in backend:', confirmResponse.error);
@@ -138,6 +173,12 @@ const Result: React.FC = () => {
       case 'idle':
         return (
           <div className="w-full max-w-sm space-y-4">
+            {!inWorldApp && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg text-xs text-muted-foreground">
+                <Smartphone className="w-4 h-4" />
+                <span>Demo mode — open in World App for real claiming</span>
+              </div>
+            )}
             <Button
               variant="gold"
               size="xl"
@@ -218,23 +259,33 @@ const Result: React.FC = () => {
             <div className="p-4 bg-success/10 rounded-xl border border-success/30 space-y-3">
               <div className="flex items-center gap-2 text-success">
                 <CheckCircle className="w-6 h-6" />
-                <span className="font-bold">Claimed Successfully!</span>
+                <span className="font-bold">
+                  {inWorldApp ? 'Claimed Successfully!' : 'Demo Claim Complete!'}
+                </span>
               </div>
               <p className="text-sm text-muted-foreground">
-                {formatJC(earnedAmount)} JC tokens have been sent to your wallet.
+                {inWorldApp 
+                  ? `${formatJC(earnedAmount)} JC tokens have been sent to your wallet.`
+                  : `Demo mode: ${formatJC(earnedAmount)} JC tokens would be sent in World App.`
+                }
               </p>
             </div>
             
             {txHash && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() => window.open(getExplorerTxUrl(txHash), '_blank')}
-              >
-                <ExternalLink className="w-4 h-4" />
-                View on Explorer
-              </Button>
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => window.open(getExplorerTxUrl(txHash), '_blank')}
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  {inWorldApp ? 'View on Explorer' : 'View Demo TX'}
+                </Button>
+                <p className="text-xs text-center text-muted-foreground font-mono break-all">
+                  {txHash.slice(0, 10)}...{txHash.slice(-8)}
+                </p>
+              </div>
             )}
             <ClaimProgress step={3} complete />
           </div>
