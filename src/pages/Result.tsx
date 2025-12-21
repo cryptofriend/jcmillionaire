@@ -32,30 +32,41 @@ const Result: React.FC = () => {
     setErrorMessage(null);
 
     try {
-      // For demo/testing: skip backend authorization and create mock claim data
-      // In production, this would call authorizeClaim(runId, userId, walletAddress)
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
-      
-      const mockNonce = '0x' + Array.from({ length: 64 }, () => 
-        Math.floor(Math.random() * 16).toString(16)
-      ).join('');
-      
-      const mockSignature = '0x' + Array.from({ length: 130 }, () => 
-        Math.floor(Math.random() * 16).toString(16)
-      ).join('');
+      // If we have a real runId, use the backend authorization
+      if (runId && gameState.user) {
+        const response = await authorizeClaim(runId, gameState.user.id, walletAddress);
+        
+        if (!response.success || !response.claim) {
+          throw new Error(response.error || 'Failed to authorize claim');
+        }
 
-      const mockClaimData: ClaimData = {
-        id: 'demo-claim-' + Date.now(),
-        amount: earnedAmount,
-        nonce: mockNonce,
-        expiry: Math.floor(Date.now() / 1000) + 24 * 60 * 60, // 24 hours
-        signature: mockSignature,
-        recipient: walletAddress,
-      };
+        setClaimData(response.claim);
+        setClaimStep('authorized');
+      } else {
+        // Fallback for demo/testing: create mock claim data
+        console.log('No runId - using demo mode for claiming');
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        const mockNonce = '0x' + Array.from({ length: 64 }, () => 
+          Math.floor(Math.random() * 16).toString(16)
+        ).join('');
+        
+        const mockSignature = '0x' + Array.from({ length: 130 }, () => 
+          Math.floor(Math.random() * 16).toString(16)
+        ).join('');
 
-      setClaimData(mockClaimData);
-      setClaimStep('authorized');
+        const mockClaimData: ClaimData = {
+          id: 'demo-claim-' + Date.now(),
+          amount: earnedAmount,
+          nonce: mockNonce,
+          expiry: Math.floor(Date.now() / 1000) + 24 * 60 * 60,
+          signature: mockSignature,
+          recipient: walletAddress,
+        };
 
+        setClaimData(mockClaimData);
+        setClaimStep('authorized');
+      }
     } catch (error) {
       console.error('Claim authorization failed:', error);
       setErrorMessage(error instanceof Error ? error.message : 'Authorization failed');
