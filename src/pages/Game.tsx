@@ -145,14 +145,14 @@ const Game: React.FC = () => {
     return () => clearInterval(interval);
   }, [hasPlayedToday]);
 
-  // Check if user already played today
-  useEffect(() => {
-    const lastPlayDate = localStorage.getItem('jc_last_play_date');
-    const today = getTodayKey();
-    if (lastPlayDate === today) {
-      setHasPlayedToday(true);
-    }
-  }, []);
+  // Check if user already played today - DISABLED FOR TESTING
+  // useEffect(() => {
+  //   const lastPlayDate = localStorage.getItem('jc_last_play_date');
+  //   const today = getTodayKey();
+  //   if (lastPlayDate === today) {
+  //     setHasPlayedToday(true);
+  //   }
+  // }, []);
 
   // Mark game as played when it ends
   useEffect(() => {
