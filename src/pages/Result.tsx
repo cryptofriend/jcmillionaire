@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
-import { formatJC, JC_TOKEN_ADDRESS } from '@/lib/constants';
-import { authorizeClaim, confirmClaim, getExplorerTxUrl, ClaimData, CLAIM_CONTRACT_ADDRESS, CLAIM_CONTRACT_ABI } from '@/lib/claiming';
-import { isInWorldApp, sendTransaction as sendMiniKitTransaction, getWalletAddress } from '@/lib/minikit';
-import { Share2, Trophy, Home, Loader2, CheckCircle, ExternalLink, Wallet, AlertCircle, Clock, ArrowRight, Smartphone } from 'lucide-react';
+import { formatJC } from '@/lib/constants';
+import { claimRewards } from '@/lib/rewardsService';
+import { Share2, Trophy, Home, Loader2, CheckCircle, Wallet, AlertCircle, Coins } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGame } from '@/contexts/GameContext';
 
-type ClaimStep = 'idle' | 'authorizing' | 'authorized' | 'submitting' | 'confirming' | 'success' | 'error';
+type ClaimStep = 'idle' | 'claiming' | 'success' | 'error';
 
 const Result: React.FC = () => {
   const navigate = useNavigate();
@@ -18,137 +17,36 @@ const Result: React.FC = () => {
   const { earnedAmount = 0, reachedQuestion = 1, isWinner = false, runId } = location.state || {};
   
   const [claimStep, setClaimStep] = useState<ClaimStep>('idle');
-  const [claimData, setClaimData] = useState<ClaimData | null>(null);
-  const [txHash, setTxHash] = useState<string | null>(null);
+  const [totalBalance, setTotalBalance] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [inWorldApp, setInWorldApp] = useState(false);
 
-  // Check if we're in World App on mount
-  useEffect(() => {
-    setInWorldApp(isInWorldApp());
-  }, []);
-
-  // Get wallet address - from World App or use mock for demo
-  const walletAddress = getWalletAddress() || '0x1234567890123456789012345678901234567890';
-
-  const handleStartClaim = async () => {
+  const handleClaim = async () => {
     if (earnedAmount <= 0) return;
     
-    setClaimStep('authorizing');
+    setClaimStep('claiming');
     setErrorMessage(null);
 
     try {
-      // If we have a real runId, use the backend authorization
       if (runId && gameState.user) {
-        const response = await authorizeClaim(runId, gameState.user.id, walletAddress);
+        // Real claim via backend
+        const result = await claimRewards(runId, gameState.user.id);
         
-        if (!response.success || !response.claim) {
-          throw new Error(response.error || 'Failed to authorize claim');
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to claim rewards');
         }
 
-        setClaimData(response.claim);
-        setClaimStep('authorized');
+        setTotalBalance(result.totalBalance || earnedAmount);
+        setClaimStep('success');
       } else {
-        // Fallback for demo/testing: create mock claim data
-        console.log('No runId - using demo mode for claiming');
+        // Demo mode - simulate claim
+        console.log('Demo mode - simulating claim');
         await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        const mockNonce = '0x' + Array.from({ length: 64 }, () => 
-          Math.floor(Math.random() * 16).toString(16)
-        ).join('');
-        
-        const mockSignature = '0x' + Array.from({ length: 130 }, () => 
-          Math.floor(Math.random() * 16).toString(16)
-        ).join('');
-
-        const mockClaimData: ClaimData = {
-          id: 'demo-claim-' + Date.now(),
-          amount: earnedAmount,
-          nonce: mockNonce,
-          expiry: Math.floor(Date.now() / 1000) + 24 * 60 * 60,
-          signature: mockSignature,
-          recipient: walletAddress,
-        };
-
-        setClaimData(mockClaimData);
-        setClaimStep('authorized');
+        setTotalBalance(earnedAmount);
+        setClaimStep('success');
       }
     } catch (error) {
-      console.error('Claim authorization failed:', error);
-      setErrorMessage(error instanceof Error ? error.message : 'Authorization failed');
-      setClaimStep('error');
-    }
-  };
-
-  const handleSubmitTransaction = async () => {
-    if (!claimData) return;
-
-    setClaimStep('submitting');
-
-    try {
-      let resultTxHash: string;
-
-      if (inWorldApp) {
-        // Real transaction via MiniKit in World App
-        console.log('Submitting real claim transaction via MiniKit:', {
-          to: CLAIM_CONTRACT_ADDRESS,
-          amount: claimData.amount,
-          nonce: claimData.nonce,
-          expiry: claimData.expiry,
-        });
-
-        const result = await sendMiniKitTransaction({
-          contractAddress: CLAIM_CONTRACT_ADDRESS,
-          abi: CLAIM_CONTRACT_ABI,
-          functionName: 'claim',
-          args: [
-            BigInt(claimData.amount),
-            claimData.nonce,
-            BigInt(claimData.expiry),
-            claimData.signature,
-          ],
-        });
-
-        if (!result.success || !result.transactionHash) {
-          throw new Error(result.error || 'Transaction failed');
-        }
-
-        resultTxHash = result.transactionHash;
-        console.log('Transaction submitted successfully:', resultTxHash);
-      } else {
-        // Demo mode - simulate transaction
-        console.log('Demo mode - simulating claim transaction:', {
-          to: CLAIM_CONTRACT_ADDRESS,
-          amount: claimData.amount,
-          nonce: claimData.nonce,
-          expiry: claimData.expiry,
-          signature: claimData.signature,
-        });
-
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Mock transaction hash
-        resultTxHash = '0x' + Array.from({ length: 64 }, () => 
-          Math.floor(Math.random() * 16).toString(16)
-        ).join('');
-      }
-      
-      setTxHash(resultTxHash);
-      setClaimStep('confirming');
-
-      // Confirm the claim in backend
-      const confirmResponse = await confirmClaim(claimData.id, resultTxHash);
-      
-      if (!confirmResponse.success) {
-        console.warn('Failed to confirm claim in backend:', confirmResponse.error);
-        // Continue anyway - tx was submitted
-      }
-
-      setClaimStep('success');
-
-    } catch (error) {
-      console.error('Transaction submission failed:', error);
-      setErrorMessage(error instanceof Error ? error.message : 'Transaction failed');
+      console.error('Claim failed:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Claim failed');
       setClaimStep('error');
     }
   };
@@ -173,83 +71,28 @@ const Result: React.FC = () => {
       case 'idle':
         return (
           <div className="w-full max-w-sm space-y-4">
-            {!inWorldApp && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg text-xs text-muted-foreground">
-                <Smartphone className="w-4 h-4" />
-                <span>Demo mode — open in World App for real claiming</span>
-              </div>
-            )}
             <Button
               variant="gold"
               size="xl"
               className="w-full"
-              onClick={handleStartClaim}
+              onClick={handleClaim}
             >
               <Wallet className="w-5 h-5" />
               Claim {formatJC(earnedAmount)} JC
             </Button>
             <p className="text-xs text-muted-foreground text-center">
-              Claim expires in 24 hours. You'll sign a transaction to receive tokens.
+              Coins will be added to your balance instantly
             </p>
           </div>
         );
 
-      case 'authorizing':
+      case 'claiming':
         return (
           <div className="w-full max-w-sm space-y-4">
             <div className="flex items-center justify-center gap-3 py-4 bg-card rounded-xl border border-border">
               <Loader2 className="w-5 h-5 animate-spin text-primary" />
-              <span className="text-sm">Preparing your claim...</span>
+              <span className="text-sm">Claiming your rewards...</span>
             </div>
-            <ClaimProgress step={1} />
-          </div>
-        );
-
-      case 'authorized':
-        return (
-          <div className="w-full max-w-sm space-y-4">
-            <div className="p-4 bg-card rounded-xl border border-primary/30 space-y-3">
-              <div className="flex items-center gap-2 text-success">
-                <CheckCircle className="w-5 h-5" />
-                <span className="font-medium">Claim Authorized!</span>
-              </div>
-              <div className="text-sm text-muted-foreground space-y-1">
-                <p>Amount: <span className="text-foreground font-medium">{formatJC(earnedAmount)} JC</span></p>
-                <p>Expires: <span className="text-foreground">{new Date(claimData!.expiry * 1000).toLocaleString()}</span></p>
-              </div>
-            </div>
-            <Button
-              variant="gold"
-              size="xl"
-              className="w-full"
-              onClick={handleSubmitTransaction}
-            >
-              <ArrowRight className="w-5 h-5" />
-              Sign & Submit Transaction
-            </Button>
-            <ClaimProgress step={2} />
-          </div>
-        );
-
-      case 'submitting':
-        return (
-          <div className="w-full max-w-sm space-y-4">
-            <div className="flex items-center justify-center gap-3 py-4 bg-card rounded-xl border border-border">
-              <Loader2 className="w-5 h-5 animate-spin text-primary" />
-              <span className="text-sm">Submitting transaction...</span>
-            </div>
-            <ClaimProgress step={2} active />
-          </div>
-        );
-
-      case 'confirming':
-        return (
-          <div className="w-full max-w-sm space-y-4">
-            <div className="flex items-center justify-center gap-3 py-4 bg-card rounded-xl border border-border">
-              <Loader2 className="w-5 h-5 animate-spin text-primary" />
-              <span className="text-sm">Confirming on chain...</span>
-            </div>
-            <ClaimProgress step={3} active />
           </div>
         );
 
@@ -259,35 +102,20 @@ const Result: React.FC = () => {
             <div className="p-4 bg-success/10 rounded-xl border border-success/30 space-y-3">
               <div className="flex items-center gap-2 text-success">
                 <CheckCircle className="w-6 h-6" />
-                <span className="font-bold">
-                  {inWorldApp ? 'Claimed Successfully!' : 'Demo Claim Complete!'}
-                </span>
+                <span className="font-bold">Claimed Successfully!</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                {inWorldApp 
-                  ? `${formatJC(earnedAmount)} JC tokens have been sent to your wallet.`
-                  : `Demo mode: ${formatJC(earnedAmount)} JC tokens would be sent in World App.`
-                }
+                {formatJC(earnedAmount)} JC has been added to your balance.
               </p>
             </div>
             
-            {txHash && (
-              <div className="space-y-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => window.open(getExplorerTxUrl(txHash), '_blank')}
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  {inWorldApp ? 'View on Explorer' : 'View Demo TX'}
-                </Button>
-                <p className="text-xs text-center text-muted-foreground font-mono break-all">
-                  {txHash.slice(0, 10)}...{txHash.slice(-8)}
-                </p>
+            {totalBalance !== null && (
+              <div className="flex items-center justify-center gap-2 py-3 px-4 bg-card rounded-xl border border-primary/30">
+                <Coins className="w-5 h-5 text-primary" />
+                <span className="text-sm text-muted-foreground">Total Balance:</span>
+                <span className="font-bold text-primary">{formatJC(totalBalance)} JC</span>
               </div>
             )}
-            <ClaimProgress step={3} complete />
           </div>
         );
 
@@ -310,7 +138,6 @@ const Result: React.FC = () => {
               onClick={() => {
                 setClaimStep('idle');
                 setErrorMessage(null);
-                setClaimData(null);
               }}
             >
               Try Again
@@ -391,59 +218,6 @@ const Result: React.FC = () => {
           Home
         </Button>
       </div>
-    </div>
-  );
-};
-
-// Progress indicator component
-const ClaimProgress: React.FC<{ step: number; active?: boolean; complete?: boolean }> = ({ 
-  step, 
-  active = false,
-  complete = false 
-}) => {
-  const steps = [
-    { label: 'Authorize', icon: CheckCircle },
-    { label: 'Sign Tx', icon: Wallet },
-    { label: 'Confirm', icon: Clock },
-  ];
-
-  return (
-    <div className="flex items-center justify-center gap-2">
-      {steps.map((s, index) => {
-        const stepNum = index + 1;
-        const isComplete = complete || stepNum < step;
-        const isActive = active && stepNum === step;
-        const isCurrent = !complete && stepNum === step;
-
-        return (
-          <React.Fragment key={s.label}>
-            <div className={cn(
-              'flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors',
-              isComplete && 'bg-success/20 text-success',
-              isActive && 'bg-primary/20 text-primary',
-              isCurrent && !isActive && 'bg-primary/20 text-primary',
-              !isComplete && !isCurrent && !isActive && 'bg-muted text-muted-foreground'
-            )}>
-              {isComplete ? (
-                <CheckCircle className="w-3 h-3" />
-              ) : isActive ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                <span className="w-3 h-3 flex items-center justify-center text-[10px] font-bold">
-                  {stepNum}
-                </span>
-              )}
-              <span>{s.label}</span>
-            </div>
-            {index < steps.length - 1 && (
-              <div className={cn(
-                'w-4 h-0.5',
-                isComplete ? 'bg-success' : 'bg-muted'
-              )} />
-            )}
-          </React.Fragment>
-        );
-      })}
     </div>
   );
 };
