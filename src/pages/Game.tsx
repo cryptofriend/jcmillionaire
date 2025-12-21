@@ -93,6 +93,9 @@ const correctAnswers: Record<string, 'A' | 'B' | 'C' | 'D'> = {
   '11': 'B', '12': 'D', '13': 'B', '14': 'B', '15': 'B',
 };
 
+// Helper to get today's date key
+const getTodayKey = () => new Date().toISOString().split('T')[0];
+
 const Game: React.FC = () => {
   const navigate = useNavigate();
   const { state } = useGame();
@@ -113,6 +116,23 @@ const Game: React.FC = () => {
   const [earnedAmount, setEarnedAmount] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [claimedEarly, setClaimedEarly] = useState(false);
+  const [hasPlayedToday, setHasPlayedToday] = useState(false);
+
+  // Check if user already played today
+  useEffect(() => {
+    const lastPlayDate = localStorage.getItem('jc_last_play_date');
+    const today = getTodayKey();
+    if (lastPlayDate === today) {
+      setHasPlayedToday(true);
+    }
+  }, []);
+
+  // Mark game as played when it ends
+  useEffect(() => {
+    if (isGameOver) {
+      localStorage.setItem('jc_last_play_date', getTodayKey());
+    }
+  }, [isGameOver]);
 
   // Redirect if not verified
   useEffect(() => {
@@ -312,6 +332,22 @@ const Game: React.FC = () => {
     );
   }
 
+  // Show "already played" screen
+  if (hasPlayedToday) {
+    return (
+      <div className="min-h-screen gradient-hero flex flex-col items-center justify-center px-4 gap-6">
+        <JackieIcon size={100} className="drop-shadow-lg opacity-60" />
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-display font-bold">Come Back Tomorrow!</h2>
+          <p className="text-muted-foreground">You've already played today. One play per day!</p>
+        </div>
+        <Button variant="gold" size="lg" onClick={() => navigate('/')}>
+          Back to Home
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen gradient-hero flex flex-col">
       {/* Header */}
@@ -326,9 +362,10 @@ const Game: React.FC = () => {
 
         <Timer seconds={timeRemaining} />
 
+        {/* Mobile: Sheet trigger for prize ladder */}
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="sm" className="text-xs">
+            <Button variant="ghost" size="sm" className="text-xs lg:hidden">
               <div className="flex items-center gap-1">
                 <CoinIcon size={16} />
                 <span className="font-bold">
@@ -350,44 +387,64 @@ const Game: React.FC = () => {
             </div>
           </SheetContent>
         </Sheet>
+
+        {/* Desktop: Just show current prize */}
+        <div className="hidden lg:flex items-center gap-1 text-sm">
+          <CoinIcon size={16} />
+          <span className="font-bold">
+            {formatJC(prizeLadder[currentQuestionIndex]?.prizeAmount || 0)}
+          </span>
+        </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col px-4 py-6 gap-6 overflow-y-auto hide-scrollbar">
-        {/* Lifelines */}
-        <Lifelines
-          usedLifelines={usedLifelines}
-          onUseLifeline={handleUseLifeline}
-          disabled={showResult}
-        />
+      {/* Main Content with Side Panel */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Main Content */}
+        <main className="flex-1 flex flex-col px-4 py-6 gap-6 overflow-y-auto hide-scrollbar">
+          {/* Lifelines */}
+          <Lifelines
+            usedLifelines={usedLifelines}
+            onUseLifeline={handleUseLifeline}
+            disabled={showResult}
+          />
 
-        {/* Question Card */}
-        <QuestionCard
-          question={currentQuestion}
-          questionNumber={currentQuestionIndex + 1}
-          onAnswer={handleAnswer}
-          disabled={showResult}
-          selectedChoice={selectedChoice}
-          correctChoice={showResult ? correctAnswers[currentQuestion.id] : undefined}
-          showResult={showResult}
-          hint={mockHints[currentQuestion.id]}
-          showHint={showHint}
-          answerStats={mockStats[currentQuestion.id]}
-          showStats={showStats}
-        />
+          {/* Question Card */}
+          <QuestionCard
+            question={currentQuestion}
+            questionNumber={currentQuestionIndex + 1}
+            onAnswer={handleAnswer}
+            disabled={showResult}
+            selectedChoice={selectedChoice}
+            correctChoice={showResult ? correctAnswers[currentQuestion.id] : undefined}
+            showResult={showResult}
+            hint={mockHints[currentQuestion.id]}
+            showHint={showHint}
+            answerStats={mockStats[currentQuestion.id]}
+            showStats={showStats}
+          />
 
-        {/* Next Question Button - only show if NOT a checkpoint question */}
-        {showResult && isCorrect && !isGameOver && !isCheckpointQuestion && !showCheckpointDialog && (
-          <Button
-            variant="success"
-            size="lg"
-            className="w-full animate-bounce-in"
-            onClick={handleNextQuestion}
-          >
-            Next Question →
-          </Button>
-        )}
-      </main>
+          {/* Next Question Button - only show if NOT a checkpoint question */}
+          {showResult && isCorrect && !isGameOver && !isCheckpointQuestion && !showCheckpointDialog && (
+            <Button
+              variant="success"
+              size="lg"
+              className="w-full animate-bounce-in"
+              onClick={handleNextQuestion}
+            >
+              Next Question →
+            </Button>
+          )}
+        </main>
+
+        {/* Right Side Panel - Prize Ladder (Desktop Only) */}
+        <aside className="hidden lg:flex w-72 border-l border-border bg-card/30 backdrop-blur p-4 overflow-y-auto">
+          <PrizeLadder
+            ladder={prizeLadder}
+            currentQuestion={currentQuestionIndex + 1}
+            reachedQuestion={currentQuestionIndex}
+          />
+        </aside>
+      </div>
 
       {/* Quit Dialog */}
       <AlertDialog open={showQuitDialog} onOpenChange={setShowQuitDialog}>
