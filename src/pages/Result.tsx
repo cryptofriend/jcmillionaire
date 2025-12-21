@@ -2,37 +2,98 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
-import { formatJC } from '@/lib/constants';
-import { Share2, Trophy, Home, Loader2, CheckCircle, ExternalLink } from 'lucide-react';
+import { formatJC, JC_TOKEN_ADDRESS } from '@/lib/constants';
+import { authorizeClaim, confirmClaim, getExplorerTxUrl, ClaimData, CLAIM_CONTRACT_ADDRESS } from '@/lib/claiming';
+import { Share2, Trophy, Home, Loader2, CheckCircle, ExternalLink, Wallet, AlertCircle, Clock, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useGame } from '@/contexts/GameContext';
+
+type ClaimStep = 'idle' | 'authorizing' | 'authorized' | 'submitting' | 'confirming' | 'success' | 'error';
 
 const Result: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { earnedAmount = 0, reachedQuestion = 1, isWinner = false } = location.state || {};
+  const { state: gameState } = useGame();
+  const { earnedAmount = 0, reachedQuestion = 1, isWinner = false, runId } = location.state || {};
   
-  const [claimStatus, setClaimStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [claimStep, setClaimStep] = useState<ClaimStep>('idle');
+  const [claimData, setClaimData] = useState<ClaimData | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleClaim = async () => {
-    if (earnedAmount <= 0) return;
+  // Mock wallet address - in production this comes from World ID/MiniKit
+  const walletAddress = '0x1234567890123456789012345678901234567890';
+  const userId = 'mock-user-id'; // In production, from auth context
+
+  const handleStartClaim = async () => {
+    if (earnedAmount <= 0 || !runId) return;
     
-    setClaimStatus('loading');
-    
-    // Simulate claim process
-    // In production, this calls backend to get EIP-712 signature, then uses MiniKit.commands.sendTransaction
+    setClaimStep('authorizing');
+    setErrorMessage(null);
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 2500));
-      setTxHash('0x1234...abcd');
-      setClaimStatus('success');
+      // Step 1: Get authorization signature from backend
+      const response = await authorizeClaim(runId, userId, walletAddress);
+      
+      if (!response.success || !response.claim) {
+        throw new Error(response.error || 'Failed to authorize claim');
+      }
+
+      setClaimData(response.claim);
+      setClaimStep('authorized');
+
     } catch (error) {
-      console.error('Claim failed:', error);
-      setClaimStatus('error');
+      console.error('Claim authorization failed:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Authorization failed');
+      setClaimStep('error');
+    }
+  };
+
+  const handleSubmitTransaction = async () => {
+    if (!claimData) return;
+
+    setClaimStep('submitting');
+
+    try {
+      // In production, use MiniKit.commands.sendTransaction
+      // For demo, simulate transaction
+      console.log('Submitting claim transaction:', {
+        to: CLAIM_CONTRACT_ADDRESS,
+        amount: claimData.amount,
+        nonce: claimData.nonce,
+        expiry: claimData.expiry,
+        signature: claimData.signature,
+      });
+
+      // Simulate transaction submission
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Mock transaction hash
+      const mockTxHash = '0x' + Array.from({ length: 64 }, () => 
+        Math.floor(Math.random() * 16).toString(16)
+      ).join('');
+      
+      setTxHash(mockTxHash);
+      setClaimStep('confirming');
+
+      // Step 3: Confirm the claim in backend
+      const confirmResponse = await confirmClaim(claimData.id, mockTxHash);
+      
+      if (!confirmResponse.success) {
+        console.warn('Failed to confirm claim in backend:', confirmResponse.error);
+        // Continue anyway - tx was submitted
+      }
+
+      setClaimStep('success');
+
+    } catch (error) {
+      console.error('Transaction submission failed:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Transaction failed');
+      setClaimStep('error');
     }
   };
 
   const handleShare = () => {
-    // In production, use MiniKit share
     const message = isWinner 
       ? `🎉 I just won ${formatJC(earnedAmount)} JC in Jackie Chain: Millionaire! Can you beat that?`
       : `I reached question ${reachedQuestion} and won ${formatJC(earnedAmount)} JC! Try to beat my score!`;
@@ -45,12 +106,148 @@ const Result: React.FC = () => {
     }
   };
 
+  const renderClaimSection = () => {
+    if (earnedAmount <= 0) return null;
+
+    switch (claimStep) {
+      case 'idle':
+        return (
+          <div className="w-full max-w-sm space-y-4">
+            <Button
+              variant="gold"
+              size="xl"
+              className="w-full"
+              onClick={handleStartClaim}
+            >
+              <Wallet className="w-5 h-5" />
+              Claim {formatJC(earnedAmount)} JC
+            </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              Claim expires in 24 hours. You'll sign a transaction to receive tokens.
+            </p>
+          </div>
+        );
+
+      case 'authorizing':
+        return (
+          <div className="w-full max-w-sm space-y-4">
+            <div className="flex items-center justify-center gap-3 py-4 bg-card rounded-xl border border-border">
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              <span className="text-sm">Preparing your claim...</span>
+            </div>
+            <ClaimProgress step={1} />
+          </div>
+        );
+
+      case 'authorized':
+        return (
+          <div className="w-full max-w-sm space-y-4">
+            <div className="p-4 bg-card rounded-xl border border-primary/30 space-y-3">
+              <div className="flex items-center gap-2 text-success">
+                <CheckCircle className="w-5 h-5" />
+                <span className="font-medium">Claim Authorized!</span>
+              </div>
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p>Amount: <span className="text-foreground font-medium">{formatJC(earnedAmount)} JC</span></p>
+                <p>Expires: <span className="text-foreground">{new Date(claimData!.expiry * 1000).toLocaleString()}</span></p>
+              </div>
+            </div>
+            <Button
+              variant="gold"
+              size="xl"
+              className="w-full"
+              onClick={handleSubmitTransaction}
+            >
+              <ArrowRight className="w-5 h-5" />
+              Sign & Submit Transaction
+            </Button>
+            <ClaimProgress step={2} />
+          </div>
+        );
+
+      case 'submitting':
+        return (
+          <div className="w-full max-w-sm space-y-4">
+            <div className="flex items-center justify-center gap-3 py-4 bg-card rounded-xl border border-border">
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              <span className="text-sm">Submitting transaction...</span>
+            </div>
+            <ClaimProgress step={2} active />
+          </div>
+        );
+
+      case 'confirming':
+        return (
+          <div className="w-full max-w-sm space-y-4">
+            <div className="flex items-center justify-center gap-3 py-4 bg-card rounded-xl border border-border">
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              <span className="text-sm">Confirming on chain...</span>
+            </div>
+            <ClaimProgress step={3} active />
+          </div>
+        );
+
+      case 'success':
+        return (
+          <div className="w-full max-w-sm space-y-4">
+            <div className="p-4 bg-success/10 rounded-xl border border-success/30 space-y-3">
+              <div className="flex items-center gap-2 text-success">
+                <CheckCircle className="w-6 h-6" />
+                <span className="font-bold">Claimed Successfully!</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {formatJC(earnedAmount)} JC tokens have been sent to your wallet.
+              </p>
+            </div>
+            
+            {txHash && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => window.open(getExplorerTxUrl(txHash), '_blank')}
+              >
+                <ExternalLink className="w-4 h-4" />
+                View on Explorer
+              </Button>
+            )}
+            <ClaimProgress step={3} complete />
+          </div>
+        );
+
+      case 'error':
+        return (
+          <div className="w-full max-w-sm space-y-4">
+            <div className="p-4 bg-destructive/10 rounded-xl border border-destructive/30 space-y-3">
+              <div className="flex items-center gap-2 text-destructive">
+                <AlertCircle className="w-5 h-5" />
+                <span className="font-medium">Claim Failed</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {errorMessage || 'Something went wrong. Please try again.'}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full"
+              onClick={() => {
+                setClaimStep('idle');
+                setErrorMessage(null);
+                setClaimData(null);
+              }}
+            >
+              Try Again
+            </Button>
+          </div>
+        );
+    }
+  };
+
   return (
     <div className="min-h-screen gradient-hero flex flex-col items-center justify-center px-4 gap-6">
       {/* Result Icon */}
-      <div className={cn(
-        'relative animate-bounce-in',
-      )}>
+      <div className={cn('relative animate-bounce-in')}>
         {isWinner ? (
           <div className="relative">
             <JackieIcon size={120} className="animate-float" />
@@ -94,70 +291,9 @@ const Result: React.FC = () => {
       </div>
 
       {/* Claim Section */}
-      {earnedAmount > 0 && (
-        <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-2">
-          {claimStatus === 'idle' && (
-            <Button
-              variant="gold"
-              size="xl"
-              className="w-full"
-              onClick={handleClaim}
-            >
-              <CoinIcon size={24} />
-              Claim {formatJC(earnedAmount)} JC
-            </Button>
-          )}
-
-          {claimStatus === 'loading' && (
-            <Button
-              variant="secondary"
-              size="xl"
-              className="w-full"
-              disabled
-            >
-              <Loader2 className="w-6 h-6 animate-spin" />
-              Claiming...
-            </Button>
-          )}
-
-          {claimStatus === 'success' && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-center gap-2 text-success">
-                <CheckCircle className="w-6 h-6" />
-                <span className="font-bold">Claimed Successfully!</span>
-              </div>
-              
-              {txHash && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => window.open(`https://worldchain-mainnet.explorer.alchemy.com/tx/${txHash}`, '_blank')}
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  View Transaction
-                </Button>
-              )}
-            </div>
-          )}
-
-          {claimStatus === 'error' && (
-            <div className="space-y-3">
-              <p className="text-destructive text-center text-sm">
-                Claim failed. Please try again.
-              </p>
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full"
-                onClick={() => setClaimStatus('idle')}
-              >
-                Retry Claim
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+      <div className="animate-slide-up stagger-2">
+        {renderClaimSection()}
+      </div>
 
       {/* Actions */}
       <div className="flex gap-3 animate-slide-up stagger-3">
@@ -179,13 +315,59 @@ const Result: React.FC = () => {
           Home
         </Button>
       </div>
+    </div>
+  );
+};
 
-      {/* Pool Status Note */}
-      {earnedAmount > 0 && claimStatus === 'idle' && (
-        <p className="text-xs text-muted-foreground text-center animate-slide-up stagger-4">
-          Claim expires in 24 hours. Rewards are subject to daily pool availability.
-        </p>
-      )}
+// Progress indicator component
+const ClaimProgress: React.FC<{ step: number; active?: boolean; complete?: boolean }> = ({ 
+  step, 
+  active = false,
+  complete = false 
+}) => {
+  const steps = [
+    { label: 'Authorize', icon: CheckCircle },
+    { label: 'Sign Tx', icon: Wallet },
+    { label: 'Confirm', icon: Clock },
+  ];
+
+  return (
+    <div className="flex items-center justify-center gap-2">
+      {steps.map((s, index) => {
+        const stepNum = index + 1;
+        const isComplete = complete || stepNum < step;
+        const isActive = active && stepNum === step;
+        const isCurrent = !complete && stepNum === step;
+
+        return (
+          <React.Fragment key={s.label}>
+            <div className={cn(
+              'flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors',
+              isComplete && 'bg-success/20 text-success',
+              isActive && 'bg-primary/20 text-primary',
+              isCurrent && !isActive && 'bg-primary/20 text-primary',
+              !isComplete && !isCurrent && !isActive && 'bg-muted text-muted-foreground'
+            )}>
+              {isComplete ? (
+                <CheckCircle className="w-3 h-3" />
+              ) : isActive ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <span className="w-3 h-3 flex items-center justify-center text-[10px] font-bold">
+                  {stepNum}
+                </span>
+              )}
+              <span>{s.label}</span>
+            </div>
+            {index < steps.length - 1 && (
+              <div className={cn(
+                'w-4 h-0.5',
+                isComplete ? 'bg-success' : 'bg-muted'
+              )} />
+            )}
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 };
