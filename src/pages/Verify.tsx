@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
 import { useGame } from '@/contexts/GameContext';
-import { Shield, Fingerprint, Eye, ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
+import { Shield, Fingerprint, Eye, ArrowLeft, CheckCircle, Loader2, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { createOrGetUser } from '@/lib/userService';
+import { createOrGetUser, persistUser } from '@/lib/userService';
+import { isInWorldApp, authenticateWithWallet } from '@/lib/minikit';
 import { toast } from 'sonner';
 
 const Verify: React.FC = () => {
@@ -15,26 +16,61 @@ const Verify: React.FC = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationLevel, setVerificationLevel] = useState<'device' | 'orb'>('device');
   const [isSuccess, setIsSuccess] = useState(false);
+  const [inWorldApp, setInWorldApp] = useState(false);
 
   const referralCode = searchParams.get('ref');
+
+  // Check if we're in World App on mount
+  useEffect(() => {
+    setInWorldApp(isInWorldApp());
+  }, []);
 
   const handleVerify = async () => {
     setIsVerifying(true);
     
     try {
-      // Simulate World ID verification flow
-      // In production, this would use MiniKit.commands.verify() to get the real nullifier
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Generate a mock nullifier hash - in production this comes from World ID
-      // For testing, we use a consistent hash based on verification level so the same user is returned
-      const mockNullifierHash = `world_id_nullifier_${verificationLevel}_test_user`;
-      
-      // Create or get user in database
-      const { user, error } = await createOrGetUser(mockNullifierHash, verificationLevel);
-      
-      if (error || !user) {
-        throw new Error(error || 'Failed to create user');
+      let user;
+
+      if (inWorldApp) {
+        // Use MiniKit wallet auth in World App
+        console.log('Authenticating with World App wallet...');
+        const result = await authenticateWithWallet(verificationLevel);
+        
+        if (!result.success || !result.user) {
+          throw new Error(result.error || 'Wallet authentication failed');
+        }
+        
+        // Store the wallet address for later use
+        localStorage.setItem('jc_wallet_address', result.user.wallet_address);
+        
+        // Create the user object matching our type
+        user = {
+          id: result.user.id,
+          verification_level: result.user.verification_level as 'device' | 'orb',
+          nullifier_hash: `wallet_${result.user.wallet_address}`,
+          created_at: result.user.created_at,
+          updated_at: result.user.created_at,
+        };
+        
+        // Persist user to localStorage
+        persistUser(user);
+        
+      } else {
+        // Demo mode - simulate World ID verification
+        console.log('Demo mode - simulating verification...');
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Generate a mock nullifier hash
+        const mockNullifierHash = `world_id_nullifier_${verificationLevel}_test_user`;
+        
+        // Create or get user in database
+        const { user: dbUser, error } = await createOrGetUser(mockNullifierHash, verificationLevel);
+        
+        if (error || !dbUser) {
+          throw new Error(error || 'Failed to create user');
+        }
+        
+        user = dbUser;
       }
       
       console.log('User verified:', user.id);
@@ -95,6 +131,14 @@ const Verify: React.FC = () => {
             Prove you're human to play and earn $JC tokens. One account per person.
           </p>
         </div>
+
+        {/* World App / Demo Mode Indicator */}
+        {!inWorldApp && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-lg text-xs text-muted-foreground animate-slide-up">
+            <Smartphone className="w-4 h-4" />
+            <span>Demo mode — open in World App for wallet authentication</span>
+          </div>
+        )}
 
         {referralCode && (
           <div className="bg-success/10 border border-success/30 rounded-xl px-4 py-3 animate-slide-up">
