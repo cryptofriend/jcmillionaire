@@ -96,6 +96,21 @@ const correctAnswers: Record<string, 'A' | 'B' | 'C' | 'D'> = {
 // Helper to get today's date key
 const getTodayKey = () => new Date().toISOString().split('T')[0];
 
+// Calculate time until midnight (next game)
+const getTimeUntilMidnight = () => {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  return midnight.getTime() - now.getTime();
+};
+
+const formatCountdown = (ms: number) => {
+  const hours = Math.floor(ms / (1000 * 60 * 60));
+  const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+  return { hours, minutes, seconds };
+};
+
 const Game: React.FC = () => {
   const navigate = useNavigate();
   const { state } = useGame();
@@ -117,6 +132,18 @@ const Game: React.FC = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [claimedEarly, setClaimedEarly] = useState(false);
   const [hasPlayedToday, setHasPlayedToday] = useState(false);
+  const [countdown, setCountdown] = useState(getTimeUntilMidnight());
+
+  // Countdown timer for "come back tomorrow" screen
+  useEffect(() => {
+    if (!hasPlayedToday) return;
+    
+    const interval = setInterval(() => {
+      setCountdown(getTimeUntilMidnight());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [hasPlayedToday]);
 
   // Check if user already played today
   useEffect(() => {
@@ -334,6 +361,8 @@ const Game: React.FC = () => {
 
   // Show "already played" screen
   if (hasPlayedToday) {
+    const { hours, minutes, seconds } = formatCountdown(countdown);
+    
     return (
       <div className="min-h-screen gradient-hero flex flex-col items-center justify-center px-4 gap-6">
         <JackieIcon size={100} className="drop-shadow-lg opacity-60" />
@@ -341,6 +370,28 @@ const Game: React.FC = () => {
           <h2 className="text-2xl font-display font-bold">Come Back Tomorrow!</h2>
           <p className="text-muted-foreground">You've already played today. One play per day!</p>
         </div>
+        
+        {/* Countdown Timer */}
+        <div className="text-center space-y-2">
+          <p className="text-sm text-muted-foreground">Next game available in:</p>
+          <div className="flex items-center justify-center gap-3">
+            <div className="flex flex-col items-center px-4 py-2 bg-card rounded-lg border border-border">
+              <span className="text-2xl font-display font-bold text-primary">{String(hours).padStart(2, '0')}</span>
+              <span className="text-xs text-muted-foreground">hours</span>
+            </div>
+            <span className="text-xl font-bold text-muted-foreground">:</span>
+            <div className="flex flex-col items-center px-4 py-2 bg-card rounded-lg border border-border">
+              <span className="text-2xl font-display font-bold text-primary">{String(minutes).padStart(2, '0')}</span>
+              <span className="text-xs text-muted-foreground">mins</span>
+            </div>
+            <span className="text-xl font-bold text-muted-foreground">:</span>
+            <div className="flex flex-col items-center px-4 py-2 bg-card rounded-lg border border-border">
+              <span className="text-2xl font-display font-bold text-primary">{String(seconds).padStart(2, '0')}</span>
+              <span className="text-xs text-muted-foreground">secs</span>
+            </div>
+          </div>
+        </div>
+        
         <Button variant="gold" size="lg" onClick={() => navigate('/')}>
           Back to Home
         </Button>
