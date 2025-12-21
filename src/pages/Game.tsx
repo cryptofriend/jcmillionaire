@@ -8,8 +8,8 @@ import { PrizeLadder } from '@/components/game/PrizeLadder';
 import { useGame } from '@/contexts/GameContext';
 import { LIFELINES, LifelineType, QUESTION_TIME_LIMIT_SECONDS, formatJC } from '@/lib/constants';
 import { QuestionWithHiddenChoices, AnswerStats } from '@/lib/types';
-import { ArrowLeft, X, AlertTriangle, Trophy } from 'lucide-react';
-import { CoinIcon } from '@/components/icons/JackieIcon';
+import { X, AlertTriangle, Trophy, Rocket, HandCoins } from 'lucide-react';
+import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -29,52 +29,73 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 
-// Mock questions for demo
+// Claim checkpoint questions (like the real show)
+const CLAIM_CHECKPOINTS = [5, 10, 15];
+
+// Mock questions for demo (expanded to 15)
 const mockQuestions: QuestionWithHiddenChoices[] = [
-  {
-    id: '1',
-    question: 'What is the primary purpose of World ID?',
-    choices: { A: 'Social media login', B: 'Proof of personhood', C: 'Payment processing', D: 'Cloud storage' },
-    difficulty: 1,
-    category: 'World',
-  },
-  {
-    id: '2', 
-    question: 'Which blockchain does World App primarily operate on?',
-    choices: { A: 'Ethereum', B: 'Solana', C: 'World Chain', D: 'Bitcoin' },
-    difficulty: 1,
-    category: 'Crypto',
-  },
-  {
-    id: '3',
-    question: 'What does the Orb device scan to verify users?',
-    choices: { A: 'Fingerprint', B: 'Voice', C: 'Iris', D: 'Face' },
-    difficulty: 2,
-    category: 'World',
-  },
+  { id: '1', question: 'What is the primary purpose of World ID?', choices: { A: 'Social media login', B: 'Proof of personhood', C: 'Payment processing', D: 'Cloud storage' }, difficulty: 1, category: 'World' },
+  { id: '2', question: 'Which blockchain does World App primarily operate on?', choices: { A: 'Ethereum', B: 'Solana', C: 'World Chain', D: 'Bitcoin' }, difficulty: 1, category: 'Crypto' },
+  { id: '3', question: 'What does the Orb device scan to verify users?', choices: { A: 'Fingerprint', B: 'Voice', C: 'Iris', D: 'Face' }, difficulty: 1, category: 'World' },
+  { id: '4', question: 'Who founded Worldcoin?', choices: { A: 'Vitalik Buterin', B: 'Sam Altman', C: 'Elon Musk', D: 'Satoshi Nakamoto' }, difficulty: 1, category: 'World' },
+  { id: '5', question: 'What does WLD stand for?', choices: { A: 'World Digital', B: 'Worldcoin', C: 'World Ledger', D: 'World Dollar' }, difficulty: 2, category: 'Crypto' },
+  { id: '6', question: 'Which proof system does World ID use?', choices: { A: 'Proof of Work', B: 'Proof of Stake', C: 'Zero-Knowledge Proofs', D: 'Proof of Authority' }, difficulty: 2, category: 'Crypto' },
+  { id: '7', question: 'What is the main benefit of World ID verification?', choices: { A: 'Free tokens', B: 'Sybil resistance', C: 'Faster transactions', D: 'Lower fees' }, difficulty: 2, category: 'World' },
+  { id: '8', question: 'What year was Worldcoin launched?', choices: { A: '2021', B: '2022', C: '2023', D: '2024' }, difficulty: 2, category: 'World' },
+  { id: '9', question: 'Which company created ChatGPT?', choices: { A: 'Google', B: 'Meta', C: 'OpenAI', D: 'Microsoft' }, difficulty: 2, category: 'Tech' },
+  { id: '10', question: 'What is a nullifier in World ID?', choices: { A: 'A cancel button', B: 'A unique anonymous identifier', C: 'A hacking tool', D: 'A wallet address' }, difficulty: 3, category: 'World' },
+  { id: '11', question: 'What consensus mechanism does World Chain use?', choices: { A: 'Proof of Work', B: 'Proof of Stake', C: 'Delegated PoS', D: 'Proof of Identity' }, difficulty: 3, category: 'Crypto' },
+  { id: '12', question: 'What is the total supply of WLD tokens?', choices: { A: '21 million', B: '100 million', C: '1 billion', D: '10 billion' }, difficulty: 3, category: 'Crypto' },
+  { id: '13', question: 'Which layer is World Chain?', choices: { A: 'Layer 1', B: 'Layer 2', C: 'Layer 3', D: 'Sidechain' }, difficulty: 4, category: 'Crypto' },
+  { id: '14', question: 'What technology does the Orb use for iris scanning?', choices: { A: 'X-ray', B: 'Infrared', C: 'Ultrasound', D: 'Laser' }, difficulty: 4, category: 'World' },
+  { id: '15', question: 'What is the name of World ID\'s developer SDK?', choices: { A: 'WorldKit', B: 'IDKit', C: 'OrbSDK', D: 'ProofKit' }, difficulty: 5, category: 'World' },
 ];
 
 const mockHints: Record<string, string> = {
   '1': 'Think about what makes you unique as a human online...',
   '2': 'It\'s in the name of the app!',
   '3': 'It\'s something very unique to each person and visible in your eyes.',
+  '4': 'He\'s also known for leading a famous AI company...',
+  '5': 'It\'s the abbreviation of the project name.',
+  '6': 'These proofs let you verify something without revealing the data.',
+  '7': 'It prevents one person from creating multiple fake accounts.',
+  '8': 'It launched during the summer with much fanfare.',
+  '9': 'Sam Altman is the CEO of this company.',
+  '10': 'It helps keep your identity private while proving uniqueness.',
+  '11': 'Validators stake tokens to participate.',
+  '12': 'It\'s a very large number, in the billions.',
+  '13': 'It builds on top of Ethereum for scalability.',
+  '14': 'This technology uses light beyond the visible spectrum.',
+  '15': 'It sounds like "ID" + a common software toolkit name.',
 };
 
 const mockStats: Record<string, AnswerStats> = {
   '1': { choiceACount: 120, choiceBCount: 780, choiceCCount: 60, choiceDCount: 40, total: 1000, percentages: { A: 12, B: 78, C: 6, D: 4 } },
   '2': { choiceACount: 200, choiceBCount: 150, choiceCCount: 600, choiceDCount: 50, total: 1000, percentages: { A: 20, B: 15, C: 60, D: 5 } },
   '3': { choiceACount: 100, choiceBCount: 50, choiceCCount: 800, choiceDCount: 50, total: 1000, percentages: { A: 10, B: 5, C: 80, D: 5 } },
+  '4': { choiceACount: 150, choiceBCount: 700, choiceCCount: 100, choiceDCount: 50, total: 1000, percentages: { A: 15, B: 70, C: 10, D: 5 } },
+  '5': { choiceACount: 100, choiceBCount: 750, choiceCCount: 100, choiceDCount: 50, total: 1000, percentages: { A: 10, B: 75, C: 10, D: 5 } },
+  '6': { choiceACount: 100, choiceBCount: 150, choiceCCount: 700, choiceDCount: 50, total: 1000, percentages: { A: 10, B: 15, C: 70, D: 5 } },
+  '7': { choiceACount: 200, choiceBCount: 600, choiceCCount: 100, choiceDCount: 100, total: 1000, percentages: { A: 20, B: 60, C: 10, D: 10 } },
+  '8': { choiceACount: 100, choiceBCount: 150, choiceCCount: 650, choiceDCount: 100, total: 1000, percentages: { A: 10, B: 15, C: 65, D: 10 } },
+  '9': { choiceACount: 100, choiceBCount: 100, choiceCCount: 700, choiceDCount: 100, total: 1000, percentages: { A: 10, B: 10, C: 70, D: 10 } },
+  '10': { choiceACount: 150, choiceBCount: 600, choiceCCount: 150, choiceDCount: 100, total: 1000, percentages: { A: 15, B: 60, C: 15, D: 10 } },
+  '11': { choiceACount: 200, choiceBCount: 500, choiceCCount: 200, choiceDCount: 100, total: 1000, percentages: { A: 20, B: 50, C: 20, D: 10 } },
+  '12': { choiceACount: 100, choiceBCount: 150, choiceCCount: 200, choiceDCount: 550, total: 1000, percentages: { A: 10, B: 15, C: 20, D: 55 } },
+  '13': { choiceACount: 200, choiceBCount: 550, choiceCCount: 150, choiceDCount: 100, total: 1000, percentages: { A: 20, B: 55, C: 15, D: 10 } },
+  '14': { choiceACount: 100, choiceBCount: 600, choiceCCount: 150, choiceDCount: 150, total: 1000, percentages: { A: 10, B: 60, C: 15, D: 15 } },
+  '15': { choiceACount: 200, choiceBCount: 550, choiceCCount: 150, choiceDCount: 100, total: 1000, percentages: { A: 20, B: 55, C: 15, D: 10 } },
 };
 
 const correctAnswers: Record<string, 'A' | 'B' | 'C' | 'D'> = {
-  '1': 'B',
-  '2': 'C', 
-  '3': 'C',
+  '1': 'B', '2': 'C', '3': 'C', '4': 'B', '5': 'B',
+  '6': 'C', '7': 'B', '8': 'C', '9': 'C', '10': 'B',
+  '11': 'B', '12': 'D', '13': 'B', '14': 'B', '15': 'B',
 };
 
 const Game: React.FC = () => {
   const navigate = useNavigate();
-  const { state, dispatch } = useGame();
+  const { state } = useGame();
   const { prizeLadder, isVerified } = state;
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -87,9 +108,11 @@ const Game: React.FC = () => {
   const [showHint, setShowHint] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showQuitDialog, setShowQuitDialog] = useState(false);
+  const [showCheckpointDialog, setShowCheckpointDialog] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const [earnedAmount, setEarnedAmount] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [claimedEarly, setClaimedEarly] = useState(false);
 
   // Redirect if not verified
   useEffect(() => {
@@ -100,12 +123,11 @@ const Game: React.FC = () => {
 
   // Timer
   useEffect(() => {
-    if (showResult || isGameOver || isPaused) return;
+    if (showResult || isGameOver || isPaused || showCheckpointDialog) return;
 
     const interval = setInterval(() => {
       setTimeRemaining((prev) => {
         if (prev <= 1) {
-          // Time's up - wrong answer
           handleTimeUp();
           return 0;
         }
@@ -114,14 +136,13 @@ const Game: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [showResult, isGameOver, isPaused, currentQuestionIndex]);
+  }, [showResult, isGameOver, isPaused, showCheckpointDialog, currentQuestionIndex]);
 
   const handleTimeUp = useCallback(() => {
     setShowResult(true);
     setIsCorrect(false);
     setIsGameOver(true);
     
-    // Find safe haven amount
     const safeHavens = prizeLadder.filter(p => p.isSafeHaven && p.questionNumber < currentQuestionIndex + 1);
     const safeHavenAmount = safeHavens.length > 0 ? safeHavens[safeHavens.length - 1].prizeAmount : 0;
     setEarnedAmount(safeHavenAmount);
@@ -132,7 +153,6 @@ const Game: React.FC = () => {
     
     setSelectedChoice(choice);
     
-    // Simulate server delay then show result
     setTimeout(() => {
       const correct = correctAnswers[currentQuestion.id] === choice;
       setIsCorrect(correct);
@@ -143,12 +163,46 @@ const Game: React.FC = () => {
         const safeHavens = prizeLadder.filter(p => p.isSafeHaven && p.questionNumber < currentQuestionIndex + 1);
         const safeHavenAmount = safeHavens.length > 0 ? safeHavens[safeHavens.length - 1].prizeAmount : 0;
         setEarnedAmount(safeHavenAmount);
-      } else if (currentQuestionIndex >= mockQuestions.length - 1) {
-        // Won all questions!
-        setIsGameOver(true);
-        setEarnedAmount(prizeLadder[currentQuestionIndex]?.prizeAmount || 0);
+      } else {
+        // Check if this is a claim checkpoint (after answering Q5, Q10, or Q15)
+        const questionNumber = currentQuestionIndex + 1;
+        if (CLAIM_CHECKPOINTS.includes(questionNumber)) {
+          // Show checkpoint dialog - user can claim or continue
+          setShowCheckpointDialog(true);
+          const currentPrize = prizeLadder[currentQuestionIndex]?.prizeAmount || 0;
+          setEarnedAmount(currentPrize);
+        }
+        
+        // Check if won all questions
+        if (currentQuestionIndex >= mockQuestions.length - 1) {
+          setIsGameOver(true);
+          setEarnedAmount(prizeLadder[currentQuestionIndex]?.prizeAmount || 0);
+        }
       }
     }, 1500);
+  };
+
+  const handleClaimNow = () => {
+    // User chooses to claim current prize and end game
+    setClaimedEarly(true);
+    setIsGameOver(true);
+    setShowCheckpointDialog(false);
+  };
+
+  const handleKeepGoing = () => {
+    // User chooses to continue - risk losing it all!
+    setShowCheckpointDialog(false);
+    // Move to next question
+    if (currentQuestionIndex < mockQuestions.length - 1) {
+      const nextIndex = currentQuestionIndex + 1;
+      setCurrentQuestionIndex(nextIndex);
+      setCurrentQuestion(mockQuestions[nextIndex]);
+      setSelectedChoice(undefined);
+      setShowResult(false);
+      setTimeRemaining(QUESTION_TIME_LIMIT_SECONDS);
+      setShowHint(false);
+      setShowStats(false);
+    }
   };
 
   const handleNextQuestion = () => {
@@ -171,7 +225,6 @@ const Game: React.FC = () => {
     
     switch (lifeline) {
       case LIFELINES.FIFTY_FIFTY:
-        // Remove two wrong answers
         const correct = correctAnswers[currentQuestion.id];
         const wrongChoices = (['A', 'B', 'C', 'D'] as const).filter(c => c !== correct);
         const toHide = wrongChoices.slice(0, 2);
@@ -192,7 +245,6 @@ const Game: React.FC = () => {
   };
 
   const handleQuit = () => {
-    // Take current safe haven amount
     const safeHavens = prizeLadder.filter(p => p.isSafeHaven && p.questionNumber <= currentQuestionIndex);
     const safeHavenAmount = safeHavens.length > 0 ? safeHavens[safeHavens.length - 1].prizeAmount : 0;
     setEarnedAmount(safeHavenAmount);
@@ -205,32 +257,34 @@ const Game: React.FC = () => {
       state: { 
         earnedAmount, 
         reachedQuestion: currentQuestionIndex + 1,
-        isWinner: isCorrect && currentQuestionIndex >= mockQuestions.length - 1
+        isWinner: (isCorrect && currentQuestionIndex >= mockQuestions.length - 1) || claimedEarly
       } 
     });
   };
+
+  // Check if current question number is NOT a checkpoint (for showing next button)
+  const isCheckpointQuestion = CLAIM_CHECKPOINTS.includes(currentQuestionIndex + 1);
 
   if (isGameOver) {
     return (
       <div className="min-h-screen gradient-hero flex flex-col items-center justify-center px-4 gap-6">
         <div className={cn(
-          'w-24 h-24 rounded-full flex items-center justify-center shadow-glow animate-bounce-in',
-          isCorrect && currentQuestionIndex >= mockQuestions.length - 1
-            ? 'gradient-gold'
+          'animate-bounce-in',
+          (isCorrect && currentQuestionIndex >= mockQuestions.length - 1) || claimedEarly
+            ? ''
             : earnedAmount > 0
-            ? 'gradient-success'
-            : 'bg-secondary'
+            ? ''
+            : ''
         )}>
-          <Trophy className={cn(
-            'w-12 h-12',
-            isCorrect ? 'text-primary-foreground' : 'text-muted-foreground'
-          )} />
+          <JackieIcon size={100} className="drop-shadow-lg" />
         </div>
 
         <div className="text-center space-y-2">
           <h2 className="text-2xl font-display font-bold">
             {isCorrect && currentQuestionIndex >= mockQuestions.length - 1 
               ? '🎉 JACKPOT!' 
+              : claimedEarly
+              ? '🎉 Smart Move!'
               : earnedAmount > 0 
               ? 'Good Run!' 
               : 'Game Over'}
@@ -240,8 +294,8 @@ const Game: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 px-6 py-4 bg-card rounded-2xl border border-border shadow-card">
-          <CoinIcon size={32} />
+        <div className="flex items-center gap-3 px-8 py-5 bg-card rounded-2xl border border-border shadow-card">
+          <CoinIcon size={40} />
           <span className="text-3xl font-display font-bold text-gradient-gold">
             {formatJC(earnedAmount)} JC
           </span>
@@ -322,8 +376,8 @@ const Game: React.FC = () => {
           showStats={showStats}
         />
 
-        {/* Next Question Button */}
-        {showResult && isCorrect && !isGameOver && (
+        {/* Next Question Button - only show if NOT a checkpoint question */}
+        {showResult && isCorrect && !isGameOver && !isCheckpointQuestion && !showCheckpointDialog && (
           <Button
             variant="success"
             size="lg"
@@ -353,6 +407,57 @@ const Game: React.FC = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Keep Playing</AlertDialogCancel>
             <AlertDialogAction onClick={handleQuit}>Quit & Take Winnings</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Claim Checkpoint Dialog */}
+      <AlertDialog open={showCheckpointDialog} onOpenChange={setShowCheckpointDialog}>
+        <AlertDialogContent className="max-w-sm">
+          <AlertDialogHeader>
+            <div className="flex justify-center mb-4">
+              <JackieIcon size={80} className="animate-float" />
+            </div>
+            <AlertDialogTitle className="text-center text-2xl font-display">
+              🎉 Checkpoint Reached!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center space-y-4">
+              <p>You've reached question {currentQuestionIndex + 1}!</p>
+              <div className="flex items-center justify-center gap-2 py-4 px-6 bg-card rounded-2xl border border-border shadow-card mx-auto">
+                <CoinIcon size={32} />
+                <span className="text-2xl font-display font-bold text-gradient-gold">
+                  {formatJC(earnedAmount)} JC
+                </span>
+              </div>
+              <p className="text-sm">
+                {currentQuestionIndex + 1 < 15 
+                  ? "Claim now and secure your prize, or keep going to win more - but risk losing it all!"
+                  : "Congratulations! You've reached the top!"
+                }
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              variant="gold"
+              size="lg"
+              className="w-full"
+              onClick={handleClaimNow}
+            >
+              <HandCoins className="w-5 h-5" />
+              Claim {formatJC(earnedAmount)} JC Now
+            </Button>
+            {currentQuestionIndex + 1 < 15 && (
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full"
+                onClick={handleKeepGoing}
+              >
+                <Rocket className="w-5 h-5" />
+                Keep Going! 🔥
+              </Button>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
