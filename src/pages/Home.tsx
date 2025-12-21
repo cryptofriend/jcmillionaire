@@ -71,7 +71,6 @@ const Home: React.FC = () => {
         {/* Stats Cards */}
         <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-1">
           <PoolStats dayState={dayState} />
-          {isVerified && <AttemptsDisplay attempts={attempts} />}
         </div>
 
         {/* CTA Button */}
