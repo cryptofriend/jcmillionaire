@@ -5,11 +5,8 @@ import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { formatJC } from '@/lib/rewardsService';
 import { supabase } from '@/integrations/supabase/client';
 import { useGame } from '@/contexts/GameContext';
-import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket, Users, MessageCircle, Share2 } from 'lucide-react';
+import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { inviteFriends } from '@/lib/worldShare';
-import { isInWorldApp } from '@/lib/minikit';
-import { toast } from 'sonner';
 
 // Airdrop date - April 3, 2026 at 9pm Vietnam time (UTC+7) = 14:00 UTC
 const AIRDROP_DATE = new Date('2026-04-03T14:00:00Z');
@@ -50,14 +47,6 @@ const Leaderboard: React.FC = () => {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
-
-  const handleShare = async () => {
-    const result = await inviteFriends();
-    if (result.success) {
-      toast.success('Invite sent!');
-    }
-  };
-
   useEffect(() => {
     const fetchLeaderboard = async () => {
       setLoading(true);
@@ -231,27 +220,6 @@ const Leaderboard: React.FC = () => {
             <p className="text-xs text-muted-foreground max-w-xs mx-auto">
               airdrop distribution will be based on your leaderboard position
             </p>
-
-            {/* Invite Friends CTA */}
-            <div className="pt-3 border-t border-primary/20 mt-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 flex-1">
-                  <Users className="w-4 h-4 text-success flex-shrink-0" />
-                  <p className="text-xs text-muted-foreground">
-                    <span className="text-foreground font-medium">Invite friends</span> to climb the ranks!
-                  </p>
-                </div>
-                <Button
-                  variant="gold"
-                  size="sm"
-                  onClick={handleShare}
-                  className="flex-shrink-0"
-                >
-                  {isInWorldApp() ? <MessageCircle className="w-4 h-4 mr-1.5" /> : <Share2 className="w-4 h-4 mr-1.5" />}
-                  Invite
-                </Button>
-              </div>
-            </div>
           </div>
         </div>
       </div>
