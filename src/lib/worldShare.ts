@@ -1,6 +1,6 @@
 import { MiniKit } from '@worldcoin/minikit-js';
 import { isInWorldApp } from './minikit';
-import { APP_ID } from './constants';
+import { APP_ID, encodeWorldAppPath } from './constants';
 
 // World Chat app ID
 const WORLD_CHAT_APP_ID = 'app_e293fcd0565f45ca296aa317212d8741';
@@ -12,11 +12,10 @@ export interface ShareResult {
 
 /**
  * Generate a World App deeplink URL for the game
- * Format: https://world.org/mini-app?app_id={APP_ID}&path={path}
- * Note: path should NOT be URL-encoded for World App to properly open the mini-app
+ * Format: https://world.org/mini-app?app_id={APP_ID}&path={encodedPath}
  */
 export function getGameDeeplink(path: string = '/'): string {
-  return `https://world.org/mini-app?app_id=${APP_ID}&path=${path}`;
+  return `https://world.org/mini-app?app_id=${APP_ID}&path=${encodeWorldAppPath(path)}`;
 }
 
 /**
@@ -40,10 +39,10 @@ export function getWorldChatDeeplinkUrl({
   let path = `/${username}/draft`;
 
   if (message) {
-    path += `?message=${encodeURIComponent(message)}`;
+    path += `?message=${message}`;
   }
 
-  return `https://world.org/mini-app?app_id=${WORLD_CHAT_APP_ID}&path=${path}`;
+  return `https://world.org/mini-app?app_id=${WORLD_CHAT_APP_ID}&path=${encodeWorldAppPath(path)}`;
 }
 
 /**
