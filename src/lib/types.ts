@@ -3,6 +3,8 @@ export interface User {
   nullifierHash: string;
   verificationLevel: 'device' | 'orb';
   createdAt: string;
+  username?: string;
+  profilePictureUrl?: string;
 }
 
 export interface DayState {
