@@ -1,3 +1,4 @@
+// GameContext - Provides global game state management
 import React, { createContext, useContext, useReducer, useCallback, useEffect, useState } from 'react';
 import { GameState, User, Attempts, DayState, Run, QuestionWithHiddenChoices, PrizeLadderItem } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
