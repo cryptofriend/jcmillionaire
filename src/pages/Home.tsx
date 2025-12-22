@@ -7,7 +7,7 @@ import { UserBalance } from '@/components/game/UserBalance';
 import { AttemptsDisplay } from '@/components/game/AttemptsDisplay';
 import { MiniLeaderboard } from '@/components/game/MiniLeaderboard';
 import { useGame } from '@/contexts/GameContext';
-import { Play, UserCheck, Share2, Trophy, ChevronRight, MessageCircle, HelpCircle, X, Users, Zap } from 'lucide-react';
+import { Play, UserCheck, Share2, Trophy, ChevronRight, MessageCircle, HelpCircle, X, Users, Zap, Gift } from 'lucide-react';
 import { inviteFriends } from '@/lib/worldShare';
 import { isInWorldApp } from '@/lib/minikit';
 import { toast } from 'sonner';
@@ -166,6 +166,14 @@ const Home: React.FC = () => {
                   {attempts.remaining} / {attempts.cap}
                 </span>
               </div>
+
+              {/* Earned from referrals indicator */}
+              {attempts.earnedFromReferrals > 0 && (
+                <div className="flex items-center gap-1.5 text-xs text-success">
+                  <Gift className="w-3.5 h-3.5" />
+                  <span className="font-medium">+{attempts.earnedFromReferrals} from referrals</span>
+                </div>
+              )}
 
               {/* Visual dots for attempts */}
               <div className="flex gap-1 flex-wrap">
