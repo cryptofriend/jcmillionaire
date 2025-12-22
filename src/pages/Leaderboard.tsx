@@ -8,8 +8,8 @@ import { useGame } from '@/contexts/GameContext';
 import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Airdrop date - 99 days from now or set a fixed date
-const AIRDROP_DATE = new Date('2025-03-31T00:00:00Z');
+// Airdrop date - April 3, 2026 at 9pm Vietnam time (UTC+7) = 14:00 UTC
+const AIRDROP_DATE = new Date('2026-04-03T14:00:00Z');
 
 function getTimeUntilAirdrop(): { days: number; hours: number; minutes: number; seconds: number } {
   const now = new Date();
