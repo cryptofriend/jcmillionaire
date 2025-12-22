@@ -1,7 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { DayState } from '@/lib/types';
 import { CoinIcon } from '@/components/icons/JackieIcon';
 import { TrendingUp, Clock } from 'lucide-react';
+
+interface Particle {
+  id: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  size: number;
+}
 
 interface PoolStatsProps {
   dayState: DayState | null;
@@ -64,9 +74,50 @@ function useAnimatedCounter(targetValue: number, duration: number = 800) {
 export const PoolStats: React.FC<PoolStatsProps> = ({ dayState }) => {
   const [countdown, setCountdown] = useState(getTimeUntilMidnightUTC());
   const [hasChanged, setHasChanged] = useState(false);
+  const [particles, setParticles] = useState<Particle[]>([]);
   const previousRemaining = useRef(dayState?.poolRemaining ?? 0);
+  const particleIdRef = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   const animatedRemaining = useAnimatedCounter(dayState?.poolRemaining ?? 0);
+
+  // Spawn particles when value decreases
+  const spawnParticles = useCallback((count: number) => {
+    const newParticles: Particle[] = [];
+    for (let i = 0; i < count; i++) {
+      newParticles.push({
+        id: particleIdRef.current++,
+        x: 50 + Math.random() * 40, // spawn near the value display
+        y: 50,
+        vx: (Math.random() - 0.5) * 3,
+        vy: -2 - Math.random() * 2,
+        life: 1,
+        size: 3 + Math.random() * 3,
+      });
+    }
+    setParticles(prev => [...prev, ...newParticles]);
+  }, []);
+
+  // Animate particles
+  useEffect(() => {
+    if (particles.length === 0) return;
+
+    const interval = setInterval(() => {
+      setParticles(prev => 
+        prev
+          .map(p => ({
+            ...p,
+            x: p.x + p.vx,
+            y: p.y + p.vy,
+            vy: p.vy + 0.1, // gravity
+            life: p.life - 0.03,
+          }))
+          .filter(p => p.life > 0)
+      );
+    }, 16);
+
+    return () => clearInterval(interval);
+  }, [particles.length]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -76,15 +127,23 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ dayState }) => {
     return () => clearInterval(interval);
   }, []);
 
-  // Flash effect when value changes
+  // Flash effect and spawn particles when value decreases
   useEffect(() => {
     if (dayState && previousRemaining.current !== dayState.poolRemaining) {
+      const decreased = dayState.poolRemaining < previousRemaining.current;
       setHasChanged(true);
+      
+      if (decreased) {
+        const diff = previousRemaining.current - dayState.poolRemaining;
+        const particleCount = Math.min(Math.max(Math.floor(diff / 50), 3), 12);
+        spawnParticles(particleCount);
+      }
+      
       previousRemaining.current = dayState.poolRemaining;
       const timeout = setTimeout(() => setHasChanged(false), 600);
       return () => clearTimeout(timeout);
     }
-  }, [dayState?.poolRemaining]);
+  }, [dayState?.poolRemaining, spawnParticles]);
 
   if (!dayState) {
     return (
@@ -140,7 +199,24 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ dayState }) => {
   }
 
   return (
-    <div className="flex flex-col gap-2 px-4 py-3 bg-card rounded-xl border border-border shadow-soft">
+    <div ref={containerRef} className="relative flex flex-col gap-2 px-4 py-3 bg-card rounded-xl border border-border shadow-soft overflow-hidden">
+      {/* Particles */}
+      {particles.map(particle => (
+        <div
+          key={particle.id}
+          className="absolute rounded-full bg-primary pointer-events-none"
+          style={{
+            left: `${particle.x}%`,
+            top: `${particle.y}%`,
+            width: particle.size,
+            height: particle.size,
+            opacity: particle.life,
+            transform: 'translate(-50%, -50%)',
+            boxShadow: `0 0 ${particle.size * 2}px hsl(var(--primary) / ${particle.life * 0.5})`,
+          }}
+        />
+      ))}
+      
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-primary" />
