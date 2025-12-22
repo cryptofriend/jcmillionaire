@@ -57,9 +57,9 @@ export const AttemptsDisplay: React.FC<AttemptsDisplayProps> = ({ attempts, comp
         </div>
       )}
 
-      {/* Visual dots for attempts */}
+      {/* Visual dots for attempts - capped at 10 for display */}
       <div className="flex gap-1 flex-wrap">
-        {Array.from({ length: cap }).map((_, i) => (
+        {Array.from({ length: Math.min(cap, 10) }).map((_, i) => (
           <div
             key={i}
             className={cn(
