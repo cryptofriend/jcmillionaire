@@ -175,12 +175,14 @@ const Profile: React.FC = () => {
   };
 
   const shareInvite = () => {
-    const shareMessage = `🎮 Play Jackie Chain: Millionaire and win $JC tokens!\n\nJoin the trivia game:\n${inviteLink}`;
-    
+    // Important: include the invite link via the `url` field so World Chat renders a Mini App card
+    const shareText = `🎮 Play Jackie Chain: Millionaire and win $JC tokens!`;
+
     if (navigator.share) {
       navigator.share({
         title: 'Jackie Chain: Millionaire',
-        text: shareMessage,
+        text: shareText,
+        url: inviteLink,
       });
     } else {
       copyInviteLink();

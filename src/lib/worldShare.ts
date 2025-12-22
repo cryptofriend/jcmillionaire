@@ -12,11 +12,11 @@ export interface ShareResult {
 
 /**
  * Generate a World App deeplink URL for the game
- * Format: https://world.org/mini-app?app_id={APP_ID}&path={encodedPath}
+ * Format: https://worldcoin.org/mini-app?app_id={APP_ID}&path={encodedPath}
  */
 export function getGameDeeplink(path: string = '/'): string {
   const encodedPath = encodeURIComponent(path);
-  return `https://world.org/mini-app?app_id=${APP_ID}&path=${encodedPath}`;
+  return `https://worldcoin.org/mini-app?app_id=${APP_ID}&path=${encodedPath}`;
 }
 
 /**
@@ -28,6 +28,7 @@ export function getReferralDeeplink(referralCode: string): string {
 
 /**
  * Generate a World Chat deeplink with a pre-filled message
+ * Note: World Chat quick actions use the World Chat app id.
  */
 export function getWorldChatDeeplinkUrl({
   username,
@@ -43,7 +44,7 @@ export function getWorldChatDeeplinkUrl({
   }
 
   const encodedPath = encodeURIComponent(path);
-  return `https://world.org/mini-app?app_id=${WORLD_CHAT_APP_ID}&path=${encodedPath}`;
+  return `https://worldcoin.org/mini-app?app_id=${WORLD_CHAT_APP_ID}&path=${encodedPath}`;
 }
 
 /**
@@ -125,65 +126,57 @@ export async function shareGameResult(options: {
   isWinner: boolean;
 }): Promise<ShareResult> {
   const { earnedAmount, reachedQuestion, isWinner } = options;
-  
+
   const emoji = isWinner ? '🏆' : earnedAmount > 0 ? '💰' : '🎮';
-  const resultText = isWinner 
+  const resultText = isWinner
     ? `I just won the JACKPOT in Jackie Chain: Millionaire! 🎉`
     : earnedAmount > 0
-    ? `I earned ${earnedAmount.toLocaleString()} $JC tokens!`
-    : `I reached question ${reachedQuestion}!`;
+      ? `I earned ${earnedAmount.toLocaleString()} $JC tokens!`
+      : `I reached question ${reachedQuestion}!`;
 
   const gameUrl = getGameDeeplink();
-  const message = `${emoji} ${resultText}\n\nThink you can beat my score? Play now! 👇\n${gameUrl}`;
+  const shareText = `${emoji} ${resultText}\n\nThink you can beat my score? Play now! 👇`;
 
-  // Try World App share first
+  // Prefer Share command with url field so World Chat renders a Mini App card
   if (isInWorldApp()) {
-    const result = await sendToWorldChat({ message });
-    if (result.success) {
-      return result;
-    }
-    // Fall through to native share if chat fails
+    const shareResult = await shareViaWorldApp({
+      title: 'Jackie Chain: Millionaire',
+      text: shareText,
+      url: gameUrl,
+    });
+    if (shareResult.success) return shareResult;
   }
 
   // Fallback to Web Share API
   return shareViaNative({
     title: 'Jackie Chain: Millionaire',
-    text: message,
+    text: shareText,
     url: gameUrl,
   });
 }
 
 /**
- * Invite friends to play the game via World Chat
+ * Invite friends to play the game
  */
 export async function inviteFriends(referralCode?: string): Promise<ShareResult> {
-  const gameUrl = referralCode 
-    ? getReferralDeeplink(referralCode)
-    : getGameDeeplink();
+  const gameUrl = referralCode ? getReferralDeeplink(referralCode) : getGameDeeplink();
 
-  const message = `🎮 Join me on Jackie Chain: Millionaire!\n\nAnswer trivia questions and earn $JC tokens. Think you have what it takes to win the million?\n\n${gameUrl}`;
+  const shareText = `🎮 Join me on Jackie Chain: Millionaire!\n\nAnswer trivia questions and earn $JC tokens.`;
 
-  // Try World App chat first
+  // Prefer Share command with url field so World Chat renders a Mini App card
   if (isInWorldApp()) {
-    const result = await sendToWorldChat({ message });
-    if (result.success) {
-      return result;
-    }
-    // Fall through to World App share
     const shareResult = await shareViaWorldApp({
       title: 'Jackie Chain: Millionaire',
-      text: message,
+      text: shareText,
       url: gameUrl,
     });
-    if (shareResult.success) {
-      return shareResult;
-    }
+    if (shareResult.success) return shareResult;
   }
 
   // Fallback to Web Share API
   return shareViaNative({
     title: 'Jackie Chain: Millionaire',
-    text: message,
+    text: shareText,
     url: gameUrl,
   });
 }
