@@ -1,11 +1,9 @@
 import { MiniKit } from '@worldcoin/minikit-js';
 import { isInWorldApp } from './minikit';
+import { APP_ID } from './constants';
 
 // World Chat app ID
 const WORLD_CHAT_APP_ID = 'app_e293fcd0565f45ca296aa317212d8741';
-
-// Your mini app ID (replace with your actual app ID when published)
-const JACKIE_CHAIN_APP_ID = 'app_staging_123'; // TODO: Replace with real app ID
 
 export interface ShareResult {
   success: boolean;
@@ -14,10 +12,18 @@ export interface ShareResult {
 
 /**
  * Generate a World App deeplink URL for the game
+ * Format: https://world.org/mini-app?app_id={APP_ID}&path={encodedPath}
  */
 export function getGameDeeplink(path: string = '/'): string {
   const encodedPath = encodeURIComponent(path);
-  return `https://worldcoin.org/mini-app?app_id=${JACKIE_CHAIN_APP_ID}&path=${encodedPath}`;
+  return `https://world.org/mini-app?app_id=${APP_ID}&path=${encodedPath}`;
+}
+
+/**
+ * Generate a referral deeplink for inviting friends
+ */
+export function getReferralDeeplink(referralCode: string): string {
+  return getGameDeeplink(`/?ref=${referralCode}`);
 }
 
 /**
@@ -37,7 +43,7 @@ export function getWorldChatDeeplinkUrl({
   }
 
   const encodedPath = encodeURIComponent(path);
-  return `https://worldcoin.org/mini-app?app_id=${WORLD_CHAT_APP_ID}&path=${encodedPath}`;
+  return `https://world.org/mini-app?app_id=${WORLD_CHAT_APP_ID}&path=${encodedPath}`;
 }
 
 /**
@@ -127,7 +133,8 @@ export async function shareGameResult(options: {
     ? `I earned ${earnedAmount.toLocaleString()} $JC tokens!`
     : `I reached question ${reachedQuestion}!`;
 
-  const message = `${emoji} ${resultText}\n\nThink you can beat my score? Play now! 👇\n${getGameDeeplink()}`;
+  const gameUrl = getGameDeeplink();
+  const message = `${emoji} ${resultText}\n\nThink you can beat my score? Play now! 👇\n${gameUrl}`;
 
   // Try World App share first
   if (isInWorldApp()) {
@@ -142,19 +149,19 @@ export async function shareGameResult(options: {
   return shareViaNative({
     title: 'Jackie Chain: Millionaire',
     text: message,
-    url: getGameDeeplink(),
+    url: gameUrl,
   });
 }
 
 /**
- * Invite friends to play the game
+ * Invite friends to play the game via World Chat
  */
 export async function inviteFriends(referralCode?: string): Promise<ShareResult> {
   const gameUrl = referralCode 
-    ? getGameDeeplink(`/?ref=${referralCode}`)
+    ? getReferralDeeplink(referralCode)
     : getGameDeeplink();
 
-  const message = `🎮 Join me on Jackie Chain: Millionaire!\n\nAnswer trivia questions and earn $JC tokens. Think you have what it takes to win the million?\n\n${referralCode ? '🎁 Use my invite link to get started: ' : ''}${gameUrl}`;
+  const message = `🎮 Join me on Jackie Chain: Millionaire!\n\nAnswer trivia questions and earn $JC tokens. Think you have what it takes to win the million?\n\n${gameUrl}`;
 
   // Try World App chat first
   if (isInWorldApp()) {
