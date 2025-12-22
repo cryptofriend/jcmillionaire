@@ -363,11 +363,11 @@ const Leaderboard: React.FC = () => {
             </div>
             <div className="text-right">
               <p className="text-sm text-muted-foreground">Balance</p>
-              <p className="text-lg font-bold text-gradient-gold">{formatJC(userBalance)} JC</p>
+              <p className="text-lg font-bold text-gradient-gold">{userBalance.toLocaleString()} JC</p>
             </div>
               <div className="flex items-center gap-1.5 text-sm">
                 <CoinIcon size={16} />
-                <span className="font-medium">{formatJC(userBalance)}</span>
+                <span className="font-medium">{userBalance.toLocaleString()}</span>
                 <span className="text-muted-foreground">JC</span>
               </div>
             </div>
@@ -456,7 +456,7 @@ const Leaderboard: React.FC = () => {
                       'font-display font-bold',
                       entry.rank <= 3 ? 'text-lg' : 'text-base'
                     )}>
-                      {formatJC(entry.total_claimed)}
+                      {entry.total_claimed.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -476,7 +476,7 @@ const Leaderboard: React.FC = () => {
           <div className="w-px bg-border" />
           <div>
             <p className="text-2xl font-display font-bold text-gradient-gold">
-              {formatJC(entries.reduce((sum, e) => sum + e.total_claimed, 0))}
+              {entries.reduce((sum, e) => sum + e.total_claimed, 0).toLocaleString()}
             </p>
             <p className="text-xs text-muted-foreground">Total Claimed</p>
           </div>
