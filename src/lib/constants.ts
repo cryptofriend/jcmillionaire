@@ -44,10 +44,13 @@ export const LIFELINES = {
 export type LifelineType = typeof LIFELINES[keyof typeof LIFELINES];
 
 // World App Deep Link format
-// Format: https://world.org/mini-app?app_id={APP_ID}&path={path}
-// Note: path should NOT be URL-encoded for World App to properly open the mini-app
+// Format: https://world.org/mini-app?app_id={APP_ID}&path={encodedPath}
+// Note: World App expects slashes (/) to remain unescaped in the path.
+export const encodeWorldAppPath = (path: string) =>
+  encodeURIComponent(path).replace(/%2F/g, '/');
+
 export const getWorldAppLink = (path: string) =>
-  `https://world.org/mini-app?app_id=${APP_ID}&path=${path}`;
+  `https://world.org/mini-app?app_id=${APP_ID}&path=${encodeWorldAppPath(path)}`;
 
 // Format JC amount
 export const formatJC = (amount: number): string => {
