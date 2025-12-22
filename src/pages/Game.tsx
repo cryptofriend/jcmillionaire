@@ -139,6 +139,7 @@ const Game: React.FC = () => {
   const [showStats, setShowStats] = useState(false);
   const [showQuitDialog, setShowQuitDialog] = useState(false);
   const [showCheckpointDialog, setShowCheckpointDialog] = useState(false);
+  const [showProgressDialog, setShowProgressDialog] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const [earnedAmount, setEarnedAmount] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -213,7 +214,7 @@ const Game: React.FC = () => {
 
   // Timer
   useEffect(() => {
-    if (showResult || isGameOver || isPaused || showCheckpointDialog) return;
+    if (showResult || isGameOver || isPaused || showCheckpointDialog || showProgressDialog) return;
 
     const interval = setInterval(() => {
       setTimeRemaining((prev) => {
@@ -337,9 +338,14 @@ const Game: React.FC = () => {
   };
 
   const handleKeepGoing = () => {
-    // User chooses to continue - risk losing it all!
+    // User chooses to continue - show progress dialog first
     setShowCheckpointDialog(false);
-    // Move to next question
+    setShowProgressDialog(true);
+  };
+
+  const handleContinueFromProgress = () => {
+    // Close progress dialog and move to next question
+    setShowProgressDialog(false);
     if (currentQuestionIndex < mockQuestions.length - 1) {
       const nextIndex = currentQuestionIndex + 1;
       setCurrentQuestionIndex(nextIndex);
@@ -687,6 +693,106 @@ const Game: React.FC = () => {
             >
               <Rocket className="w-5 h-5" />
               Keep Going
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Progress Dialog - shown after clicking Keep Going */}
+      <AlertDialog open={showProgressDialog} onOpenChange={setShowProgressDialog}>
+        <AlertDialogContent className="max-w-sm max-h-[85vh] overflow-hidden">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-center text-xl font-display">
+              Your Progress
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-sm">
+              Question {currentQuestionIndex + 1} of 15 complete!
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          {/* Prize Ladder Progress */}
+          <div className="relative bg-gradient-to-b from-primary/20 via-background to-background rounded-xl border border-border overflow-hidden">
+            <div className="max-h-[45vh] overflow-y-auto py-2 px-3 hide-scrollbar">
+              <div className="flex flex-col-reverse gap-1">
+                {prizeLadder.map((item) => {
+                  const isCompleted = item.questionNumber <= currentQuestionIndex + 1;
+                  const isCurrent = item.questionNumber === currentQuestionIndex + 1;
+                  const isSafeHaven = item.isSafeHaven;
+                  const isNext = item.questionNumber === currentQuestionIndex + 2;
+                  
+                  return (
+                    <div
+                      key={item.questionNumber}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-2 rounded-lg transition-all',
+                        isCurrent && 'bg-primary text-primary-foreground scale-105 shadow-lg ring-2 ring-primary/50',
+                        isCompleted && !isCurrent && 'bg-success/20 text-success',
+                        !isCompleted && !isNext && 'opacity-50',
+                        isNext && 'bg-accent/20 border border-accent/30',
+                        isSafeHaven && !isCurrent && isCompleted && 'bg-primary/20 text-primary'
+                      )}
+                    >
+                      <span className={cn(
+                        'w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold',
+                        isCurrent ? 'bg-primary-foreground text-primary' : 
+                        isCompleted ? 'bg-success text-success-foreground' :
+                        isSafeHaven ? 'bg-primary/30 text-primary' : 'bg-muted text-muted-foreground'
+                      )}>
+                        {item.questionNumber}
+                      </span>
+                      
+                      <div className={cn(
+                        'w-3 h-3 rounded-full flex-shrink-0',
+                        isCurrent ? 'bg-primary-foreground animate-pulse' :
+                        isCompleted ? 'bg-success' :
+                        isSafeHaven ? 'bg-primary/50' : 'bg-muted-foreground/30'
+                      )} />
+                      
+                      <span className={cn(
+                        'font-display font-bold flex-1',
+                        isCurrent ? 'text-primary-foreground' :
+                        isCompleted ? 'text-success' :
+                        isSafeHaven ? 'text-primary' : 'text-muted-foreground'
+                      )}>
+                        {formatJC(item.prizeAmount)} JC
+                      </span>
+                      
+                      {isSafeHaven && (
+                        <span className={cn(
+                          'text-[10px] font-medium px-1.5 py-0.5 rounded',
+                          isCurrent ? 'bg-primary-foreground/20' : 'bg-primary/20 text-primary'
+                        )}>
+                          SAFE
+                        </span>
+                      )}
+                      
+                      {isCurrent && (
+                        <span className="text-[10px] font-bold bg-primary-foreground/20 px-1.5 py-0.5 rounded animate-pulse">
+                          YOU
+                        </span>
+                      )}
+                      
+                      {isNext && (
+                        <span className="text-[10px] font-medium text-accent">
+                          NEXT →
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <AlertDialogFooter>
+            <Button
+              variant="gold"
+              size="lg"
+              className="w-full"
+              onClick={handleContinueFromProgress}
+            >
+              <Rocket className="w-5 h-5" />
+              Next Question
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
