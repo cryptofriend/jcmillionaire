@@ -89,6 +89,53 @@ serve(async (req) => {
 
     const amount = run.earned_amount;
 
+    // Check if pool has enough remaining
+    const today = new Date().toISOString().split('T')[0];
+    const { data: dayState, error: dayStateError } = await supabase
+      .from('day_state')
+      .select('*')
+      .eq('day_id', today)
+      .maybeSingle();
+
+    if (dayStateError) {
+      console.error('Error fetching day state:', dayStateError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Failed to fetch pool state' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // If no day state exists, create one
+    if (!dayState) {
+      const { error: createDayStateError } = await supabase
+        .from('day_state')
+        .insert({
+          day_id: today,
+          pool_total: 1000000,
+          pool_locked: 0,
+          pool_remaining: 1000000,
+        });
+      
+      if (createDayStateError) {
+        console.error('Error creating day state:', createDayStateError);
+      }
+    }
+
+    const poolRemaining = dayState?.pool_remaining ?? 1000000;
+    
+    // Check if pool has enough funds
+    if (poolRemaining <= 0) {
+      console.error('Pool is empty');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Daily pool is empty. Come back tomorrow!' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Cap the claim amount to available pool
+    const claimableAmount = Math.min(amount, poolRemaining);
+    console.log('Claimable amount:', claimableAmount, 'Pool remaining:', poolRemaining);
+
     // Create or update the claim record as confirmed
     if (existingClaim) {
       // Update existing claim to confirmed
@@ -112,7 +159,7 @@ serve(async (req) => {
           run_id,
           user_id,
           day_id: run.day_id,
-          amount,
+          amount: claimableAmount,
           nonce: 'db-claim-' + Date.now(),
           expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
           status: 'confirmed',
@@ -127,6 +174,20 @@ serve(async (req) => {
       }
     }
 
+    // Deduct from pool_remaining
+    const newPoolRemaining = Math.max(0, poolRemaining - claimableAmount);
+    const { error: updatePoolError } = await supabase
+      .from('day_state')
+      .update({ pool_remaining: newPoolRemaining })
+      .eq('day_id', today);
+
+    if (updatePoolError) {
+      console.error('Error updating pool:', updatePoolError);
+      // Continue anyway, don't fail the claim
+    } else {
+      console.log('Pool updated. New remaining:', newPoolRemaining);
+    }
+
     // Update user balance - upsert to handle first-time claims
     const { data: existingBalance } = await supabase
       .from('user_balances')
@@ -138,7 +199,7 @@ serve(async (req) => {
       // Update existing balance
       const { error: balanceError } = await supabase
         .from('user_balances')
-        .update({ total_claimed: existingBalance.total_claimed + amount })
+        .update({ total_claimed: existingBalance.total_claimed + claimableAmount })
         .eq('user_id', user_id);
 
       if (balanceError) {
@@ -151,7 +212,7 @@ serve(async (req) => {
         .from('user_balances')
         .insert({
           user_id,
-          total_claimed: amount,
+          total_claimed: claimableAmount,
         });
 
       if (balanceError) {
@@ -168,7 +229,7 @@ serve(async (req) => {
       .maybeSingle();
 
     // Update streak data
-    const today = new Date().toISOString().split('T')[0];
+    const todayStr = new Date().toISOString().split('T')[0];
     const { data: existingStreak } = await supabase
       .from('user_streaks')
       .select('*')
@@ -183,7 +244,7 @@ serve(async (req) => {
       let totalDays = existingStreak.total_days_played;
       
       // Check if this is a new day
-      if (lastPlayDate !== today) {
+      if (lastPlayDate !== todayStr) {
         totalDays += 1;
         
         if (lastPlayDate === yesterday) {
@@ -205,10 +266,10 @@ serve(async (req) => {
         .update({
           current_streak: newStreak,
           longest_streak: newLongest,
-          last_play_date: today,
+          last_play_date: todayStr,
           total_days_played: totalDays,
           total_runs: existingStreak.total_runs + 1,
-          total_earned: existingStreak.total_earned + amount,
+          total_earned: existingStreak.total_earned + claimableAmount,
         })
         .eq('user_id', user_id);
     } else {
@@ -219,20 +280,20 @@ serve(async (req) => {
           user_id,
           current_streak: 1,
           longest_streak: 1,
-          last_play_date: today,
+          last_play_date: todayStr,
           total_days_played: 1,
           total_runs: 1,
-          total_earned: amount,
+          total_earned: claimableAmount,
         });
     }
 
-    console.log('Claim successful. Amount:', amount, 'New total:', updatedBalance?.total_claimed);
+    console.log('Claim successful. Amount:', claimableAmount, 'New total:', updatedBalance?.total_claimed);
 
     return new Response(
       JSON.stringify({
         success: true,
-        amount,
-        totalBalance: updatedBalance?.total_claimed || amount,
+        amount: claimableAmount,
+        totalBalance: updatedBalance?.total_claimed || claimableAmount,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
