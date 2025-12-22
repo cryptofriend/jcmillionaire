@@ -17,6 +17,8 @@ interface VerifyWalletRequest {
   payload: WalletAuthPayload;
   nonce: string;
   verification_level?: 'device' | 'orb';
+  username?: string;
+  profile_picture_url?: string;
 }
 
 Deno.serve(async (req) => {
@@ -26,13 +28,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { payload, nonce, verification_level = 'device' } = await req.json() as VerifyWalletRequest;
+    const { payload, nonce, verification_level = 'device', username, profile_picture_url } = await req.json() as VerifyWalletRequest;
 
     console.log('Verify wallet request:', { 
       address: payload.address, 
       nonce,
       verification_level,
-      status: payload.status 
+      status: payload.status,
+      username,
+      hasProfilePic: !!profile_picture_url
     });
 
     // Check if the wallet auth was successful
@@ -91,14 +95,39 @@ Deno.serve(async (req) => {
 
     if (existingUser) {
       console.log('Existing user found:', existingUser.id);
-      user = existingUser;
+      
+      // Update username and profile picture if provided and different
+      if ((username && username !== existingUser.username) || 
+          (profile_picture_url && profile_picture_url !== existingUser.profile_picture_url)) {
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({
+            username: username || existingUser.username,
+            profile_picture_url: profile_picture_url || existingUser.profile_picture_url,
+          })
+          .eq('id', existingUser.id);
+        
+        if (updateError) {
+          console.error('Error updating user profile:', updateError);
+        } else {
+          console.log('Updated user profile with World ID info');
+        }
+      }
+      
+      user = {
+        ...existingUser,
+        username: username || existingUser.username,
+        profile_picture_url: profile_picture_url || existingUser.profile_picture_url,
+      };
     } else {
-      // Create new user
+      // Create new user with World ID info
       const { data: newUser, error: insertError } = await supabase
         .from('users')
         .insert({
           nullifier_hash: nullifierHash,
           verification_level: verification_level,
+          username: username || null,
+          profile_picture_url: profile_picture_url || null,
         })
         .select()
         .single();
@@ -123,6 +152,8 @@ Deno.serve(async (req) => {
           verification_level: user.verification_level,
           wallet_address: walletAddress,
           created_at: user.created_at,
+          username: user.username || null,
+          profile_picture_url: user.profile_picture_url || null,
         },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
