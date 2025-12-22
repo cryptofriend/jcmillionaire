@@ -44,9 +44,10 @@ export const LIFELINES = {
 export type LifelineType = typeof LIFELINES[keyof typeof LIFELINES];
 
 // World App Deep Link format
-// Format: https://worldcoin.org/mini-app?app_id={APP_ID}&path={encodedPath}
+// Format: https://world.org/mini-app?app_id={APP_ID}&path={path}
+// Note: path should NOT be URL-encoded for World App to properly open the mini-app
 export const getWorldAppLink = (path: string) =>
-  `https://worldcoin.org/mini-app?app_id=${APP_ID}&path=${encodeURIComponent(path)}`;
+  `https://world.org/mini-app?app_id=${APP_ID}&path=${path}`;
 
 // Format JC amount
 export const formatJC = (amount: number): string => {
