@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { GameProvider } from "@/contexts/GameContext";
 import { initMiniKit } from "@/lib/minikit";
+import BottomNav from "@/components/BottomNav";
 import Home from "./pages/Home";
 import Verify from "./pages/Verify";
 import Game from "./pages/Game";
@@ -37,6 +38,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <BottomNav />
         </BrowserRouter>
       </GameProvider>
     </TooltipProvider>

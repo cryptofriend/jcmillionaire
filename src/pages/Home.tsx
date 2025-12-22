@@ -7,7 +7,7 @@ import { UserBalance } from '@/components/game/UserBalance';
 import { AttemptsDisplay } from '@/components/game/AttemptsDisplay';
 import { MiniLeaderboard } from '@/components/game/MiniLeaderboard';
 import { useGame } from '@/contexts/GameContext';
-import { Play, UserCheck, Share2, Trophy, ChevronRight, MessageCircle, HelpCircle, X, Users, Zap, Gift } from 'lucide-react';
+import { Play, Share2, ChevronRight, MessageCircle, X, Users, Zap, Gift, UserCheck } from 'lucide-react';
 import { inviteFriends } from '@/lib/worldShare';
 import { isInWorldApp } from '@/lib/minikit';
 import { toast } from 'sonner';
@@ -105,29 +105,10 @@ const Home: React.FC = () => {
             <p className="text-xs text-muted-foreground">Millionaire</p>
           </div>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/leaderboard')}
-            className="text-muted-foreground"
-          >
-            <Trophy className="w-5 h-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/profile')}
-            className="text-muted-foreground"
-          >
-            <UserCheck className="w-5 h-5" />
-          </Button>
-        </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-start px-4 pb-8 gap-5 overflow-y-auto">
+      <main className="flex-1 flex flex-col items-center justify-start px-4 pb-24 gap-5 overflow-y-auto">
         {/* Hero Section */}
         <div className="text-center space-y-3 animate-fade-in">
           <div className="relative inline-block">
