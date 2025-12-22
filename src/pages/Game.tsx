@@ -36,8 +36,8 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 
-// Claim checkpoint questions (like the real show)
-const CLAIM_CHECKPOINTS = [5, 10, 15];
+// Safe haven checkpoints (guaranteed amounts if you lose later)
+const SAFE_HAVEN_QUESTIONS = [5, 10, 15];
 
 // Mock questions for demo (expanded to 15)
 const mockQuestions: QuestionWithHiddenChoices[] = [
@@ -290,16 +290,11 @@ const Game: React.FC = () => {
           });
         }
       } else {
-        // Check if this is a claim checkpoint (after answering Q5, Q10, or Q15)
-        const questionNumber = currentQuestionIndex + 1;
-        if (CLAIM_CHECKPOINTS.includes(questionNumber)) {
-          // Show checkpoint dialog - user can claim or continue
-          setShowCheckpointDialog(true);
-          const currentPrize = prizeLadder[currentQuestionIndex]?.prizeAmount || 0;
-          setEarnedAmount(currentPrize);
-        }
+        // Show claim dialog after EVERY correct answer
+        const currentPrize = prizeLadder[currentQuestionIndex]?.prizeAmount || 0;
+        setEarnedAmount(currentPrize);
         
-        // Check if won all questions
+        // Check if won all questions (last question)
         if (currentQuestionIndex >= mockQuestions.length - 1) {
           setIsGameOver(true);
           const finalAmount = prizeLadder[currentQuestionIndex]?.prizeAmount || 0;
@@ -315,6 +310,9 @@ const Game: React.FC = () => {
               status: 'completed',
             });
           }
+        } else {
+          // Show claim or continue dialog for all other questions
+          setShowCheckpointDialog(true);
         }
       }
     }, 1500);
@@ -431,8 +429,8 @@ const Game: React.FC = () => {
     });
   };
 
-  // Check if current question number is NOT a checkpoint (for showing next button)
-  const isCheckpointQuestion = CLAIM_CHECKPOINTS.includes(currentQuestionIndex + 1);
+  // Check if current question is a safe haven (for UI highlighting)
+  const isSafeHavenQuestion = SAFE_HAVEN_QUESTIONS.includes(currentQuestionIndex + 1);
 
   // Show loading while initializing run
   if (isInitializing) {
@@ -607,17 +605,7 @@ const Game: React.FC = () => {
             showStats={showStats}
           />
 
-          {/* Next Question Button - only show if NOT a checkpoint question */}
-          {showResult && isCorrect && !isGameOver && !isCheckpointQuestion && !showCheckpointDialog && (
-            <Button
-              variant="success"
-              size="lg"
-              className="w-full animate-bounce-in"
-              onClick={handleNextQuestion}
-            >
-              Next Question →
-            </Button>
-          )}
+          {/* Next Question Button removed - now handled by claim dialog */}
         </main>
 
         {/* Right Side Panel - Prize Ladder (Desktop Only) */}
@@ -652,7 +640,7 @@ const Game: React.FC = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Claim Checkpoint Dialog */}
+      {/* Claim or Continue Dialog - shown after every correct answer */}
       <AlertDialog open={showCheckpointDialog} onOpenChange={setShowCheckpointDialog}>
         <AlertDialogContent className="max-w-sm">
           <AlertDialogHeader>
@@ -660,22 +648,25 @@ const Game: React.FC = () => {
               <JackieIcon size={80} className="animate-float" />
             </div>
             <AlertDialogTitle className="text-center text-2xl font-display">
-              🎉 Checkpoint Reached!
+              {isSafeHavenQuestion ? '🏆 Safe Haven!' : '✅ Correct!'}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center space-y-4">
-              <p>You've reached question {currentQuestionIndex + 1}!</p>
+              <p>Question {currentQuestionIndex + 1} complete!</p>
               <div className="flex items-center justify-center gap-2 py-4 px-6 bg-card rounded-2xl border border-border shadow-card mx-auto">
                 <CoinIcon size={32} />
                 <span className="text-2xl font-display font-bold text-gradient-gold">
                   {formatJC(earnedAmount)} JC
                 </span>
               </div>
-              <p className="text-sm">
-                {currentQuestionIndex + 1 < 15 
-                  ? "Claim now and secure your prize, or keep going to win more - but risk losing it all!"
-                  : "Congratulations! You've reached the top!"
-                }
-              </p>
+              {isSafeHavenQuestion ? (
+                <p className="text-sm text-primary font-medium">
+                  This is a safe haven! If you lose later, you'll keep this amount.
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Claim now to secure your prize, or keep going for more!
+                </p>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
@@ -686,19 +677,17 @@ const Game: React.FC = () => {
               onClick={handleClaimNow}
             >
               <HandCoins className="w-5 h-5" />
-              Claim {formatJC(earnedAmount)} JC Now
+              Claim {formatJC(earnedAmount)} JC
             </Button>
-            {currentQuestionIndex + 1 < 15 && (
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full"
-                onClick={handleKeepGoing}
-              >
-                <Rocket className="w-5 h-5" />
-                Keep Going! 🔥
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full"
+              onClick={handleKeepGoing}
+            >
+              <Rocket className="w-5 h-5" />
+              Keep Going
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
