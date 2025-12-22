@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { PoolStats } from '@/components/game/PoolStats';
 import { UserBalance } from '@/components/game/UserBalance';
+import { StreakDisplay } from '@/components/game/StreakDisplay';
 import { useGame } from '@/contexts/GameContext';
 import { formatJC } from '@/lib/constants';
 import { Play, UserCheck, Share2, Trophy, ChevronRight } from 'lucide-react';
@@ -81,6 +82,7 @@ const Home: React.FC = () => {
         {/* Stats Cards */}
         <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-1">
           <UserBalance />
+          <StreakDisplay />
           <PoolStats dayState={dayState} />
         </div>
 

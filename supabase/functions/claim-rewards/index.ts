@@ -167,6 +167,65 @@ serve(async (req) => {
       .eq('user_id', user_id)
       .maybeSingle();
 
+    // Update streak data
+    const today = new Date().toISOString().split('T')[0];
+    const { data: existingStreak } = await supabase
+      .from('user_streaks')
+      .select('*')
+      .eq('user_id', user_id)
+      .maybeSingle();
+
+    if (existingStreak) {
+      const lastPlayDate = existingStreak.last_play_date;
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      
+      let newStreak = existingStreak.current_streak;
+      let totalDays = existingStreak.total_days_played;
+      
+      // Check if this is a new day
+      if (lastPlayDate !== today) {
+        totalDays += 1;
+        
+        if (lastPlayDate === yesterday) {
+          // Consecutive day - increment streak
+          newStreak += 1;
+        } else if (!lastPlayDate) {
+          // First time playing
+          newStreak = 1;
+        } else {
+          // Streak broken - reset to 1
+          newStreak = 1;
+        }
+      }
+      
+      const newLongest = Math.max(existingStreak.longest_streak, newStreak);
+      
+      await supabase
+        .from('user_streaks')
+        .update({
+          current_streak: newStreak,
+          longest_streak: newLongest,
+          last_play_date: today,
+          total_days_played: totalDays,
+          total_runs: existingStreak.total_runs + 1,
+          total_earned: existingStreak.total_earned + amount,
+        })
+        .eq('user_id', user_id);
+    } else {
+      // Create new streak record
+      await supabase
+        .from('user_streaks')
+        .insert({
+          user_id,
+          current_streak: 1,
+          longest_streak: 1,
+          last_play_date: today,
+          total_days_played: 1,
+          total_runs: 1,
+          total_earned: amount,
+        });
+    }
+
     console.log('Claim successful. Amount:', amount, 'New total:', updatedBalance?.total_claimed);
 
     return new Response(
