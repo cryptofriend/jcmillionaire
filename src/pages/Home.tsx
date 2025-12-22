@@ -8,7 +8,8 @@ import { AttemptsDisplay } from '@/components/game/AttemptsDisplay';
 import { MiniLeaderboard } from '@/components/game/MiniLeaderboard';
 import { useGame } from '@/contexts/GameContext';
 import { Play, Share2, ChevronRight, MessageCircle, X, Users, Zap, Gift, UserCheck } from 'lucide-react';
-import { inviteFriends } from '@/lib/worldShare';
+import { inviteFriends, sendToWorldChat, shareViaNative } from '@/lib/worldShare';
+import { getWorldAppLink } from '@/lib/constants';
 import { isInWorldApp } from '@/lib/minikit';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -54,13 +55,29 @@ const Home: React.FC = () => {
     }
   };
 
-  const handleShare = async () => {
-    const result = await inviteFriends();
+  const handleSendWorldChat = async () => {
+    const inviteLink = getWorldAppLink('/');
+    const message = `🎮 Join me on Jackie Chain: Millionaire!\n\nAnswer trivia questions and earn $JC tokens.\n\n${inviteLink}`;
     
-    if (result.success) {
-      toast.success('Invite sent!');
-    } else if (result.error !== 'Share cancelled') {
-      navigate('/profile?tab=referrals');
+    if (isInWorldApp()) {
+      const result = await sendToWorldChat({ message });
+      if (result.success) {
+        toast.success('Sent to World Chat!');
+      } else {
+        toast.error(result.error || 'Failed to send');
+      }
+    } else {
+      // Fallback to native share
+      const result = await shareViaNative({
+        title: 'Jackie Chain: Millionaire',
+        text: message,
+        url: inviteLink,
+      });
+      if (result.success) {
+        toast.success('Shared!');
+      } else if (result.error !== 'Share cancelled') {
+        navigate('/profile?tab=referrals');
+      }
     }
   };
 
@@ -183,10 +200,11 @@ const Home: React.FC = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleShare}
-                  className="flex-shrink-0"
+                  onClick={handleSendWorldChat}
+                  className="flex-shrink-0 gap-1.5"
                 >
-                  {isInWorldApp() ? <MessageCircle className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                  <MessageCircle className="w-4 h-4" />
+                  <span className="text-xs">Send</span>
                 </Button>
               </div>
             </div>
@@ -225,11 +243,11 @@ const Home: React.FC = () => {
               <Button
                 variant="outline"
                 size="lg"
-                className="w-full"
-                onClick={handleShare}
+                className="w-full gap-2"
+                onClick={handleSendWorldChat}
               >
-                {isInWorldApp() ? <MessageCircle className="w-5 h-5" /> : <Share2 className="w-5 h-5" />}
-                Invite & Earn Plays
+                <MessageCircle className="w-5 h-5" />
+                Send in World Chat
               </Button>
             </div>
           )}
