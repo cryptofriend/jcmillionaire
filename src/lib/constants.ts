@@ -44,6 +44,7 @@ export const LIFELINES = {
 export type LifelineType = typeof LIFELINES[keyof typeof LIFELINES];
 
 // World App Deep Link format
+// Format: https://world.org/mini-app?app_id={APP_ID}&path={encodedPath}
 export const getWorldAppLink = (path: string) => 
   `https://world.org/mini-app?app_id=${APP_ID}&path=${encodeURIComponent(path)}`;
 

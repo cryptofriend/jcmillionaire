@@ -59,7 +59,7 @@ const Profile: React.FC = () => {
   
   // Invite code from user ID
   const inviteCode = user?.id.slice(0, 8).toUpperCase() || 'JACKIE';
-  const inviteLink = getWorldAppLink(`/welcome?ref=${inviteCode}`);
+  const inviteLink = getWorldAppLink(`/?ref=${inviteCode}`);
 
   // Fetch all profile data
   useEffect(() => {
@@ -175,11 +175,12 @@ const Profile: React.FC = () => {
   };
 
   const shareInvite = () => {
+    const shareMessage = `🎮 Play Jackie Chain: Millionaire and win $JC tokens!\n\nJoin the trivia game:\n${inviteLink}`;
+    
     if (navigator.share) {
       navigator.share({
-        title: 'Join Jackie Chain: Millionaire',
-        text: 'Play trivia, win $JC tokens! Use my invite link:',
-        url: inviteLink,
+        title: 'Jackie Chain: Millionaire',
+        text: shareMessage,
       });
     } else {
       copyInviteLink();
