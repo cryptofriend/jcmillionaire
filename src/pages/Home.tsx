@@ -7,10 +7,11 @@ import { UserBalance } from '@/components/game/UserBalance';
 import { AttemptsDisplay } from '@/components/game/AttemptsDisplay';
 import { MiniLeaderboard } from '@/components/game/MiniLeaderboard';
 import { useGame } from '@/contexts/GameContext';
-import { Play, UserCheck, Share2, Trophy, ChevronRight, MessageCircle, HelpCircle, X, Users } from 'lucide-react';
+import { Play, UserCheck, Share2, Trophy, ChevronRight, MessageCircle, HelpCircle, X, Users, Zap } from 'lucide-react';
 import { inviteFriends } from '@/lib/worldShare';
 import { isInWorldApp } from '@/lib/minikit';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface InfoPopupProps {
   title: string;
@@ -146,32 +147,58 @@ const Home: React.FC = () => {
           <UserBalance />
           <PoolStats dayState={dayState} />
           
-          {/* Attempts and Invite Section */}
-          {isVerified && (
-            <div className="space-y-3">
-              <AttemptsDisplay attempts={attempts} />
-              
-              {/* Invite Friend Section */}
-              <div className="px-4 py-3 bg-card rounded-xl border border-border shadow-soft">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Users className="w-4 h-4 text-primary flex-shrink-0" />
-                      <span className="text-sm font-medium text-foreground">Invite Friends</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Each friend who joins gives you +1 extra play!
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleShare}
-                    className="flex-shrink-0"
-                  >
-                    {isInWorldApp() ? <MessageCircle className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-                  </Button>
+          {/* Attempts and Invite Section - Merged */}
+          {isVerified && attempts && (
+            <div className="px-4 py-3 bg-card rounded-xl border border-border shadow-soft space-y-3">
+              {/* Attempts Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Zap className={cn(
+                    'w-5 h-5',
+                    attempts.remaining > 0 ? 'text-primary' : 'text-muted-foreground'
+                  )} />
+                  <span className="text-sm font-medium text-muted-foreground">Plays Today</span>
                 </div>
+                <span className={cn(
+                  'text-lg font-bold',
+                  attempts.remaining > 0 ? 'text-foreground' : 'text-muted-foreground'
+                )}>
+                  {attempts.remaining} / {attempts.cap}
+                </span>
+              </div>
+
+              {/* Visual dots for attempts */}
+              <div className="flex gap-1 flex-wrap">
+                {Array.from({ length: Math.min(attempts.cap, 10) }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      'w-2.5 h-2.5 rounded-full transition-colors',
+                      i < attempts.remaining ? 'bg-primary' : 'bg-secondary'
+                    )}
+                  />
+                ))}
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-border" />
+
+              {/* Invite Friend Row */}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <Users className="w-4 h-4 text-success flex-shrink-0" />
+                  <p className="text-xs text-muted-foreground">
+                    <span className="text-foreground font-medium">Invite a friend</span> = +1 extra play
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleShare}
+                  className="flex-shrink-0"
+                >
+                  {isInWorldApp() ? <MessageCircle className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                </Button>
               </div>
             </div>
           )}
