@@ -5,7 +5,7 @@ import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { formatJC } from '@/lib/rewardsService';
 import { supabase } from '@/integrations/supabase/client';
 import { useGame } from '@/contexts/GameContext';
-import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket } from 'lucide-react';
+import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket, Users, Gamepad2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Airdrop date - April 3, 2026 at 9pm Vietnam time (UTC+7) = 14:00 UTC
@@ -29,6 +29,8 @@ interface LeaderboardEntry {
   rank: number;
   username?: string;
   profile_picture_url?: string;
+  invited_count: number;
+  games_played: number;
 }
 
 const Leaderboard: React.FC = () => {
@@ -38,6 +40,7 @@ const Leaderboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [userRank, setUserRank] = useState<number | null>(null);
   const [userBalance, setUserBalance] = useState<number>(0);
+  const [userStats, setUserStats] = useState<{ invited: number; games: number }>({ invited: 0, games: 0 });
   const [countdown, setCountdown] = useState(getTimeUntilAirdrop());
 
   // Countdown timer
@@ -72,17 +75,40 @@ const Leaderboard: React.FC = () => {
 
       // Fetch user profiles for these users
       const userIds = balances.map(b => b.user_id);
-      const { data: users, error: usersError } = await supabase
-        .from('users')
-        .select('id, username, profile_picture_url')
-        .in('id', userIds);
+      const [usersResult, referralsResult, runsResult] = await Promise.all([
+        supabase
+          .from('users')
+          .select('id, username, profile_picture_url')
+          .in('id', userIds),
+        supabase
+          .from('referrals')
+          .select('inviter_user_id')
+          .in('inviter_user_id', userIds)
+          .eq('status', 'first_run_completed'),
+        supabase
+          .from('runs')
+          .select('user_id')
+          .in('user_id', userIds)
+      ]);
 
-      if (usersError) {
-        console.error('Error fetching user profiles:', usersError);
+      if (usersResult.error) {
+        console.error('Error fetching user profiles:', usersResult.error);
       }
 
-      // Create a map of user profiles
-      const userMap = new Map(users?.map(u => [u.id, u]) || []);
+      // Create maps for quick lookup
+      const userMap = new Map(usersResult.data?.map(u => [u.id, u]) || []);
+      
+      // Count referrals per user
+      const referralCounts = new Map<string, number>();
+      referralsResult.data?.forEach(r => {
+        referralCounts.set(r.inviter_user_id, (referralCounts.get(r.inviter_user_id) || 0) + 1);
+      });
+      
+      // Count runs per user
+      const runCounts = new Map<string, number>();
+      runsResult.data?.forEach(r => {
+        runCounts.set(r.user_id, (runCounts.get(r.user_id) || 0) + 1);
+      });
 
       const rankedEntries = balances.map((entry, index) => {
         const userProfile = userMap.get(entry.user_id);
@@ -91,6 +117,8 @@ const Leaderboard: React.FC = () => {
           rank: index + 1,
           username: userProfile?.username || undefined,
           profile_picture_url: userProfile?.profile_picture_url || undefined,
+          invited_count: referralCounts.get(entry.user_id) || 0,
+          games_played: runCounts.get(entry.user_id) || 0,
         };
       });
 
@@ -102,24 +130,45 @@ const Leaderboard: React.FC = () => {
         if (userEntry) {
           setUserRank(userEntry.rank);
           setUserBalance(userEntry.total_claimed);
+          setUserStats({ invited: userEntry.invited_count, games: userEntry.games_played });
         } else {
           // User not in top 50, fetch their data separately
-          const { data: userData } = await supabase
-            .from('user_balances')
-            .select('total_claimed')
-            .eq('user_id', state.user.id)
-            .maybeSingle();
+          const [userBalanceResult, rankResult, userReferralsResult, userRunsResult] = await Promise.all([
+            supabase
+              .from('user_balances')
+              .select('total_claimed')
+              .eq('user_id', state.user.id)
+              .maybeSingle(),
+            supabase
+              .from('user_balances')
+              .select('*', { count: 'exact', head: true })
+              .gt('total_claimed', 0),
+            supabase
+              .from('referrals')
+              .select('id')
+              .eq('inviter_user_id', state.user.id)
+              .eq('status', 'first_run_completed'),
+            supabase
+              .from('runs')
+              .select('id')
+              .eq('user_id', state.user.id)
+          ]);
 
-          if (userData) {
-            setUserBalance(userData.total_claimed);
+          if (userBalanceResult.data) {
+            setUserBalance(userBalanceResult.data.total_claimed);
             // Count how many users have more than this user
             const { count } = await supabase
               .from('user_balances')
               .select('*', { count: 'exact', head: true })
-              .gt('total_claimed', userData.total_claimed);
+              .gt('total_claimed', userBalanceResult.data.total_claimed);
             
             setUserRank((count || 0) + 1);
           }
+          
+          setUserStats({
+            invited: userReferralsResult.data?.length || 0,
+            games: userRunsResult.data?.length || 0
+          });
         }
       }
 
@@ -227,17 +276,37 @@ const Leaderboard: React.FC = () => {
       {/* User's Rank Card (if verified) */}
       {state.isVerified && userRank !== null && (
         <div className="px-4 py-4">
-          <div className="flex items-center gap-4 p-4 bg-primary/10 rounded-xl border border-primary/30">
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20">
-              {getRankIcon(userRank)}
+          <div className="p-4 bg-primary/10 rounded-xl border border-primary/30 space-y-3">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20">
+                {getRankIcon(userRank)}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground">Your Rank</p>
+                <p className="text-2xl font-display font-bold">#{userRank}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">Balance</p>
+                <p className="text-lg font-bold text-gradient-gold">{formatJC(userBalance)} JC</p>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="text-sm text-muted-foreground">Your Rank</p>
-              <p className="text-2xl font-display font-bold">#{userRank}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground">Balance</p>
-              <p className="text-lg font-bold text-gradient-gold">{formatJC(userBalance)} JC</p>
+            {/* Additional Stats */}
+            <div className="flex justify-around pt-2 border-t border-primary/20">
+              <div className="flex items-center gap-1.5 text-sm">
+                <Users className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">{userStats.invited}</span>
+                <span className="text-muted-foreground">invited</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-sm">
+                <Gamepad2 className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">{userStats.games}</span>
+                <span className="text-muted-foreground">games</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-sm">
+                <CoinIcon size={16} />
+                <span className="font-medium">{formatJC(userBalance)}</span>
+                <span className="text-muted-foreground">JC</span>
+              </div>
             </div>
           </div>
         </div>
@@ -304,9 +373,16 @@ const Leaderboard: React.FC = () => {
                     )}>
                       {isCurrentUser ? 'You' : (entry.username || `Player ${entry.rank}`)}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {entry.username ? `@${entry.username}` : entry.user_id.slice(0, 8) + '...'}
-                    </p>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        {entry.invited_count}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Gamepad2 className="w-3 h-3" />
+                        {entry.games_played}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Balance */}
