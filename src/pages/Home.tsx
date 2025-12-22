@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
 import { PoolStats } from '@/components/game/PoolStats';
 import { UserBalance } from '@/components/game/UserBalance';
+import { AttemptsDisplay } from '@/components/game/AttemptsDisplay';
 import { MiniLeaderboard } from '@/components/game/MiniLeaderboard';
 import { useGame } from '@/contexts/GameContext';
-import { Play, UserCheck, Share2, Trophy, ChevronRight, MessageCircle, HelpCircle, X } from 'lucide-react';
+import { Play, UserCheck, Share2, Trophy, ChevronRight, MessageCircle, HelpCircle, X, Users } from 'lucide-react';
 import { inviteFriends } from '@/lib/worldShare';
 import { isInWorldApp } from '@/lib/minikit';
 import { toast } from 'sonner';
@@ -144,6 +145,36 @@ const Home: React.FC = () => {
         <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-1">
           <UserBalance />
           <PoolStats dayState={dayState} />
+          
+          {/* Attempts and Invite Section */}
+          {isVerified && (
+            <div className="space-y-3">
+              <AttemptsDisplay attempts={attempts} />
+              
+              {/* Invite Friend Section */}
+              <div className="px-4 py-3 bg-card rounded-xl border border-border shadow-soft">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Users className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span className="text-sm font-medium text-foreground">Invite Friends</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Each friend who joins gives you +1 extra play!
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleShare}
+                    className="flex-shrink-0"
+                  >
+                    {isInWorldApp() ? <MessageCircle className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* CTA Button */}
