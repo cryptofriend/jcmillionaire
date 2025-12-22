@@ -213,6 +213,41 @@ export type Database = {
         }
         Relationships: []
       }
+      leaderboard_snapshots: {
+        Row: {
+          created_at: string
+          day_id: string
+          id: string
+          rank: number
+          total_claimed: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_id: string
+          id?: string
+          rank: number
+          total_claimed: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day_id?: string
+          id?: string
+          rank?: number
+          total_claimed?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leaderboard_snapshots_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prize_ladder: {
         Row: {
           is_safe_haven: boolean
