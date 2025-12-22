@@ -203,6 +203,48 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     init();
   }, [fetchDayState, fetchPrizeLadder]);
 
+  // Subscribe to realtime updates for day_state
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    const channel = supabase
+      .channel('day-state-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'day_state',
+          filter: `day_id=eq.${today}`,
+        },
+        (payload) => {
+          console.log('Day state update received:', payload);
+          if (payload.new && typeof payload.new === 'object' && 'day_id' in payload.new) {
+            const data = payload.new as {
+              day_id: string;
+              pool_total: number;
+              pool_locked: number;
+              pool_remaining: number;
+            };
+            dispatch({
+              type: 'SET_DAY_STATE',
+              payload: {
+                dayId: data.day_id,
+                poolTotal: data.pool_total,
+                poolLocked: data.pool_locked,
+                poolRemaining: data.pool_remaining,
+              },
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   // Fetch attempts when user changes
   useEffect(() => {
     if (state.user) {
