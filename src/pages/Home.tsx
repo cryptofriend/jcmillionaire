@@ -7,7 +7,10 @@ import { UserBalance } from '@/components/game/UserBalance';
 import { StreakDisplay } from '@/components/game/StreakDisplay';
 import { useGame } from '@/contexts/GameContext';
 import { formatJC } from '@/lib/constants';
-import { Play, UserCheck, Share2, Trophy, ChevronRight } from 'lucide-react';
+import { Play, UserCheck, Share2, Trophy, ChevronRight, MessageCircle } from 'lucide-react';
+import { inviteFriends } from '@/lib/worldShare';
+import { isInWorldApp } from '@/lib/minikit';
+import { toast } from 'sonner';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -27,8 +30,15 @@ const Home: React.FC = () => {
     }
   };
 
-  const handleShare = () => {
-    navigate('/profile?tab=referrals');
+  const handleShare = async () => {
+    const result = await inviteFriends();
+    
+    if (result.success) {
+      toast.success('Invite sent!');
+    } else if (result.error !== 'Share cancelled') {
+      // Fallback to profile referrals page if sharing failed
+      navigate('/profile?tab=referrals');
+    }
   };
 
   return (
@@ -121,7 +131,7 @@ const Home: React.FC = () => {
                 className="w-full"
                 onClick={handleShare}
               >
-                <Share2 className="w-5 h-5" />
+                {isInWorldApp() ? <MessageCircle className="w-5 h-5" /> : <Share2 className="w-5 h-5" />}
                 Invite & Earn Plays
               </Button>
             </div>
