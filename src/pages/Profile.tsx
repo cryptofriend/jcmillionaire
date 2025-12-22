@@ -6,11 +6,13 @@ import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { AttemptsDisplay } from '@/components/game/AttemptsDisplay';
 import { useGame } from '@/contexts/GameContext';
 import { formatJC, getWorldAppLink } from '@/lib/constants';
-import { ArrowLeft, Copy, Share2, Trophy, History, Users, CheckCircle, Loader2, Flame } from 'lucide-react';
+import { ArrowLeft, Copy, Share2, Trophy, History, Users, CheckCircle, Loader2, Flame, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { sendToWorldChat, shareViaNative } from '@/lib/worldShare';
+import { isInWorldApp } from '@/lib/minikit';
 
 interface RunHistoryItem {
   id: string;
@@ -186,6 +188,31 @@ const Profile: React.FC = () => {
       });
     } else {
       copyInviteLink();
+    }
+  };
+
+  const sendWorldChat = async () => {
+    const message = `🎮 Join me on Jackie Chain: Millionaire!\n\nAnswer trivia questions and earn $JC tokens.\n\n${inviteLink}`;
+    
+    if (isInWorldApp()) {
+      const result = await sendToWorldChat({ message });
+      if (result.success) {
+        toast.success('Sent to World Chat!');
+      } else {
+        toast.error(result.error || 'Failed to send');
+      }
+    } else {
+      // Fallback to native share with the URL
+      const result = await shareViaNative({
+        title: 'Jackie Chain: Millionaire',
+        text: message,
+        url: inviteLink,
+      });
+      if (result.success) {
+        toast.success('Shared!');
+      } else if (result.error !== 'Share cancelled') {
+        toast.error(result.error || 'Failed to share');
+      }
     }
   };
 
@@ -374,6 +401,11 @@ const Profile: React.FC = () => {
             <Button variant="gold" className="w-full" onClick={shareInvite}>
               <Share2 className="w-5 h-5" />
               Share Invite Link
+            </Button>
+
+            <Button variant="outline" className="w-full" onClick={sendWorldChat}>
+              <MessageCircle className="w-5 h-5" />
+              Send in World Chat
             </Button>
           </div>
 
