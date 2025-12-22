@@ -45,8 +45,56 @@ export interface WalletAuthResult {
     verification_level: string;
     wallet_address: string;
     created_at: string;
+    username?: string;
+    profile_picture_url?: string;
   };
   error?: string;
+}
+
+export interface WorldIdUserInfo {
+  walletAddress: string;
+  username?: string;
+  profilePictureUrl?: string;
+}
+
+/**
+ * Get user info by wallet address from World ID
+ */
+export async function getUserInfoByAddress(address: string): Promise<WorldIdUserInfo | null> {
+  if (!MiniKit.isInstalled()) return null;
+  
+  try {
+    const userInfo = await MiniKit.getUserByAddress(address);
+    return {
+      walletAddress: userInfo?.walletAddress || address,
+      username: userInfo?.username,
+      profilePictureUrl: userInfo?.profilePictureUrl,
+    };
+  } catch (error) {
+    console.log('Could not get user info by address:', error);
+    return null;
+  }
+}
+
+/**
+ * Get current user info from MiniKit
+ */
+export function getCurrentUserInfo(): WorldIdUserInfo | null {
+  if (!MiniKit.isInstalled()) return null;
+  
+  try {
+    const user = (MiniKit as any).user;
+    if (user) {
+      return {
+        walletAddress: user.walletAddress || '',
+        username: user.username,
+        profilePictureUrl: user.profilePictureUrl,
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -98,10 +146,39 @@ export async function authenticateWithWallet(
       return { success: false, error: data.error || 'Verification failed' };
     }
 
+    // Fetch World ID username and profile picture
+    let username: string | undefined;
+    let profilePictureUrl: string | undefined;
+    
+    try {
+      const userInfo = await getUserInfoByAddress(data.user.wallet_address);
+      if (userInfo) {
+        username = userInfo.username;
+        profilePictureUrl = userInfo.profilePictureUrl;
+        
+        // Update user profile in database with World ID info
+        if (username || profilePictureUrl) {
+          await supabase
+            .from('users')
+            .update({
+              username: username || null,
+              profile_picture_url: profilePictureUrl || null,
+            })
+            .eq('id', data.user.id);
+        }
+      }
+    } catch (e) {
+      console.log('Could not fetch World ID user info:', e);
+    }
+
     console.log('Wallet auth successful:', data.user);
     return {
       success: true,
-      user: data.user,
+      user: {
+        ...data.user,
+        username,
+        profile_picture_url: profilePictureUrl,
+      },
     };
 
   } catch (error) {

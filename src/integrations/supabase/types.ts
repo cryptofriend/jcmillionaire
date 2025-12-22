@@ -468,21 +468,27 @@ export type Database = {
           created_at: string
           id: string
           nullifier_hash: string
+          profile_picture_url: string | null
           updated_at: string
+          username: string | null
           verification_level: Database["public"]["Enums"]["verification_level"]
         }
         Insert: {
           created_at?: string
           id?: string
           nullifier_hash: string
+          profile_picture_url?: string | null
           updated_at?: string
+          username?: string | null
           verification_level?: Database["public"]["Enums"]["verification_level"]
         }
         Update: {
           created_at?: string
           id?: string
           nullifier_hash?: string
+          profile_picture_url?: string | null
           updated_at?: string
+          username?: string | null
           verification_level?: Database["public"]["Enums"]["verification_level"]
         }
         Relationships: []

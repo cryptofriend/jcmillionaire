@@ -12,6 +12,8 @@ interface LeaderboardEntry {
   user_id: string;
   total_claimed: number;
   rank: number;
+  username?: string;
+  profile_picture_url?: string;
 }
 
 const Leaderboard: React.FC = () => {
@@ -26,23 +28,48 @@ const Leaderboard: React.FC = () => {
     const fetchLeaderboard = async () => {
       setLoading(true);
       
-      // Fetch top 50 users by total_claimed
-      const { data, error } = await supabase
+      // Fetch top 50 users by total_claimed with user profile info
+      const { data: balances, error: balanceError } = await supabase
         .from('user_balances')
         .select('user_id, total_claimed')
         .order('total_claimed', { ascending: false })
         .limit(50);
 
-      if (error) {
-        console.error('Error fetching leaderboard:', error);
+      if (balanceError) {
+        console.error('Error fetching leaderboard:', balanceError);
         setLoading(false);
         return;
       }
 
-      const rankedEntries = (data || []).map((entry, index) => ({
-        ...entry,
-        rank: index + 1,
-      }));
+      if (!balances || balances.length === 0) {
+        setEntries([]);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch user profiles for these users
+      const userIds = balances.map(b => b.user_id);
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, username, profile_picture_url')
+        .in('id', userIds);
+
+      if (usersError) {
+        console.error('Error fetching user profiles:', usersError);
+      }
+
+      // Create a map of user profiles
+      const userMap = new Map(users?.map(u => [u.id, u]) || []);
+
+      const rankedEntries = balances.map((entry, index) => {
+        const userProfile = userMap.get(entry.user_id);
+        return {
+          ...entry,
+          rank: index + 1,
+          username: userProfile?.username || undefined,
+          profile_picture_url: userProfile?.profile_picture_url || undefined,
+        };
+      });
 
       setEntries(rankedEntries);
 
@@ -172,10 +199,25 @@ const Leaderboard: React.FC = () => {
                     {getRankIcon(entry.rank)}
                   </div>
 
-                  {/* User Avatar Placeholder */}
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
-                    <span className="text-sm font-bold text-primary">
-                      {isCurrentUser ? 'You' : `#${entry.rank}`}
+                  {/* User Avatar */}
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center overflow-hidden">
+                    {entry.profile_picture_url ? (
+                      <img 
+                        src={entry.profile_picture_url} 
+                        alt={entry.username || 'User'} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback if image fails to load
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <span className={cn(
+                      "text-sm font-bold text-primary",
+                      entry.profile_picture_url && "hidden"
+                    )}>
+                      {entry.username ? entry.username.charAt(0).toUpperCase() : (isCurrentUser ? 'Y' : `#${entry.rank}`)}
                     </span>
                   </div>
 
@@ -185,10 +227,10 @@ const Leaderboard: React.FC = () => {
                       'font-medium truncate',
                       isCurrentUser && 'text-primary'
                     )}>
-                      {isCurrentUser ? 'You' : `Player ${entry.rank}`}
+                      {isCurrentUser ? 'You' : (entry.username || `Player ${entry.rank}`)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {entry.user_id.slice(0, 8)}...
+                      {entry.username ? `@${entry.username}` : entry.user_id.slice(0, 8) + '...'}
                     </p>
                   </div>
 
