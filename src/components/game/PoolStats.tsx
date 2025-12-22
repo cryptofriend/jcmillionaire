@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DayState } from '@/lib/types';
-import { formatJC } from '@/lib/constants';
 import { CoinIcon } from '@/components/icons/JackieIcon';
 import { TrendingUp, Clock } from 'lucide-react';
 
@@ -20,8 +19,54 @@ function getTimeUntilMidnightUTC(): { hours: number; minutes: number; seconds: n
   return { hours, minutes, seconds };
 }
 
+// Animated counter hook
+function useAnimatedCounter(targetValue: number, duration: number = 800) {
+  const [displayValue, setDisplayValue] = useState(targetValue);
+  const previousValue = useRef(targetValue);
+  const animationRef = useRef<number>();
+
+  useEffect(() => {
+    if (previousValue.current === targetValue) return;
+
+    const startValue = previousValue.current;
+    const difference = targetValue - startValue;
+    const startTime = performance.now();
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function for smooth animation
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      
+      const currentValue = Math.round(startValue + difference * easeOutQuart);
+      setDisplayValue(currentValue);
+
+      if (progress < 1) {
+        animationRef.current = requestAnimationFrame(animate);
+      } else {
+        previousValue.current = targetValue;
+      }
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [targetValue, duration]);
+
+  return displayValue;
+}
+
 export const PoolStats: React.FC<PoolStatsProps> = ({ dayState }) => {
   const [countdown, setCountdown] = useState(getTimeUntilMidnightUTC());
+  const [hasChanged, setHasChanged] = useState(false);
+  const previousRemaining = useRef(dayState?.poolRemaining ?? 0);
+  
+  const animatedRemaining = useAnimatedCounter(dayState?.poolRemaining ?? 0);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -30,6 +75,16 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ dayState }) => {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Flash effect when value changes
+  useEffect(() => {
+    if (dayState && previousRemaining.current !== dayState.poolRemaining) {
+      setHasChanged(true);
+      previousRemaining.current = dayState.poolRemaining;
+      const timeout = setTimeout(() => setHasChanged(false), 600);
+      return () => clearTimeout(timeout);
+    }
+  }, [dayState?.poolRemaining]);
 
   if (!dayState) {
     return (
@@ -93,8 +148,12 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ dayState }) => {
         </div>
         <div className="flex items-center gap-1">
           <CoinIcon size={16} />
-          <span className="text-sm font-bold text-foreground">
-            {dayState.poolRemaining.toLocaleString()}
+          <span 
+            className={`text-sm font-bold transition-all duration-300 ${
+              hasChanged ? 'text-primary scale-110' : 'text-foreground scale-100'
+            }`}
+          >
+            {animatedRemaining.toLocaleString()}
           </span>
           <span className="text-xs text-muted-foreground">
             / {dayState.poolTotal.toLocaleString()}
