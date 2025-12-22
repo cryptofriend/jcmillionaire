@@ -5,7 +5,7 @@ import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { formatJC } from '@/lib/rewardsService';
 import { supabase } from '@/integrations/supabase/client';
 import { useGame } from '@/contexts/GameContext';
-import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket, Users, Gamepad2 } from 'lucide-react';
+import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket, Users, Gamepad2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Airdrop date - April 3, 2026 at 9pm Vietnam time (UTC+7) = 14:00 UTC
@@ -31,6 +31,7 @@ interface LeaderboardEntry {
   profile_picture_url?: string;
   invited_count: number;
   games_played: number;
+  rank_change: number | null; // positive = moved up, negative = moved down, null = new
 }
 
 const Leaderboard: React.FC = () => {
@@ -41,6 +42,7 @@ const Leaderboard: React.FC = () => {
   const [userRank, setUserRank] = useState<number | null>(null);
   const [userBalance, setUserBalance] = useState<number>(0);
   const [userStats, setUserStats] = useState<{ invited: number; games: number }>({ invited: 0, games: 0 });
+  const [userRankChange, setUserRankChange] = useState<number | null>(null);
   const [countdown, setCountdown] = useState(getTimeUntilAirdrop());
 
   // Countdown timer
@@ -75,7 +77,13 @@ const Leaderboard: React.FC = () => {
 
       // Fetch user profiles for these users
       const userIds = balances.map(b => b.user_id);
-      const [usersResult, referralsResult, runsResult] = await Promise.all([
+      
+      // Get yesterday's date
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      
+      const [usersResult, referralsResult, runsResult, snapshotsResult] = await Promise.all([
         supabase
           .from('users')
           .select('id, username, profile_picture_url')
@@ -88,6 +96,11 @@ const Leaderboard: React.FC = () => {
         supabase
           .from('runs')
           .select('user_id')
+          .in('user_id', userIds),
+        supabase
+          .from('leaderboard_snapshots')
+          .select('user_id, rank')
+          .eq('day_id', yesterdayStr)
           .in('user_id', userIds)
       ]);
 
@@ -110,15 +123,27 @@ const Leaderboard: React.FC = () => {
         runCounts.set(r.user_id, (runCounts.get(r.user_id) || 0) + 1);
       });
 
+      // Map yesterday's ranks
+      const yesterdayRanks = new Map<string, number>();
+      snapshotsResult.data?.forEach(s => {
+        yesterdayRanks.set(s.user_id, s.rank);
+      });
+
       const rankedEntries = balances.map((entry, index) => {
         const userProfile = userMap.get(entry.user_id);
+        const currentRank = index + 1;
+        const yesterdayRank = yesterdayRanks.get(entry.user_id);
+        // Rank change: positive means moved up (lower rank number is better)
+        const rankChange = yesterdayRank !== undefined ? yesterdayRank - currentRank : null;
+        
         return {
           ...entry,
-          rank: index + 1,
+          rank: currentRank,
           username: userProfile?.username || undefined,
           profile_picture_url: userProfile?.profile_picture_url || undefined,
           invited_count: referralCounts.get(entry.user_id) || 0,
           games_played: runCounts.get(entry.user_id) || 0,
+          rank_change: rankChange,
         };
       });
 
@@ -131,18 +156,15 @@ const Leaderboard: React.FC = () => {
           setUserRank(userEntry.rank);
           setUserBalance(userEntry.total_claimed);
           setUserStats({ invited: userEntry.invited_count, games: userEntry.games_played });
+          setUserRankChange(userEntry.rank_change);
         } else {
           // User not in top 50, fetch their data separately
-          const [userBalanceResult, rankResult, userReferralsResult, userRunsResult] = await Promise.all([
+          const [userBalanceResult, userReferralsResult, userRunsResult, userSnapshotResult] = await Promise.all([
             supabase
               .from('user_balances')
               .select('total_claimed')
               .eq('user_id', state.user.id)
               .maybeSingle(),
-            supabase
-              .from('user_balances')
-              .select('*', { count: 'exact', head: true })
-              .gt('total_claimed', 0),
             supabase
               .from('referrals')
               .select('id')
@@ -151,7 +173,13 @@ const Leaderboard: React.FC = () => {
             supabase
               .from('runs')
               .select('id')
+              .eq('user_id', state.user.id),
+            supabase
+              .from('leaderboard_snapshots')
+              .select('rank')
+              .eq('day_id', yesterdayStr)
               .eq('user_id', state.user.id)
+              .maybeSingle()
           ]);
 
           if (userBalanceResult.data) {
@@ -162,7 +190,12 @@ const Leaderboard: React.FC = () => {
               .select('*', { count: 'exact', head: true })
               .gt('total_claimed', userBalanceResult.data.total_claimed);
             
-            setUserRank((count || 0) + 1);
+            const currentRank = (count || 0) + 1;
+            setUserRank(currentRank);
+            
+            if (userSnapshotResult.data) {
+              setUserRankChange(userSnapshotResult.data.rank - currentRank);
+            }
           }
           
           setUserStats({
@@ -189,6 +222,33 @@ const Leaderboard: React.FC = () => {
       default:
         return <span className="w-6 h-6 flex items-center justify-center text-sm font-bold text-muted-foreground">{rank}</span>;
     }
+  };
+
+  const getRankChangeIndicator = (rankChange: number | null) => {
+    if (rankChange === null) {
+      return <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted">NEW</span>;
+    }
+    if (rankChange > 0) {
+      return (
+        <span className="flex items-center gap-0.5 text-xs text-success">
+          <TrendingUp className="w-3 h-3" />
+          {rankChange}
+        </span>
+      );
+    }
+    if (rankChange < 0) {
+      return (
+        <span className="flex items-center gap-0.5 text-xs text-destructive">
+          <TrendingDown className="w-3 h-3" />
+          {Math.abs(rankChange)}
+        </span>
+      );
+    }
+    return (
+      <span className="flex items-center text-xs text-muted-foreground">
+        <Minus className="w-3 h-3" />
+      </span>
+    );
   };
 
   const getRankStyle = (rank: number) => {
@@ -283,11 +343,10 @@ const Leaderboard: React.FC = () => {
               </div>
               <div className="flex-1">
                 <p className="text-sm text-muted-foreground">Your Rank</p>
-                <p className="text-2xl font-display font-bold">#{userRank}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Balance</p>
-                <p className="text-lg font-bold text-gradient-gold">{formatJC(userBalance)} JC</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-2xl font-display font-bold">#{userRank}</p>
+                  {getRankChangeIndicator(userRankChange)}
+                </div>
               </div>
             </div>
             {/* Additional Stats */}
@@ -301,7 +360,11 @@ const Leaderboard: React.FC = () => {
                 <Gamepad2 className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium">{userStats.games}</span>
                 <span className="text-muted-foreground">games</span>
-              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">Balance</p>
+              <p className="text-lg font-bold text-gradient-gold">{formatJC(userBalance)} JC</p>
+            </div>
               <div className="flex items-center gap-1.5 text-sm">
                 <CoinIcon size={16} />
                 <span className="font-medium">{formatJC(userBalance)}</span>
@@ -339,8 +402,9 @@ const Leaderboard: React.FC = () => {
                   )}
                 >
                   {/* Rank */}
-                  <div className="flex items-center justify-center w-10">
+                  <div className="flex flex-col items-center justify-center w-10">
                     {getRankIcon(entry.rank)}
+                    {getRankChangeIndicator(entry.rank_change)}
                   </div>
 
                   {/* User Avatar */}
