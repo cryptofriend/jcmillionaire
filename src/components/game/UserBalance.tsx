@@ -41,7 +41,7 @@ export const UserBalance: React.FC<UserBalanceProps> = ({ className }) => {
       <div className="flex-1">
         <p className="text-xs text-muted-foreground">Your Balance</p>
         <p className="text-lg font-display font-bold text-gradient-gold">
-          {loading ? '...' : `${formatJC(balance)} JC`}
+          {loading ? '...' : `${balance.toLocaleString()} JC`}
         </p>
       </div>
     </div>
