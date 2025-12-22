@@ -4,9 +4,12 @@ import { Button } from '@/components/ui/button';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { formatJC } from '@/lib/constants';
 import { claimRewards } from '@/lib/rewardsService';
-import { Share2, Trophy, Home, Loader2, CheckCircle, Wallet, AlertCircle, Coins } from 'lucide-react';
+import { Share2, Trophy, Home, Loader2, CheckCircle, Wallet, AlertCircle, Coins, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGame } from '@/contexts/GameContext';
+import { shareGameResult, inviteFriends } from '@/lib/worldShare';
+import { isInWorldApp } from '@/lib/minikit';
+import { toast } from 'sonner';
 
 type ClaimStep = 'idle' | 'claiming' | 'success' | 'error';
 
@@ -51,16 +54,28 @@ const Result: React.FC = () => {
     }
   };
 
-  const handleShare = () => {
-    const message = isWinner 
-      ? `🎉 I just won ${formatJC(earnedAmount)} JC in Jackie Chain: Millionaire! Can you beat that?`
-      : `I reached question ${reachedQuestion} and won ${formatJC(earnedAmount)} JC! Try to beat my score!`;
+  const handleShare = async () => {
+    const result = await shareGameResult({
+      earnedAmount,
+      reachedQuestion,
+      isWinner,
+    });
     
-    if (navigator.share) {
-      navigator.share({
-        title: 'Jackie Chain: Millionaire',
-        text: message,
-      });
+    if (result.success) {
+      toast.success('Shared successfully!');
+    } else if (result.error !== 'Share cancelled') {
+      toast.error(result.error || 'Failed to share');
+    }
+  };
+
+  const handleInviteFriends = async () => {
+    // TODO: Generate referral code from user's profile
+    const result = await inviteFriends();
+    
+    if (result.success) {
+      toast.success('Invite sent!');
+    } else if (result.error !== 'Share cancelled') {
+      toast.error(result.error || 'Failed to invite');
     }
   };
 
@@ -199,23 +214,39 @@ const Result: React.FC = () => {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 animate-slide-up stagger-3">
-        <Button
-          variant="outline"
-          size="lg"
-          onClick={handleShare}
-        >
-          <Share2 className="w-5 h-5" />
-          Share
-        </Button>
+      <div className="flex flex-col gap-3 w-full max-w-sm animate-slide-up stagger-3">
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            size="lg"
+            className="flex-1"
+            onClick={handleShare}
+          >
+            <Share2 className="w-5 h-5" />
+            Share
+          </Button>
+          
+          {isInWorldApp() && (
+            <Button
+              variant="outline"
+              size="lg"
+              className="flex-1"
+              onClick={handleInviteFriends}
+            >
+              <MessageCircle className="w-5 h-5" />
+              Invite
+            </Button>
+          )}
+        </div>
         
         <Button
           variant="secondary"
           size="lg"
+          className="w-full"
           onClick={() => navigate('/')}
         >
           <Home className="w-5 h-5" />
-          Home
+          Back to Home
         </Button>
       </div>
     </div>
