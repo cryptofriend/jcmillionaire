@@ -5,8 +5,23 @@ import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { formatJC } from '@/lib/rewardsService';
 import { supabase } from '@/integrations/supabase/client';
 import { useGame } from '@/contexts/GameContext';
-import { ArrowLeft, Trophy, Crown, Medal, Loader2 } from 'lucide-react';
+import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// Airdrop date - 99 days from now or set a fixed date
+const AIRDROP_DATE = new Date('2025-03-31T00:00:00Z');
+
+function getTimeUntilAirdrop(): { days: number; hours: number; minutes: number; seconds: number } {
+  const now = new Date();
+  const diff = Math.max(0, AIRDROP_DATE.getTime() - now.getTime());
+  
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+  
+  return { days, hours, minutes, seconds };
+}
 
 interface LeaderboardEntry {
   user_id: string;
@@ -23,7 +38,15 @@ const Leaderboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [userRank, setUserRank] = useState<number | null>(null);
   const [userBalance, setUserBalance] = useState<number>(0);
+  const [countdown, setCountdown] = useState(getTimeUntilAirdrop());
 
+  // Countdown timer
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCountdown(getTimeUntilAirdrop());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
   useEffect(() => {
     const fetchLeaderboard = async () => {
       setLoading(true);
@@ -148,6 +171,58 @@ const Leaderboard: React.FC = () => {
           <h1 className="text-xl font-display font-bold">Leaderboard</h1>
         </div>
       </header>
+
+      {/* Airdrop Countdown Hero */}
+      <div className="px-4 py-5">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent border border-primary/30 p-5">
+          {/* Decorative elements */}
+          <div className="absolute top-2 right-2 opacity-20">
+            <Rocket className="w-12 h-12 text-primary animate-float" />
+          </div>
+          
+          <div className="text-center space-y-3">
+            <div className="flex items-center justify-center gap-2">
+              <CoinIcon size={24} />
+              <h2 className="text-lg font-display font-bold text-foreground">$JC Airdrop in</h2>
+            </div>
+            
+            {/* Countdown Timer */}
+            <div className="flex items-center justify-center gap-2">
+              <div className="flex flex-col items-center px-3 py-2 bg-background/50 rounded-lg min-w-[60px] backdrop-blur-sm">
+                <span className="text-2xl font-display font-bold text-primary">
+                  {String(countdown.days).padStart(2, '0')}
+                </span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">days</span>
+              </div>
+              <span className="text-2xl font-bold text-muted-foreground">:</span>
+              <div className="flex flex-col items-center px-3 py-2 bg-background/50 rounded-lg min-w-[50px] backdrop-blur-sm">
+                <span className="text-2xl font-display font-bold text-primary">
+                  {String(countdown.hours).padStart(2, '0')}
+                </span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">hrs</span>
+              </div>
+              <span className="text-2xl font-bold text-muted-foreground">:</span>
+              <div className="flex flex-col items-center px-3 py-2 bg-background/50 rounded-lg min-w-[50px] backdrop-blur-sm">
+                <span className="text-2xl font-display font-bold text-primary">
+                  {String(countdown.minutes).padStart(2, '0')}
+                </span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">min</span>
+              </div>
+              <span className="text-2xl font-bold text-muted-foreground">:</span>
+              <div className="flex flex-col items-center px-3 py-2 bg-background/50 rounded-lg min-w-[50px] backdrop-blur-sm">
+                <span className="text-2xl font-display font-bold text-primary">
+                  {String(countdown.seconds).padStart(2, '0')}
+                </span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">sec</span>
+              </div>
+            </div>
+            
+            <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+              airdrop distribution will be based on your leaderboard position
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* User's Rank Card (if verified) */}
       {state.isVerified && userRank !== null && (
