@@ -94,10 +94,10 @@ export const PoolStats: React.FC<PoolStatsProps> = ({ dayState }) => {
         <div className="flex items-center gap-1">
           <CoinIcon size={16} />
           <span className="text-sm font-bold text-foreground">
-            {formatJC(dayState.poolRemaining)}
+            {dayState.poolRemaining.toLocaleString()}
           </span>
           <span className="text-xs text-muted-foreground">
-            / {formatJC(dayState.poolTotal)}
+            / {dayState.poolTotal.toLocaleString()}
           </span>
         </div>
       </div>
