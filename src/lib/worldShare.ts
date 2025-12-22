@@ -12,11 +12,11 @@ export interface ShareResult {
 
 /**
  * Generate a World App deeplink URL for the game
- * Format: https://worldcoin.org/mini-app?app_id={APP_ID}&path={encodedPath}
+ * Format: https://world.org/mini-app?app_id={APP_ID}&path={path}
+ * Note: path should NOT be URL-encoded for World App to properly open the mini-app
  */
 export function getGameDeeplink(path: string = '/'): string {
-  const encodedPath = encodeURIComponent(path);
-  return `https://worldcoin.org/mini-app?app_id=${APP_ID}&path=${encodedPath}`;
+  return `https://world.org/mini-app?app_id=${APP_ID}&path=${path}`;
 }
 
 /**
@@ -43,8 +43,7 @@ export function getWorldChatDeeplinkUrl({
     path += `?message=${encodeURIComponent(message)}`;
   }
 
-  const encodedPath = encodeURIComponent(path);
-  return `https://worldcoin.org/mini-app?app_id=${WORLD_CHAT_APP_ID}&path=${encodedPath}`;
+  return `https://world.org/mini-app?app_id=${WORLD_CHAT_APP_ID}&path=${path}`;
 }
 
 /**
