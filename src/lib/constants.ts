@@ -1,5 +1,5 @@
 // App Configuration
-export const APP_ID = import.meta.env.VITE_WORLD_APP_ID || 'your-app-id';
+export const APP_ID = 'app_7709630683b291dac751ba3175d9fbcd';
 
 // JC Token Contract on World Chain
 export const JC_TOKEN_ADDRESS = '0x1e80Dd9030408Be6a313ca0482A2a21b753B6c64';
