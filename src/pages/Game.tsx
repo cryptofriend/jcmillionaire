@@ -5,6 +5,7 @@ import { QuestionCard } from '@/components/game/QuestionCard';
 import { Lifelines } from '@/components/game/Lifelines';
 import { Timer } from '@/components/game/Timer';
 import { PrizeLadder } from '@/components/game/PrizeLadder';
+import { AnswerBanner } from '@/components/game/AnswerBanner';
 import { useGame } from '@/contexts/GameContext';
 import { LIFELINES, LifelineType, QUESTION_TIME_LIMIT_SECONDS, formatJC } from '@/lib/constants';
 import { QuestionWithHiddenChoices, AnswerStats, Run } from '@/lib/types';
@@ -149,6 +150,8 @@ const Game: React.FC = () => {
   const [claimedEarly, setClaimedEarly] = useState(false);
   const [hasPlayedToday, setHasPlayedToday] = useState(false);
   const [countdown, setCountdown] = useState(getTimeUntilMidnight());
+  const [showAnswerBanner, setShowAnswerBanner] = useState(false);
+  const [bannerCorrect, setBannerCorrect] = useState(false);
 
   // Initialize game run in database - check attempts first
   useEffect(() => {
@@ -301,6 +304,10 @@ const Game: React.FC = () => {
       });
     }
     
+    // Show answer banner immediately
+    setBannerCorrect(correct);
+    setShowAnswerBanner(true);
+
     setTimeout(async () => {
       setIsCorrect(correct);
       setShowResult(true);
@@ -582,6 +589,12 @@ const Game: React.FC = () => {
 
   return (
     <div className="min-h-screen gradient-hero flex flex-col">
+      {/* Answer Result Banner */}
+      <AnswerBanner 
+        isCorrect={bannerCorrect} 
+        show={showAnswerBanner} 
+        onHide={() => setShowAnswerBanner(false)}
+      />
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 backdrop-blur">
         <Button
