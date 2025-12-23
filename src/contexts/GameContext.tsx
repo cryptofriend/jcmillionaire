@@ -128,7 +128,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
       
       if (data) {
-        const remaining = Math.max(0, (data.free_granted ? 1 : 0) + data.earned_from_referrals - data.used);
+        // Calculate remaining: 1 free play + earned from referrals - used
+        const totalAvailable = (data.free_granted ? 1 : 0) + data.earned_from_referrals;
+        const remaining = Math.max(0, totalAvailable - data.used);
         dispatch({
           type: 'SET_ATTEMPTS',
           payload: {
@@ -138,11 +140,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             earnedFromReferrals: data.earned_from_referrals,
             used: data.used,
             cap: data.cap,
-            remaining: Math.min(remaining, data.cap - data.used),
+            remaining,
           },
         });
       } else {
-        // Default state for new user today
+        // Default state for new user today: 1 free play per day
         dispatch({
           type: 'SET_ATTEMPTS',
           payload: {
@@ -151,8 +153,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             freeGranted: true,
             earnedFromReferrals: 0,
             used: 0,
-            cap: 10,
-            remaining: 10,
+            cap: 1,
+            remaining: 1,
           },
         });
       }

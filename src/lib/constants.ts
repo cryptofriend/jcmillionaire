@@ -6,7 +6,7 @@ export const JC_TOKEN_ADDRESS = '0x1e80Dd9030408Be6a313ca0482A2a21b753B6c64';
 
 // Daily limits
 export const DAILY_POOL_TOTAL = 1_000_000;
-export const MAX_ATTEMPTS_PER_DAY = 20;
+export const DEFAULT_PLAYS_PER_DAY = 1; // Users can earn more via referrals
 
 // Question config
 export const QUESTIONS_PER_RUN = 15;
