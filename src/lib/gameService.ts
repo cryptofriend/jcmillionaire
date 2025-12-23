@@ -274,3 +274,58 @@ export async function getRun(runId: string): Promise<{ run: Run | null; error: s
 export function getTodayDayId(): string {
   return new Date().toISOString().split('T')[0];
 }
+
+/**
+ * Increment the 'used' count for a user's attempts today
+ * Returns the updated attempts data or error
+ */
+export async function incrementAttemptsUsed(
+  userId: string
+): Promise<{ success: boolean; error: string | null }> {
+  const today = getTodayDayId();
+
+  // First, try to get existing attempts for today
+  const { data: existing, error: fetchError } = await supabase
+    .from('attempts')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('day_id', today)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error('Error fetching attempts:', fetchError);
+    return { success: false, error: fetchError.message };
+  }
+
+  if (existing) {
+    // Update existing record
+    const { error: updateError } = await supabase
+      .from('attempts')
+      .update({ used: existing.used + 1 })
+      .eq('id', existing.id);
+
+    if (updateError) {
+      console.error('Error updating attempts:', updateError);
+      return { success: false, error: updateError.message };
+    }
+  } else {
+    // Create new record with used = 1
+    const { error: insertError } = await supabase
+      .from('attempts')
+      .insert({
+        user_id: userId,
+        day_id: today,
+        free_granted: true,
+        earned_from_referrals: 0,
+        used: 1,
+        cap: 1,
+      });
+
+    if (insertError) {
+      console.error('Error inserting attempts:', insertError);
+      return { success: false, error: insertError.message };
+    }
+  }
+
+  return { success: true, error: null };
+}

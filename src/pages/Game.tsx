@@ -17,6 +17,7 @@ import {
   updateLifelinesUsed,
   completeRun,
   getTodayDayId,
+  incrementAttemptsUsed,
 } from '@/lib/gameService';
 import {
   AlertDialog,
@@ -120,12 +121,13 @@ const formatCountdown = (ms: number) => {
 
 const Game: React.FC = () => {
   const navigate = useNavigate();
-  const { state } = useGame();
-  const { prizeLadder, isVerified, user } = state;
+  const { state, fetchAttempts } = useGame();
+  const { prizeLadder, isVerified, user, attempts } = state;
 
   // Database run tracking
   const [currentRun, setCurrentRun] = useState<Run | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const hasInitializedRef = useRef(false);
   const questionStartTimeRef = useRef<number>(Date.now());
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -147,15 +149,49 @@ const Game: React.FC = () => {
   const [hasPlayedToday, setHasPlayedToday] = useState(false);
   const [countdown, setCountdown] = useState(getTimeUntilMidnight());
 
-  // Initialize game run in database
+  // Initialize game run in database - check attempts first
   useEffect(() => {
     const initRun = async () => {
+      // Prevent multiple initializations
+      if (hasInitializedRef.current) {
+        return;
+      }
+
       if (!user) {
         setIsInitializing(false);
         return;
       }
 
+      // Wait for attempts to load
+      if (attempts === null) {
+        return; // Will re-run when attempts loads
+      }
+
+      // Check if user has remaining attempts
+      if (attempts.remaining <= 0) {
+        console.log('No attempts remaining, blocking game');
+        setHasPlayedToday(true);
+        setIsInitializing(false);
+        hasInitializedRef.current = true;
+        return;
+      }
+
+      // Mark as initialized to prevent duplicate runs
+      hasInitializedRef.current = true;
+
       try {
+        // First increment the used count to consume an attempt
+        const { error: attemptError } = await incrementAttemptsUsed(user.id);
+        if (attemptError) {
+          console.error('Failed to consume attempt:', attemptError);
+          navigate('/');
+          return;
+        }
+
+        // Refresh attempts state
+        await fetchAttempts();
+
+        // Then create the run
         const { run, error } = await createRun({
           userId: user.id,
           dayId: getTodayDayId(),
@@ -176,7 +212,7 @@ const Game: React.FC = () => {
     };
 
     initRun();
-  }, [user]);
+  }, [user, attempts, fetchAttempts, navigate]);
 
   // Countdown timer for "come back tomorrow" screen
   useEffect(() => {
@@ -189,16 +225,7 @@ const Game: React.FC = () => {
     return () => clearInterval(interval);
   }, [hasPlayedToday]);
 
-  // Check if user already played today - DISABLED FOR TESTING
-  // useEffect(() => {
-  //   const lastPlayDate = localStorage.getItem('jc_last_play_date');
-  //   const today = getTodayKey();
-  //   if (lastPlayDate === today) {
-  //     setHasPlayedToday(true);
-  //   }
-  // }, []);
-
-  // Mark game as played when it ends
+  // Mark game as played when it ends (backup for UI state)
   useEffect(() => {
     if (isGameOver) {
       localStorage.setItem('jc_last_play_date', getTodayKey());
