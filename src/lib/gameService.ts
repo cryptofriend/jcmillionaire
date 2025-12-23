@@ -153,7 +153,7 @@ export async function updateLifelinesUsed(
 export async function completeRun(params: CompleteRunParams): Promise<{ success: boolean; error: string | null }> {
   const { runId, reachedQ, earnedTier, earnedAmount, status } = params;
 
-  const { error } = await supabase
+  const { data: runData, error } = await supabase
     .from('runs')
     .update({
       status,
@@ -164,14 +164,70 @@ export async function completeRun(params: CompleteRunParams): Promise<{ success:
       current_question_id: null,
       question_started_at: null,
     })
-    .eq('id', runId);
+    .eq('id', runId)
+    .select('user_id')
+    .single();
 
   if (error) {
     console.error('Error completing run:', error);
     return { success: false, error: error.message };
   }
 
+  // If this is a completed run (not abandoned), check if this user was referred
+  // and update the referral status to trigger the bonus attempt for the inviter
+  if (status === 'completed' && runData?.user_id) {
+    await updateReferralOnFirstRun(runData.user_id);
+  }
+
   return { success: true, error: null };
+}
+
+/**
+ * Update referral status to 'first_run_completed' if this is the user's first completed run
+ */
+async function updateReferralOnFirstRun(userId: string): Promise<void> {
+  try {
+    // Check if user has a referral that's not yet marked as first_run_completed
+    const { data: referral, error: refError } = await supabase
+      .from('referrals')
+      .select('id, status')
+      .eq('invited_user_id', userId)
+      .neq('status', 'first_run_completed')
+      .maybeSingle();
+
+    if (refError || !referral) {
+      // No pending referral found, nothing to do
+      return;
+    }
+
+    // Check if user has any other completed runs (this should be their first)
+    const { count, error: countError } = await supabase
+      .from('runs')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'completed');
+
+    if (countError) {
+      console.error('Error checking run count:', countError);
+      return;
+    }
+
+    // If this is their first completed run (count should be 1 after current completion)
+    if (count && count <= 1) {
+      const { error: updateError } = await supabase
+        .from('referrals')
+        .update({ status: 'first_run_completed' })
+        .eq('id', referral.id);
+
+      if (updateError) {
+        console.error('Error updating referral status:', updateError);
+      } else {
+        console.log('Referral marked as first_run_completed, inviter will receive bonus attempt');
+      }
+    }
+  } catch (err) {
+    console.error('Error in updateReferralOnFirstRun:', err);
+  }
 }
 
 /**
