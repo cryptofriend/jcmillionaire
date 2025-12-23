@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { formatJC } from '@/lib/constants';
 import { PrizeLadderItem } from '@/lib/types';
@@ -11,6 +11,7 @@ interface PrizeLadderProps {
   reachedQuestion: number;
   isGameOver?: boolean;
   lastCorrect?: boolean;
+  autoScroll?: boolean;
 }
 
 export const PrizeLadder: React.FC<PrizeLadderProps> = ({
@@ -19,12 +20,38 @@ export const PrizeLadder: React.FC<PrizeLadderProps> = ({
   reachedQuestion,
   isGameOver = false,
   lastCorrect = true,
+  autoScroll = true,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const currentItemRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to current question
+  useEffect(() => {
+    if (autoScroll && currentItemRef.current && containerRef.current) {
+      const container = containerRef.current;
+      const item = currentItemRef.current;
+      
+      // Calculate scroll position to center the current item
+      const containerHeight = container.clientHeight;
+      const itemTop = item.offsetTop;
+      const itemHeight = item.clientHeight;
+      const scrollTarget = itemTop - (containerHeight / 2) + (itemHeight / 2);
+      
+      container.scrollTo({
+        top: scrollTarget,
+        behavior: 'smooth',
+      });
+    }
+  }, [currentQuestion, autoScroll]);
+
   // Show ladder in reverse (highest first)
   const reversedLadder = [...ladder].reverse();
   
   return (
-    <div className="flex flex-col gap-1 w-full max-w-xs mx-auto">
+    <div 
+      ref={containerRef}
+      className="flex flex-col gap-1 w-full max-w-xs mx-auto max-h-[60vh] overflow-y-auto hide-scrollbar"
+    >
       {reversedLadder.map((item) => {
         const isCurrent = item.questionNumber === currentQuestion && !isGameOver;
         const isReached = item.questionNumber <= reachedQuestion;
@@ -33,6 +60,7 @@ export const PrizeLadder: React.FC<PrizeLadderProps> = ({
         return (
           <div
             key={item.questionNumber}
+            ref={isCurrent ? currentItemRef : null}
             className={cn(
               'flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-300',
               isCurrent && 'gradient-gold shadow-glow animate-pulse-soft scale-105',
