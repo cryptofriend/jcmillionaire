@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, useScroll, useTransform } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
 import { PoolStats } from '@/components/game/PoolStats';
@@ -14,7 +13,6 @@ import { getWorldAppLink } from '@/lib/constants';
 import { isInWorldApp } from '@/lib/minikit';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import heroBanner from '@/assets/hero-banner.png';
 
 interface InfoPopupProps {
   title: string;
@@ -44,9 +42,6 @@ const Home: React.FC = () => {
   const { state } = useGame();
   const { isVerified, attempts, dayState } = state;
   const [activePopup, setActivePopup] = useState<string | null>(null);
-  
-  const { scrollY } = useScroll();
-  const bannerY = useTransform(scrollY, [0, 300], [0, 100]);
 
   const canPlay = isVerified && (attempts?.remaining || 0) > 0;
 
@@ -108,7 +103,7 @@ const Home: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen gradient-hero flex flex-col">
       {/* Popup */}
       {activePopup && (
         <InfoPopup
@@ -118,68 +113,32 @@ const Home: React.FC = () => {
         />
       )}
 
-      {/* Hero Banner with Parallax */}
-      <div className="relative h-48 sm:h-56 overflow-hidden">
-        <motion.div
-          style={{ y: bannerY }}
-          className="absolute inset-0 w-full h-[120%]"
-        >
-          <img
-            src={heroBanner}
-            alt="Jackie Chain Millionaire"
-            className="w-full h-full object-cover"
-          />
-        </motion.div>
-        
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-transparent to-background" />
-        
-        {/* Title Overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="space-y-1"
-          >
-            <h1 className="text-4xl sm:text-5xl font-display font-bold text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
-              Jackie Chain
-            </h1>
-            <p className="text-lg sm:text-xl font-display text-gold-light drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
-              Millionaire
-            </p>
-          </motion.div>
-        </div>
-        
-        {/* Floating Icon */}
-        <motion.div 
-          className="absolute -bottom-8 left-1/2 -translate-x-1/2 z-10"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-        >
-          <div className="p-2 bg-card rounded-full border-4 border-background shadow-lg">
-            <JackieIcon size={56} className="animate-float" />
+      {/* Header */}
+      <header className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-2">
+          <JackieIcon size={40} className="animate-float" />
+          <div>
+            <h1 className="text-lg font-display font-bold text-foreground">Jackie Chain</h1>
+            <p className="text-xs text-muted-foreground">Millionaire</p>
           </div>
-        </motion.div>
-      </div>
+        </div>
+      </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-start px-4 pt-12 pb-24 gap-5 overflow-y-auto">
-        {/* Prize Headline */}
-        <motion.div 
-          className="text-center space-y-2"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
+      <main className="flex-1 flex flex-col items-center justify-start px-4 pb-24 gap-5 overflow-y-auto">
+        {/* Hero Section */}
+        <div className="text-center space-y-3 animate-fade-in">
+          <div className="relative inline-block">
+            <JackieIcon size={100} className="animate-float drop-shadow-lg" />
+          </div>
+          
           <h2 className="text-3xl font-display font-bold text-gradient-gold">
             Win 1M $JC!
           </h2>
           <p className="text-muted-foreground max-w-xs mx-auto text-sm">
             Answer 15 questions to climb the prize ladder. Use lifelines wisely!
           </p>
-        </motion.div>
+        </div>
 
         {/* Stats Cards */}
         <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-1">
