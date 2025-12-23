@@ -6,6 +6,7 @@ import { useGame } from '@/contexts/GameContext';
 import { Shield, Fingerprint, Eye, ArrowLeft, CheckCircle, Loader2, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createOrGetUser, persistUser } from '@/lib/userService';
+import { linkInvitedUserToReferral } from '@/lib/referralService';
 import { isInWorldApp, authenticateWithWallet } from '@/lib/minikit';
 import { toast } from 'sonner';
 
@@ -74,6 +75,18 @@ const Verify: React.FC = () => {
       }
       
       console.log('User verified:', user.id);
+      
+      // If user came from a referral link, link them to the referral
+      if (referralCode) {
+        console.log('Processing referral code:', referralCode);
+        const { success, error } = await linkInvitedUserToReferral(referralCode, user.id);
+        if (success) {
+          console.log('Referral linked successfully');
+        } else if (error) {
+          console.log('Referral linking failed:', error);
+        }
+      }
+      
       dispatch({ type: 'SET_USER', payload: user });
       setIsSuccess(true);
       

@@ -8,7 +8,8 @@ import { AttemptsDisplay } from '@/components/game/AttemptsDisplay';
 import { MiniLeaderboard } from '@/components/game/MiniLeaderboard';
 import { useGame } from '@/contexts/GameContext';
 import { Play, Share2, ChevronRight, MessageCircle, X, Users, Zap, Gift, UserCheck } from 'lucide-react';
-import { inviteFriends, sendToWorldChat, shareViaNative } from '@/lib/worldShare';
+import { inviteFriends, sendToWorldChat, shareViaNative, getReferralDeeplink } from '@/lib/worldShare';
+import { generateReferralCode } from '@/lib/referralService';
 import { getWorldAppLink } from '@/lib/constants';
 import { isInWorldApp } from '@/lib/minikit';
 import { toast } from 'sonner';
@@ -40,8 +41,9 @@ const InfoPopup: React.FC<InfoPopupProps> = ({ title, description, onClose }) =>
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const { state } = useGame();
-  const { isVerified, attempts, dayState } = state;
+  const { isVerified, attempts, dayState, user } = state;
   const [activePopup, setActivePopup] = useState<string | null>(null);
+
 
   const canPlay = isVerified && (attempts?.remaining || 0) > 0;
 
@@ -56,7 +58,12 @@ const Home: React.FC = () => {
   };
 
   const handleSendWorldChat = async () => {
-    const inviteLink = getWorldAppLink('/');
+    // Generate referral link with user's referral code
+    const referralCode = user ? generateReferralCode(user.id) : null;
+    const inviteLink = referralCode 
+      ? getReferralDeeplink(referralCode)
+      : getWorldAppLink('/');
+    
     const message = `🎮 Join me on Jackie Chain: Millionaire!\n\nAnswer trivia questions and earn $JC tokens.\n\n${inviteLink}`;
     
     if (isInWorldApp()) {
