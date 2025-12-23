@@ -144,6 +144,7 @@ const Game: React.FC = () => {
   const [showProgressDialog, setShowProgressDialog] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const [earnedAmount, setEarnedAmount] = useState(0);
+  const [isCompletingRun, setIsCompletingRun] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [claimedEarly, setClaimedEarly] = useState(false);
   const [hasPlayedToday, setHasPlayedToday] = useState(false);
@@ -259,13 +260,13 @@ const Game: React.FC = () => {
   const handleTimeUp = useCallback(async () => {
     setShowResult(true);
     setIsCorrect(false);
-    setIsGameOver(true);
     
     const safeHavens = prizeLadder.filter(p => p.isSafeHaven && p.questionNumber < currentQuestionIndex + 1);
     const safeHavenAmount = safeHavens.length > 0 ? safeHavens[safeHavens.length - 1].prizeAmount : 0;
     setEarnedAmount(safeHavenAmount);
+    setIsCompletingRun(true);
 
-    // Complete run in database
+    // Complete run in database BEFORE showing game over
     if (currentRun) {
       await completeRun({
         runId: currentRun.id,
@@ -275,6 +276,9 @@ const Game: React.FC = () => {
         status: 'completed',
       });
     }
+    
+    setIsCompletingRun(false);
+    setIsGameOver(true);
   }, [currentQuestionIndex, prizeLadder, currentRun]);
 
   const handleAnswer = async (choice: 'A' | 'B' | 'C' | 'D') => {
@@ -302,12 +306,12 @@ const Game: React.FC = () => {
       setShowResult(true);
       
       if (!correct) {
-        setIsGameOver(true);
         const safeHavens = prizeLadder.filter(p => p.isSafeHaven && p.questionNumber < currentQuestionIndex + 1);
         const safeHavenAmount = safeHavens.length > 0 ? safeHavens[safeHavens.length - 1].prizeAmount : 0;
         setEarnedAmount(safeHavenAmount);
+        setIsCompletingRun(true);
 
-        // Complete run in database
+        // Complete run in database BEFORE showing game over
         if (currentRun) {
           await completeRun({
             runId: currentRun.id,
@@ -317,6 +321,9 @@ const Game: React.FC = () => {
             status: 'completed',
           });
         }
+        
+        setIsCompletingRun(false);
+        setIsGameOver(true);
       } else {
         // Show claim dialog after EVERY correct answer
         const currentPrize = prizeLadder[currentQuestionIndex]?.prizeAmount || 0;
@@ -324,11 +331,11 @@ const Game: React.FC = () => {
         
         // Check if won all questions (last question)
         if (currentQuestionIndex >= mockQuestions.length - 1) {
-          setIsGameOver(true);
           const finalAmount = prizeLadder[currentQuestionIndex]?.prizeAmount || 0;
           setEarnedAmount(finalAmount);
+          setIsCompletingRun(true);
 
-          // Complete run in database
+          // Complete run in database BEFORE showing game over
           if (currentRun) {
             await completeRun({
               runId: currentRun.id,
@@ -338,6 +345,9 @@ const Game: React.FC = () => {
               status: 'completed',
             });
           }
+          
+          setIsCompletingRun(false);
+          setIsGameOver(true);
         } else {
           // Show claim or continue dialog for all other questions
           setShowCheckpointDialog(true);
@@ -348,11 +358,11 @@ const Game: React.FC = () => {
 
   const handleClaimNow = async () => {
     // User chooses to claim current prize and end game
-    setClaimedEarly(true);
-    setIsGameOver(true);
     setShowCheckpointDialog(false);
+    setClaimedEarly(true);
+    setIsCompletingRun(true);
 
-    // Complete run in database
+    // Complete run in database BEFORE showing game over
     if (currentRun) {
       await completeRun({
         runId: currentRun.id,
@@ -362,6 +372,9 @@ const Game: React.FC = () => {
         status: 'completed',
       });
     }
+
+    setIsCompletingRun(false);
+    setIsGameOver(true);
   };
 
   const handleKeepGoing = () => {
@@ -436,10 +449,10 @@ const Game: React.FC = () => {
     const safeHavens = prizeLadder.filter(p => p.isSafeHaven && p.questionNumber <= currentQuestionIndex);
     const safeHavenAmount = safeHavens.length > 0 ? safeHavens[safeHavens.length - 1].prizeAmount : 0;
     setEarnedAmount(safeHavenAmount);
-    setIsGameOver(true);
     setShowQuitDialog(false);
+    setIsCompletingRun(true);
 
-    // Complete run as abandoned
+    // Complete run as abandoned BEFORE showing game over
     if (currentRun) {
       await completeRun({
         runId: currentRun.id,
@@ -449,6 +462,9 @@ const Game: React.FC = () => {
         status: 'abandoned',
       });
     }
+    
+    setIsCompletingRun(false);
+    setIsGameOver(true);
   };
 
   const handleViewResult = () => {
@@ -466,11 +482,13 @@ const Game: React.FC = () => {
   const isSafeHavenQuestion = SAFE_HAVEN_QUESTIONS.includes(currentQuestionIndex + 1);
 
   // Show loading while initializing run
-  if (isInitializing) {
+  if (isInitializing || isCompletingRun) {
     return (
       <div className="min-h-screen gradient-hero flex flex-col items-center justify-center px-4 gap-6">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
-        <p className="text-muted-foreground">Starting game...</p>
+        <p className="text-muted-foreground">
+          {isCompletingRun ? 'Saving your progress...' : 'Starting game...'}
+        </p>
       </div>
     );
   }
