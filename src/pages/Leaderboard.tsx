@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useGame } from '@/contexts/GameContext';
 import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket, Users, Gamepad2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MiniKit } from '@worldcoin/minikit-js';
 
 // Airdrop date - April 3, 2026 at 9pm Vietnam time (UTC+7) = 14:00 UTC
 const AIRDROP_DATE = new Date('2026-04-03T14:00:00Z');
@@ -149,6 +150,11 @@ const Leaderboard: React.FC = () => {
 
       setEntries(rankedEntries);
 
+      // Try to fetch missing usernames via MiniKit for users without usernames
+      if (MiniKit.isInstalled()) {
+        fetchMissingUsernames(rankedEntries, userMap);
+      }
+
       // Find current user's rank if they're verified
       if (state.user?.id) {
         const userEntry = rankedEntries.find(e => e.user_id === state.user?.id);
@@ -206,6 +212,27 @@ const Leaderboard: React.FC = () => {
       }
 
       setLoading(false);
+    };
+
+    // Fetch usernames via MiniKit for users that don't have them stored
+    const fetchMissingUsernames = async (
+      rankedEntries: LeaderboardEntry[],
+      userMap: Map<string, { id: string; username?: string | null; profile_picture_url?: string | null }>
+    ) => {
+      // Get entries without usernames (limit to first 10 to avoid too many API calls)
+      const entriesWithoutUsername = rankedEntries
+        .filter(e => !e.username)
+        .slice(0, 10);
+
+      if (entriesWithoutUsername.length === 0) return;
+
+      // We need wallet addresses to look up usernames
+      // First get wallet addresses from users table (if stored) or we can't look them up
+      // For now, let's just display what we have from the database
+
+      // The MiniKit.getUserByAddress requires a wallet address, not user ID
+      // Since we don't store wallet addresses publicly, we'll need to rely on
+      // the usernames stored during verification
     };
 
     fetchLeaderboard();

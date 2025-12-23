@@ -12,7 +12,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { sendToWorldChat, shareViaNative } from '@/lib/worldShare';
-import { isInWorldApp } from '@/lib/minikit';
+import { isInWorldApp, getCurrentUserInfo, getUserInfoByAddress } from '@/lib/minikit';
+import { MiniKit } from '@worldcoin/minikit-js';
 
 interface RunHistoryItem {
   id: string;
@@ -50,6 +51,7 @@ const Profile: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [runHistory, setRunHistory] = useState<RunHistoryItem[]>([]);
   const [referrals, setReferrals] = useState<ReferralItem[]>([]);
+  const [userProfile, setUserProfile] = useState<{ username?: string; profilePictureUrl?: string }>({});
   const [userStats, setUserStats] = useState<UserStats>({
     totalRuns: 0,
     bestQuestion: 0,
@@ -62,6 +64,54 @@ const Profile: React.FC = () => {
   // Invite code from user ID
   const inviteCode = user?.id.slice(0, 8).toUpperCase() || 'JACKIE';
   const inviteLink = getWorldAppLink(`/?ref=${inviteCode}`);
+
+  // Fetch World ID username
+  useEffect(() => {
+    const fetchWorldIdProfile = async () => {
+      if (!user?.id) return;
+
+      // First check if username is stored in database
+      const { data: userData } = await supabase
+        .from('users')
+        .select('username, profile_picture_url')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (userData?.username) {
+        setUserProfile({
+          username: userData.username,
+          profilePictureUrl: userData.profile_picture_url || undefined,
+        });
+        return;
+      }
+
+      // If not in database, try to get from MiniKit
+      if (MiniKit.isInstalled()) {
+        try {
+          const currentUser = getCurrentUserInfo();
+          if (currentUser?.username) {
+            setUserProfile({
+              username: currentUser.username,
+              profilePictureUrl: currentUser.profilePictureUrl,
+            });
+            
+            // Save to database for future
+            await supabase
+              .from('users')
+              .update({
+                username: currentUser.username,
+                profile_picture_url: currentUser.profilePictureUrl,
+              })
+              .eq('id', user.id);
+          }
+        } catch (e) {
+          console.log('Could not fetch World ID profile:', e);
+        }
+      }
+    };
+
+    fetchWorldIdProfile();
+  }, [user?.id]);
 
   // Fetch all profile data
   useEffect(() => {
@@ -257,9 +307,24 @@ const Profile: React.FC = () => {
       {/* Profile Header */}
       <div className="px-4 py-6 border-b border-border bg-card">
         <div className="flex items-center gap-4">
-          <JackieIcon size={60} />
+          {userProfile.profilePictureUrl ? (
+            <div className="w-[60px] h-[60px] rounded-full overflow-hidden bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
+              <img 
+                src={userProfile.profilePictureUrl} 
+                alt={userProfile.username || 'Profile'} 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            </div>
+          ) : (
+            <JackieIcon size={60} />
+          )}
           <div className="flex-1">
-            <p className="text-lg font-bold">Player</p>
+            <p className="text-lg font-bold">
+              {userProfile.username || 'Player'}
+            </p>
             <p className="text-xs text-muted-foreground font-mono">
               {user?.nullifierHash.slice(0, 16)}...
             </p>
