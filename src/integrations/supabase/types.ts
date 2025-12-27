@@ -504,6 +504,7 @@ export type Database = {
           id: string
           nullifier_hash: string
           profile_picture_url: string | null
+          referral_code: string | null
           updated_at: string
           username: string | null
           verification_level: Database["public"]["Enums"]["verification_level"]
@@ -513,6 +514,7 @@ export type Database = {
           id?: string
           nullifier_hash: string
           profile_picture_url?: string | null
+          referral_code?: string | null
           updated_at?: string
           username?: string | null
           verification_level?: Database["public"]["Enums"]["verification_level"]
@@ -522,6 +524,7 @@ export type Database = {
           id?: string
           nullifier_hash?: string
           profile_picture_url?: string | null
+          referral_code?: string | null
           updated_at?: string
           username?: string | null
           verification_level?: Database["public"]["Enums"]["verification_level"]

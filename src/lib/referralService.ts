@@ -17,11 +17,11 @@ export async function createReferralFromCode(
   inviteCode: string
 ): Promise<{ success: boolean; inviterUserId: string | null; error: string | null }> {
   try {
-    // Find the inviter by their referral code (first 8 chars of their user ID)
+    // Find the inviter by their referral code
     const { data: users, error: fetchError } = await supabase
       .from('users')
       .select('id')
-      .ilike('id', `${inviteCode}%`)
+      .eq('referral_code', inviteCode)
       .limit(1);
 
     if (fetchError) {
