@@ -40,25 +40,12 @@ const SAMPLE_FORMAT = `[
     "correct_choice": "B",
     "difficulty": 1,
     "category": "World",
-    "hint": "Think about what makes you unique as a human online...",
-    "active_from": "2025-12-27"
-  },
-  {
-    "question": "What blockchain does Worldcoin use?",
-    "choice_a": "Bitcoin",
-    "choice_b": "Ethereum",
-    "choice_c": "World Chain",
-    "choice_d": "Solana",
-    "correct_choice": "C",
-    "difficulty": 2,
-    "category": "Crypto",
-    "hint": "It's in the name...",
-    "active_from": "2025-12-28"
+    "hint": "Think about what makes you unique as a human online..."
   }
 ]
 
-💡 TIP: Add "active_from": "YYYY-MM-DD" to schedule questions for specific days.
-   Questions without active_from will default to today.`;
+📅 Questions will be automatically split across 7 days starting from today.
+   Example: 105 questions = 15 questions per day for 7 days.`;
 
 const Admin: React.FC = () => {
   const navigate = useNavigate();
@@ -151,7 +138,8 @@ const Admin: React.FC = () => {
       setValidationResult(result);
       
       if (result.valid) {
-        toast.success(`Valid! ${parsed.length} questions ready to upload.`);
+        const questionsPerDay = Math.ceil(parsed.length / 7);
+        toast.success(`Valid! ${parsed.length} questions → ${questionsPerDay} per day for 7 days.`);
       } else {
         toast.error(`Found ${result.errors.length} validation errors`);
       }
@@ -170,23 +158,34 @@ const Admin: React.FC = () => {
     setIsLoading(true);
     try {
       const parsed: QuestionInput[] = JSON.parse(jsonInput);
-      const today = new Date().toISOString().split('T')[0];
+      const totalQuestions = parsed.length;
+      const questionsPerDay = Math.ceil(totalQuestions / 7);
       
-      // Generate text_hash for each question (simple hash for deduplication)
-      const questionsToInsert = parsed.map(q => ({
-        question: q.question,
-        choice_a: q.choice_a,
-        choice_b: q.choice_b,
-        choice_c: q.choice_c,
-        choice_d: q.choice_d,
-        correct_choice: q.correct_choice.toUpperCase(),
-        difficulty: q.difficulty,
-        category: q.category,
-        hint: q.hint,
-        text_hash: btoa(q.question.slice(0, 50)).replace(/[^a-zA-Z0-9]/g, '').slice(0, 32),
-        is_active: true,
-        active_from: q.active_from || today, // Use provided date or default to today
-      }));
+      // Helper to get date string for day offset
+      const getDateForDay = (dayOffset: number): string => {
+        const date = new Date();
+        date.setDate(date.getDate() + dayOffset);
+        return date.toISOString().split('T')[0];
+      };
+      
+      // Generate text_hash for each question and assign to days
+      const questionsToInsert = parsed.map((q, index) => {
+        const dayIndex = Math.floor(index / questionsPerDay); // 0-6 for 7 days
+        return {
+          question: q.question,
+          choice_a: q.choice_a,
+          choice_b: q.choice_b,
+          choice_c: q.choice_c,
+          choice_d: q.choice_d,
+          correct_choice: q.correct_choice.toUpperCase(),
+          difficulty: q.difficulty,
+          category: q.category,
+          hint: q.hint,
+          text_hash: btoa(q.question.slice(0, 50)).replace(/[^a-zA-Z0-9]/g, '').slice(0, 32),
+          is_active: true,
+          active_from: q.active_from || getDateForDay(dayIndex),
+        };
+      });
 
       const { data, error } = await supabase
         .from('questions')
