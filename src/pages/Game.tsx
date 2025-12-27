@@ -356,8 +356,10 @@ const Game: React.FC = () => {
           setIsCompletingRun(false);
           setIsGameOver(true);
         } else {
-          // Show claim or continue dialog for all other questions
-          setShowCheckpointDialog(true);
+          // Show claim or continue dialog after 3 second delay
+          setTimeout(() => {
+            setShowCheckpointDialog(true);
+          }, 1500); // Additional 1.5s delay (total ~3s with the outer timeout)
         }
       }
     }, 1500);
