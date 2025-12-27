@@ -5,11 +5,10 @@ import { JackieIcon } from '@/components/icons/JackieIcon';
 import { PoolStats } from '@/components/game/PoolStats';
 import { UserBalance } from '@/components/game/UserBalance';
 import { MiniLeaderboard } from '@/components/game/MiniLeaderboard';
-import { ReferralCodeDialog } from '@/components/referral/ReferralCodeDialog';
 import { useGame } from '@/contexts/GameContext';
-import { Play, ChevronRight, X, Zap, Gift, UserCheck, Ticket, Share2, Copy, Clock } from 'lucide-react';
-import { inviteFriends, sendToWorldChat, shareViaNative, getReferralDeeplink } from '@/lib/worldShare';
-import { generateReferralCode, hasAlreadyRedeemedCode } from '@/lib/referralService';
+import { Play, ChevronRight, X, Zap, Gift, UserCheck, Share2, Copy, Clock } from 'lucide-react';
+import { sendToWorldChat, shareViaNative, getReferralDeeplink } from '@/lib/worldShare';
+import { generateReferralCode } from '@/lib/referralService';
 import { getWorldAppLink } from '@/lib/constants';
 import { isInWorldApp } from '@/lib/minikit';
 import { toast } from 'sonner';
@@ -57,8 +56,6 @@ const Home: React.FC = () => {
   const { state } = useGame();
   const { isVerified, attempts, dayState, user } = state;
   const [activePopup, setActivePopup] = useState<string | null>(null);
-  const [showReferralDialog, setShowReferralDialog] = useState(false);
-  const [hasRedeemed, setHasRedeemed] = useState<boolean | null>(null);
   const [countdown, setCountdown] = useState(getTimeUntilMidnight());
 
   // Countdown timer for next attempt
@@ -68,27 +65,6 @@ const Home: React.FC = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
-
-  // Check if user has already redeemed a code and show popup on first visit
-  React.useEffect(() => {
-    const checkRedeemedAndShowPopup = async () => {
-      if (user) {
-        const redeemed = await hasAlreadyRedeemedCode(user.id);
-        setHasRedeemed(redeemed);
-        
-        // Show referral popup on first visit if user hasn't redeemed
-        const hasSeenPopup = localStorage.getItem(`jc_referral_popup_seen_${user.id}`);
-        if (!redeemed && !hasSeenPopup) {
-          // Small delay to let the page load first
-          setTimeout(() => {
-            setShowReferralDialog(true);
-            localStorage.setItem(`jc_referral_popup_seen_${user.id}`, 'true');
-          }, 500);
-        }
-      }
-    };
-    checkRedeemedAndShowPopup();
-  }, [user]);
 
   const canPlay = isVerified && (attempts?.remaining || 0) > 0;
 
@@ -156,12 +132,6 @@ const Home: React.FC = () => {
 
   return (
     <div className="min-h-screen gradient-hero flex flex-col">
-      {/* Referral Code Dialog */}
-      <ReferralCodeDialog 
-        open={showReferralDialog} 
-        onOpenChange={setShowReferralDialog} 
-      />
-
       {/* Popup */}
       {activePopup && (
         <InfoPopup
@@ -279,26 +249,6 @@ const Home: React.FC = () => {
                 </div>
               </div>
 
-              {/* Redeem Code Row - only show if user hasn't redeemed yet */}
-              {hasRedeemed === false && (
-                <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <Ticket className="w-4 h-4 text-primary flex-shrink-0" />
-                    <p className="text-xs text-muted-foreground">
-                      <span className="text-foreground font-medium">Have a code?</span> Get +1 life
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowReferralDialog(true)}
-                    className="flex-shrink-0 gap-1.5"
-                  >
-                    <Gift className="w-4 h-4" />
-                    <span className="text-xs">Redeem</span>
-                  </Button>
-                </div>
-              )}
             </div>
           )}
         </div>
