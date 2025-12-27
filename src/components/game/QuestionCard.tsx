@@ -125,7 +125,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               className={cn(
                 'animate-slide-up',
                 `stagger-${index + 1}`,
-                isHidden && 'opacity-30 line-through'
+                isHidden && 'opacity-30 line-through',
+                showResult && correctChoice === label && 'animate-blink-success'
               )}
             >
               <span className="flex items-center gap-3 w-full">
