@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
 import { useGame } from '@/contexts/GameContext';
-import { Shield, Fingerprint, Eye, ArrowLeft, CheckCircle, Loader2, Smartphone } from 'lucide-react';
+import { Shield, ArrowLeft, CheckCircle, Loader2, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createOrGetUser, persistUser } from '@/lib/userService';
 import { linkInvitedUserToReferral } from '@/lib/referralService';
@@ -15,7 +15,7 @@ const Verify: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { dispatch } = useGame();
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationLevel, setVerificationLevel] = useState<'device' | 'orb'>('device');
+  const verificationLevel: 'device' | 'orb' = 'device';
   const [isSuccess, setIsSuccess] = useState(false);
   const [inWorldApp, setInWorldApp] = useState(false);
 
@@ -168,50 +168,6 @@ const Verify: React.FC = () => {
           </div>
         )}
 
-        {/* Verification Level Selection */}
-        <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-1">
-          <p className="text-sm font-medium text-muted-foreground text-center">
-            Choose verification level:
-          </p>
-          
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => setVerificationLevel('device')}
-              disabled={isVerifying}
-              className={cn(
-                'flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all',
-                verificationLevel === 'device'
-                  ? 'border-primary bg-primary/10'
-                  : 'border-border bg-card hover:border-primary/50'
-              )}
-            >
-              <Fingerprint className={cn(
-                'w-8 h-8',
-                verificationLevel === 'device' ? 'text-primary' : 'text-muted-foreground'
-              )} />
-              <span className="font-medium text-sm">Device</span>
-              <span className="text-xs text-muted-foreground">Quick verify</span>
-            </button>
-            
-            <button
-              onClick={() => setVerificationLevel('orb')}
-              disabled={isVerifying}
-              className={cn(
-                'flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all',
-                verificationLevel === 'orb'
-                  ? 'border-primary bg-primary/10'
-                  : 'border-border bg-card hover:border-primary/50'
-              )}
-            >
-              <Eye className={cn(
-                'w-8 h-8',
-                verificationLevel === 'orb' ? 'text-primary' : 'text-muted-foreground'
-              )} />
-              <span className="font-medium text-sm">Orb</span>
-              <span className="text-xs text-muted-foreground">Biometric</span>
-            </button>
-          </div>
-        </div>
 
         {/* Verify Button */}
         <div className="w-full max-w-sm animate-slide-up stagger-2">
