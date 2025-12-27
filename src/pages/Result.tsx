@@ -17,13 +17,14 @@ const Result: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { state: gameState } = useGame();
-  const { earnedAmount = 0, reachedQuestion = 1, isWinner = false, runId } = location.state || {};
+  const { earnedAmount = 0, reachedQuestion = 1, isWinner = false, runId, autoClaim = false } = location.state || {};
   
-  const [claimStep, setClaimStep] = useState<ClaimStep>('idle');
+  const [claimStep, setClaimStep] = useState<ClaimStep>(autoClaim && earnedAmount > 0 ? 'claiming' : 'idle');
   const [totalBalance, setTotalBalance] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const hasAutoClaimedRef = React.useRef(false);
 
-  const handleClaim = async () => {
+  const performClaim = React.useCallback(async () => {
     if (earnedAmount <= 0) return;
     
     setClaimStep('claiming');
@@ -52,6 +53,18 @@ const Result: React.FC = () => {
       setErrorMessage(error instanceof Error ? error.message : 'Claim failed');
       setClaimStep('error');
     }
+  }, [earnedAmount, runId, gameState.user]);
+
+  // Auto-claim on mount if autoClaim flag is set
+  React.useEffect(() => {
+    if (autoClaim && earnedAmount > 0 && !hasAutoClaimedRef.current) {
+      hasAutoClaimedRef.current = true;
+      performClaim();
+    }
+  }, [autoClaim, earnedAmount, performClaim]);
+
+  const handleClaim = async () => {
+    await performClaim();
   };
 
   const handleShare = async () => {

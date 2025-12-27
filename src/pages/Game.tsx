@@ -368,10 +368,9 @@ const Game: React.FC = () => {
   const handleClaimNow = async () => {
     // User chooses to claim current prize and end game
     setShowCheckpointDialog(false);
-    setClaimedEarly(true);
     setIsCompletingRun(true);
 
-    // Complete run in database BEFORE showing game over
+    // Complete run in database BEFORE navigating
     if (currentRun) {
       await completeRun({
         runId: currentRun.id,
@@ -383,7 +382,17 @@ const Game: React.FC = () => {
     }
 
     setIsCompletingRun(false);
-    setIsGameOver(true);
+    
+    // Navigate directly to Result page with auto-claim flag
+    navigate('/result', { 
+      state: { 
+        earnedAmount, 
+        reachedQuestion: currentQuestionIndex + 1,
+        isWinner: true,
+        runId: currentRun?.id,
+        autoClaim: true, // Skip the claim button, start claiming immediately
+      } 
+    });
   };
 
   const handleKeepGoing = () => {
