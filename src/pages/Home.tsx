@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
@@ -7,13 +7,27 @@ import { UserBalance } from '@/components/game/UserBalance';
 import { MiniLeaderboard } from '@/components/game/MiniLeaderboard';
 import { ReferralCodeDialog } from '@/components/referral/ReferralCodeDialog';
 import { useGame } from '@/contexts/GameContext';
-import { Play, ChevronRight, X, Zap, Gift, UserCheck, Ticket, Share2, Copy } from 'lucide-react';
+import { Play, ChevronRight, X, Zap, Gift, UserCheck, Ticket, Share2, Copy, Clock } from 'lucide-react';
 import { inviteFriends, sendToWorldChat, shareViaNative, getReferralDeeplink } from '@/lib/worldShare';
 import { generateReferralCode, hasAlreadyRedeemedCode } from '@/lib/referralService';
 import { getWorldAppLink } from '@/lib/constants';
 import { isInWorldApp } from '@/lib/minikit';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+
+// Helper to get time until midnight
+const getTimeUntilMidnight = (): string => {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  const diff = midnight.getTime() - now.getTime();
+  
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+  
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+};
 
 interface InfoPopupProps {
   title: string;
@@ -45,6 +59,15 @@ const Home: React.FC = () => {
   const [activePopup, setActivePopup] = useState<string | null>(null);
   const [showReferralDialog, setShowReferralDialog] = useState(false);
   const [hasRedeemed, setHasRedeemed] = useState<boolean | null>(null);
+  const [countdown, setCountdown] = useState(getTimeUntilMidnight());
+
+  // Countdown timer for next attempt
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown(getTimeUntilMidnight());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Check if user has already redeemed a code and show popup on first visit
   React.useEffect(() => {
@@ -305,20 +328,15 @@ const Home: React.FC = () => {
               <ChevronRight className="w-5 h-5" />
             </Button>
           ) : (
-            <div className="text-center space-y-3">
-              <p className="text-muted-foreground">
-                No plays remaining today. Invite friends for more!
-              </p>
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full gap-2"
-                onClick={handleSendWorldChat}
-              >
-                <Share2 className="w-5 h-5" />
-                Share Invite
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="xl"
+              className="w-full opacity-60 cursor-not-allowed"
+              disabled
+            >
+              <Clock className="w-5 h-5" />
+              Next play in {countdown}
+            </Button>
           )}
         </div>
 
