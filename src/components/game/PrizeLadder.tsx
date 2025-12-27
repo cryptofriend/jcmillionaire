@@ -50,7 +50,7 @@ export const PrizeLadder: React.FC<PrizeLadderProps> = ({
   return (
     <div 
       ref={containerRef}
-      className="flex flex-col gap-1 w-full max-w-xs mx-auto max-h-[60vh] overflow-y-auto hide-scrollbar"
+      className="flex flex-col gap-0.5 w-full max-w-xs mx-auto"
     >
       {reversedLadder.map((item) => {
         const isCurrent = item.questionNumber === currentQuestion && !isGameOver;
@@ -62,38 +62,35 @@ export const PrizeLadder: React.FC<PrizeLadderProps> = ({
             key={item.questionNumber}
             ref={isCurrent ? currentItemRef : null}
             className={cn(
-              'flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-300',
-              isCurrent && 'gradient-gold shadow-glow animate-pulse-soft scale-105',
+              'flex items-center justify-between px-2 py-1 rounded-md transition-all duration-300',
+              isCurrent && 'gradient-gold shadow-glow animate-pulse-soft scale-[1.02]',
               isReached && !isCurrent && 'bg-success/20 border border-success/40',
               isFailed && 'bg-destructive/20 border border-destructive/40',
               !isCurrent && !isReached && !isFailed && 'bg-card/50 border border-border/50',
               item.isSafeHaven && !isCurrent && !isReached && 'border-safe-haven/60 bg-safe-haven/10'
             )}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <span className={cn(
-                'text-xs font-bold w-6 text-center',
+                'text-[10px] font-bold w-5 text-center',
                 isCurrent && 'text-primary-foreground',
                 isReached && !isCurrent && 'text-success',
                 !isCurrent && !isReached && 'text-muted-foreground'
               )}>
-                Q{item.questionNumber}
+                {item.questionNumber}
               </span>
               
-              {item.isSafeHaven && (
-                <Shield className={cn(
-                  'w-4 h-4',
-                  isCurrent && 'text-primary-foreground',
-                  isReached && 'text-success',
-                  !isCurrent && !isReached && 'text-safe-haven'
-                )} />
-              )}
+              <div className={cn(
+                'w-2 h-2 rounded-full',
+                isCurrent && 'bg-primary-foreground',
+                isReached && !isCurrent && 'bg-success',
+                !isCurrent && !isReached && 'bg-muted-foreground/40'
+              )} />
             </div>
             
             <div className="flex items-center gap-1">
-              <CoinIcon size={14} />
               <span className={cn(
-                'text-sm font-bold',
+                'text-xs font-bold',
                 isCurrent && 'text-primary-foreground',
                 isReached && !isCurrent && 'text-success',
                 !isCurrent && !isReached && 'text-foreground'
@@ -101,11 +98,15 @@ export const PrizeLadder: React.FC<PrizeLadderProps> = ({
                 {formatJC(item.prizeAmount)}
               </span>
               
-              {isReached && !isCurrent && (
-                <Check className="w-4 h-4 text-success ml-1" />
-              )}
-              {isFailed && (
-                <X className="w-4 h-4 text-destructive ml-1" />
+              {item.isSafeHaven && (
+                <span className={cn(
+                  'text-[8px] font-bold px-1 py-0.5 rounded uppercase',
+                  isCurrent && 'bg-primary-foreground/20 text-primary-foreground',
+                  isReached && !isCurrent && 'bg-success/20 text-success',
+                  !isCurrent && !isReached && 'bg-safe-haven/20 text-safe-haven'
+                )}>
+                  Safe
+                </span>
               )}
             </div>
           </div>
