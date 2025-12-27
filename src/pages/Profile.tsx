@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { sendToWorldChat, shareViaNative } from '@/lib/worldShare';
 import { isInWorldApp, getCurrentUserInfo, getUserInfoByAddress } from '@/lib/minikit';
 import { MiniKit } from '@worldcoin/minikit-js';
+import { ReferralDashboard } from '@/components/referral/ReferralDashboard';
 
 interface RunHistoryItem {
   id: string;
@@ -475,53 +476,8 @@ const Profile: React.FC = () => {
             </Button>
           </div>
 
-          {/* Referral List */}
-          <div className="space-y-2">
-            <h4 className="font-medium text-sm text-muted-foreground">
-              Your Referrals ({referrals.length})
-            </h4>
-            {referrals.length === 0 ? (
-              <div className="text-center py-4">
-                <p className="text-sm text-muted-foreground">No referrals yet. Share your invite link!</p>
-              </div>
-            ) : (
-              referrals.map((ref) => (
-                <div
-                  key={ref.id}
-                  className="flex items-center justify-between bg-card rounded-xl p-4 border border-border"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      'w-8 h-8 rounded-full flex items-center justify-center',
-                      ref.status === 'first_run_completed' ? 'bg-success/20' : 'bg-secondary'
-                    )}>
-                      <Users className={cn(
-                        'w-4 h-4',
-                        ref.status === 'first_run_completed' ? 'text-success' : 'text-muted-foreground'
-                      )} />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">Invited User</p>
-                      <p className={cn(
-                        'text-xs',
-                        ref.status === 'first_run_completed' ? 'text-success' : 'text-muted-foreground'
-                      )}>
-                        {ref.status === 'first_run_completed' && '✓ Completed first run'}
-                        {ref.status === 'verified' && 'Verified, awaiting first run'}
-                        {ref.status === 'clicked' && 'Link clicked, not verified'}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {format(new Date(ref.created_at), 'MMM d, yyyy')}
-                      </p>
-                    </div>
-                  </div>
-                  {ref.status === 'first_run_completed' && (
-                    <span className="text-sm font-bold text-success">+1</span>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
+          {/* Real-time Referral Dashboard */}
+          {user?.id && <ReferralDashboard userId={user.id} />}
         </TabsContent>
       </Tabs>
     </div>
