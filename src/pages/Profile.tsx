@@ -6,7 +6,7 @@ import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { AttemptsDisplay } from '@/components/game/AttemptsDisplay';
 import { useGame } from '@/contexts/GameContext';
 import { formatJC, getWorldAppLink } from '@/lib/constants';
-import { ArrowLeft, Copy, Share2, Trophy, History, Users, CheckCircle, Loader2, Flame, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Copy, Share2, Trophy, History, Users, CheckCircle, Loader2, Flame, MessageCircle, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,7 +44,7 @@ interface UserStats {
 const Profile: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { state, fetchAttempts } = useGame();
+  const { state, fetchAttempts, isAdmin } = useGame();
   const { user, attempts, isVerified } = state;
   
   const defaultTab = searchParams.get('tab') || 'stats';
@@ -312,7 +312,18 @@ const Profile: React.FC = () => {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <h1 className="flex-1 text-center font-display font-bold">Profile</h1>
-        <div className="w-10" />
+        {isAdmin ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/admin')}
+            className="text-primary"
+          >
+            <Shield className="w-5 h-5" />
+          </Button>
+        ) : (
+          <div className="w-10" />
+        )}
       </header>
 
       {/* Profile Header */}
