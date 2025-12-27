@@ -7,7 +7,7 @@ import { UserBalance } from '@/components/game/UserBalance';
 import { MiniLeaderboard } from '@/components/game/MiniLeaderboard';
 import { ReferralCodeDialog } from '@/components/referral/ReferralCodeDialog';
 import { useGame } from '@/contexts/GameContext';
-import { Play, ChevronRight, MessageCircle, X, Users, Zap, Gift, UserCheck, Ticket } from 'lucide-react';
+import { Play, ChevronRight, X, Zap, Gift, UserCheck, Ticket, Share2, Copy } from 'lucide-react';
 import { inviteFriends, sendToWorldChat, shareViaNative, getReferralDeeplink } from '@/lib/worldShare';
 import { generateReferralCode, hasAlreadyRedeemedCode } from '@/lib/referralService';
 import { getWorldAppLink } from '@/lib/constants';
@@ -221,50 +221,60 @@ const Home: React.FC = () => {
                 ))}
               </div>
 
-              {/* Divider */}
-              <div className="border-t border-border" />
-
-              {/* Invite Friend Row */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <Users className="w-4 h-4 text-success flex-shrink-0" />
-                  <p className="text-xs text-muted-foreground">
-                    <span className="text-foreground font-medium">Invite a friend</span> = +1 extra play
-                  </p>
+              {/* Invite Section - Redesigned */}
+              <div className="border-t border-border pt-3 space-y-3">
+                <h3 className="text-center font-display font-bold text-lg text-foreground">
+                  Invite a friend = <span className="text-success">+1 extra play</span>
+                </h3>
+                
+                {/* Referral Code Display */}
+                <div className="flex items-center gap-2 bg-secondary/50 rounded-lg p-2">
+                  <span className="flex-1 text-center text-lg font-mono font-bold tracking-widest text-foreground">
+                    {user ? generateReferralCode(user.id) : '--------'}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const code = user ? generateReferralCode(user.id) : '';
+                      navigator.clipboard.writeText(code);
+                      toast.success('Code copied!');
+                    }}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="gold"
+                    size="sm"
+                    onClick={handleSendWorldChat}
+                    className="gap-1.5"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    Share
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSendWorldChat}
-                  className="flex-shrink-0 gap-1.5"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span className="text-xs">Send</span>
-                </Button>
               </div>
 
               {/* Redeem Code Row - only show if user hasn't redeemed yet */}
               {hasRedeemed === false && (
-                <>
-                  <div className="border-t border-border" />
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Ticket className="w-4 h-4 text-primary flex-shrink-0" />
-                      <p className="text-xs text-muted-foreground">
-                        <span className="text-foreground font-medium">Have a code?</span> Get +1 life
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowReferralDialog(true)}
-                      className="flex-shrink-0 gap-1.5"
-                    >
-                      <Gift className="w-4 h-4" />
-                      <span className="text-xs">Redeem</span>
-                    </Button>
+                <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <Ticket className="w-4 h-4 text-primary flex-shrink-0" />
+                    <p className="text-xs text-muted-foreground">
+                      <span className="text-foreground font-medium">Have a code?</span> Get +1 life
+                    </p>
                   </div>
-                </>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowReferralDialog(true)}
+                    className="flex-shrink-0 gap-1.5"
+                  >
+                    <Gift className="w-4 h-4" />
+                    <span className="text-xs">Redeem</span>
+                  </Button>
+                </div>
               )}
             </div>
           )}
@@ -305,8 +315,8 @@ const Home: React.FC = () => {
                 className="w-full gap-2"
                 onClick={handleSendWorldChat}
               >
-                <MessageCircle className="w-5 h-5" />
-                Send in World Chat
+                <Share2 className="w-5 h-5" />
+                Share Invite
               </Button>
             </div>
           )}
