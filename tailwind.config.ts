@@ -113,6 +113,11 @@ export default {
           "0%, 100%": { backgroundColor: "hsl(var(--destructive))", borderColor: "hsl(var(--destructive))" },
           "50%": { backgroundColor: "hsl(var(--destructive) / 0.3)", borderColor: "hsl(var(--destructive) / 0.5)" },
         },
+        "shake": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "10%, 30%, 50%, 70%, 90%": { transform: "translateX(-4px)" },
+          "20%, 40%, 60%, 80%": { transform: "translateX(4px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -122,6 +127,7 @@ export default {
         "pulse-soft": "pulse-soft 2s ease-in-out infinite",
         "blink-success": "blink-success 0.4s ease-in-out 5",
         "blink-danger": "blink-danger 0.4s ease-in-out 5",
+        "shake": "shake 0.5s ease-in-out",
       },
       boxShadow: {
         soft: "var(--shadow-soft)",
