@@ -32,9 +32,9 @@ const buttonVariants = cva(
         "answer-selected":
           "bg-primary/10 border-2 border-primary text-foreground shadow-soft",
         "answer-correct":
-          "bg-success/10 border-2 border-success text-foreground shadow-soft",
+          "bg-success border-2 border-success text-white shadow-soft animate-blink-success",
         "answer-wrong":
-          "bg-destructive/10 border-2 border-destructive text-foreground shadow-soft",
+          "bg-destructive border-2 border-destructive text-white shadow-soft animate-blink-danger",
         lifeline:
           "bg-card border-2 border-border text-foreground shadow-card hover:border-primary hover:bg-secondary/50 flex-col gap-1",
         "lifeline-used":
