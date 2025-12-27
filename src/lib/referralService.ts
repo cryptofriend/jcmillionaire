@@ -5,107 +5,150 @@ import { supabase } from '@/integrations/supabase/client';
  * Uses the user's ID as the base to ensure uniqueness
  */
 export function generateReferralCode(userId: string): string {
-  // Use first 8 characters of user ID as referral code
-  return userId.slice(0, 8);
+  // Use first 8 characters of user ID as referral code (uppercase for display)
+  return userId.slice(0, 8).toUpperCase();
 }
 
 /**
- * Create a referral record when a user clicks a referral link
- * This is called when the invited user first visits with a ref param
+ * Check if a user has already redeemed a referral code
  */
-export async function createReferralFromCode(
-  inviteCode: string
-): Promise<{ success: boolean; inviterUserId: string | null; error: string | null }> {
-  try {
-    const normalizedCode = inviteCode.trim().toLowerCase();
+export async function hasAlreadyRedeemedCode(userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('referrals')
+    .select('id')
+    .eq('invited_user_id', userId)
+    .maybeSingle();
 
-    // Find the inviter by their referral code (case-insensitive, since some UIs display uppercase)
-    const { data: user, error: fetchError } = await supabase
+  if (error) {
+    console.error('Error checking redeemed status:', error);
+    return false;
+  }
+
+  return !!data;
+}
+
+/**
+ * Redeem a referral code manually entered by the user
+ * Grants +1 extra life to BOTH the inviter and the invited user
+ */
+export async function redeemReferralCode(
+  code: string,
+  invitedUserId: string
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const normalizedCode = code.trim().toLowerCase();
+
+    // Find the inviter by their referral code
+    const { data: inviter, error: fetchError } = await supabase
       .from('users')
-      .select('id')
+      .select('id, referral_code')
       .ilike('referral_code', normalizedCode)
       .maybeSingle();
 
     if (fetchError) {
       console.error('Error finding inviter:', fetchError);
-      return { success: false, inviterUserId: null, error: fetchError.message };
+      return { success: false, error: 'Failed to verify code' };
     }
 
-    if (!user) {
-      console.log('No inviter found for code:', normalizedCode);
-      return { success: false, inviterUserId: null, error: 'Invalid referral code' };
-    }
-
-    const inviterUserId = user.id;
-    console.log('Found inviter:', inviterUserId);
-
-    return { success: true, inviterUserId, error: null };
-  } catch (err) {
-    console.error('Error in createReferralFromCode:', err);
-    return { success: false, inviterUserId: null, error: 'Failed to process referral' };
-  }
-}
-
-/**
- * Link an invited user to a referral when they complete verification
- */
-export async function linkInvitedUserToReferral(
-  inviteCode: string,
-  invitedUserId: string
-): Promise<{ success: boolean; error: string | null }> {
-  try {
-    const normalizedCode = inviteCode.trim().toLowerCase();
-
-    // Find the inviter by their referral code
-    const { inviterUserId, error: findError } = await createReferralFromCode(normalizedCode);
-
-    if (findError || !inviterUserId) {
-      return { success: false, error: findError || 'Inviter not found' };
+    if (!inviter) {
+      return { success: false, error: 'Invalid referral code' };
     }
 
     // Don't allow self-referral
-    if (inviterUserId === invitedUserId) {
-      console.log('Self-referral attempted, ignoring');
-      return { success: false, error: 'Cannot refer yourself' };
+    if (inviter.id === invitedUserId) {
+      return { success: false, error: 'Cannot use your own code' };
     }
 
-    // Check if this invited user already has a referral record
-    const { data: existingReferral, error: checkError } = await supabase
-      .from('referrals')
-      .select('id')
-      .eq('invited_user_id', invitedUserId)
-      .maybeSingle();
-
-    if (checkError) {
-      console.error('Error checking existing referral:', checkError);
-      return { success: false, error: checkError.message };
+    // Check if user has already redeemed a code
+    const alreadyRedeemed = await hasAlreadyRedeemedCode(invitedUserId);
+    if (alreadyRedeemed) {
+      return { success: false, error: 'Already redeemed a code' };
     }
 
-    if (existingReferral) {
-      console.log('User already has a referral record');
-      return { success: true, error: null }; // Already linked, not an error
-    }
-
-    // Create the referral record with status 'verified'
+    // Create the referral record
     const { error: insertError } = await supabase
       .from('referrals')
       .insert({
         invite_code: normalizedCode,
-        inviter_user_id: inviterUserId,
+        inviter_user_id: inviter.id,
         invited_user_id: invitedUserId,
-        status: 'verified',
+        status: 'first_run_completed', // Mark as completed immediately since they're already verified
       });
 
     if (insertError) {
       console.error('Error creating referral:', insertError);
-      return { success: false, error: insertError.message };
+      if (insertError.code === '23505') {
+        return { success: false, error: 'Already redeemed a code' };
+      }
+      return { success: false, error: 'Failed to redeem code' };
     }
 
-    console.log('Referral created:', { inviterUserId, invitedUserId });
+    // Grant +1 extra life to the INVITED user
+    const today = new Date().toISOString().slice(0, 10);
+    await grantExtraLife(invitedUserId, today);
+
+    // Grant +1 extra life to the INVITER
+    await grantExtraLife(inviter.id, today);
+
+    console.log('Referral redeemed successfully:', { inviterId: inviter.id, invitedUserId });
     return { success: true, error: null };
   } catch (err) {
-    console.error('Error in linkInvitedUserToReferral:', err);
-    return { success: false, error: 'Failed to link referral' };
+    console.error('Error in redeemReferralCode:', err);
+    return { success: false, error: 'Failed to redeem code' };
+  }
+}
+
+/**
+ * Grant an extra life (attempt) to a user
+ */
+async function grantExtraLife(userId: string, dayId: string): Promise<void> {
+  try {
+    // Check if user has an attempts record for today
+    const { data: existingAttempts, error: fetchError } = await supabase
+      .from('attempts')
+      .select('id, cap, earned_from_referrals')
+      .eq('user_id', userId)
+      .eq('day_id', dayId)
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error('Error fetching attempts:', fetchError);
+      return;
+    }
+
+    if (existingAttempts) {
+      // Update existing record - increase cap and earned_from_referrals
+      const { error: updateError } = await supabase
+        .from('attempts')
+        .update({
+          cap: existingAttempts.cap + 1,
+          earned_from_referrals: existingAttempts.earned_from_referrals + 1,
+        })
+        .eq('id', existingAttempts.id);
+
+      if (updateError) {
+        console.error('Error updating attempts:', updateError);
+      }
+    } else {
+      // Create new record with extra life
+      const { error: insertError } = await supabase
+        .from('attempts')
+        .insert({
+          user_id: userId,
+          day_id: dayId,
+          cap: 2, // 1 base + 1 bonus
+          used: 0,
+          earned_from_referrals: 1,
+        });
+
+      if (insertError) {
+        console.error('Error inserting attempts:', insertError);
+      }
+    }
+
+    console.log('Extra life granted to:', userId);
+  } catch (err) {
+    console.error('Error granting extra life:', err);
   }
 }
 

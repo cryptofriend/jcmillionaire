@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
 import { PoolStats } from '@/components/game/PoolStats';
 import { UserBalance } from '@/components/game/UserBalance';
-import { AttemptsDisplay } from '@/components/game/AttemptsDisplay';
 import { MiniLeaderboard } from '@/components/game/MiniLeaderboard';
+import { ReferralCodeDialog } from '@/components/referral/ReferralCodeDialog';
 import { useGame } from '@/contexts/GameContext';
-import { Play, Share2, ChevronRight, MessageCircle, X, Users, Zap, Gift, UserCheck } from 'lucide-react';
+import { Play, ChevronRight, MessageCircle, X, Users, Zap, Gift, UserCheck, Ticket } from 'lucide-react';
 import { inviteFriends, sendToWorldChat, shareViaNative, getReferralDeeplink } from '@/lib/worldShare';
-import { generateReferralCode } from '@/lib/referralService';
+import { generateReferralCode, hasAlreadyRedeemedCode } from '@/lib/referralService';
 import { getWorldAppLink } from '@/lib/constants';
 import { isInWorldApp } from '@/lib/minikit';
 import { toast } from 'sonner';
@@ -40,48 +40,28 @@ const InfoPopup: React.FC<InfoPopupProps> = ({ title, description, onClose }) =>
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { state } = useGame();
   const { isVerified, attempts, dayState, user } = state;
   const [activePopup, setActivePopup] = useState<string | null>(null);
+  const [showReferralDialog, setShowReferralDialog] = useState(false);
+  const [hasRedeemed, setHasRedeemed] = useState<boolean | null>(null);
 
-  // Robust referral code extraction (handles World App deeplink encoding)
-  const getReferralCodeFromUrl = (): string | null => {
-    // 1. Check standard query params
-    const fromSearchParams = searchParams.get('ref');
-    if (fromSearchParams) return fromSearchParams;
-    
-    // 2. Check if ref is in the full URL (World App may include it in path)
-    const fullUrl = window.location.href;
-    const refMatch = fullUrl.match(/[?&]ref=([a-zA-Z0-9]+)/);
-    if (refMatch) return refMatch[1];
-    
-    // 3. Check hash params (some routers use hash-based routing)
-    const hashMatch = window.location.hash.match(/[?&]ref=([a-zA-Z0-9]+)/);
-    if (hashMatch) return hashMatch[1];
-    
-    return null;
-  };
-
-  // Persist referral code across navigation (e.g. /?ref=XXXX -> /verify)
-  useEffect(() => {
-    const ref = getReferralCodeFromUrl();
-    if (ref) {
-      console.log('Home: Storing referral code:', ref);
-      localStorage.setItem('jc_referral_code', ref);
-    }
-  }, [searchParams]);
-
-  const getVerifyPath = () => {
-    const ref = getReferralCodeFromUrl() || localStorage.getItem('jc_referral_code');
-    return ref ? `/verify?ref=${encodeURIComponent(ref)}` : '/verify';
-  };
+  // Check if user has already redeemed a code
+  React.useEffect(() => {
+    const checkRedeemed = async () => {
+      if (user) {
+        const redeemed = await hasAlreadyRedeemedCode(user.id);
+        setHasRedeemed(redeemed);
+      }
+    };
+    checkRedeemed();
+  }, [user]);
 
   const canPlay = isVerified && (attempts?.remaining || 0) > 0;
 
   const handleStartRun = () => {
     if (!isVerified) {
-      navigate(getVerifyPath());
+      navigate('/verify');
       return;
     }
     if (canPlay) {
@@ -143,6 +123,12 @@ const Home: React.FC = () => {
 
   return (
     <div className="min-h-screen gradient-hero flex flex-col">
+      {/* Referral Code Dialog */}
+      <ReferralCodeDialog 
+        open={showReferralDialog} 
+        onOpenChange={setShowReferralDialog} 
+      />
+
       {/* Popup */}
       {activePopup && (
         <InfoPopup
@@ -246,6 +232,30 @@ const Home: React.FC = () => {
                   <span className="text-xs">Send</span>
                 </Button>
               </div>
+
+              {/* Redeem Code Row - only show if user hasn't redeemed yet */}
+              {hasRedeemed === false && (
+                <>
+                  <div className="border-t border-border" />
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <Ticket className="w-4 h-4 text-primary flex-shrink-0" />
+                      <p className="text-xs text-muted-foreground">
+                        <span className="text-foreground font-medium">Have a code?</span> Get +1 life
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowReferralDialog(true)}
+                      className="flex-shrink-0 gap-1.5"
+                    >
+                      <Gift className="w-4 h-4" />
+                      <span className="text-xs">Redeem</span>
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -257,7 +267,7 @@ const Home: React.FC = () => {
               variant="gold"
               size="xl"
               className="w-full"
-              onClick={() => navigate(getVerifyPath())}
+              onClick={() => navigate('/verify')}
             >
               <UserCheck className="w-6 h-6" />
               Verify to Play
