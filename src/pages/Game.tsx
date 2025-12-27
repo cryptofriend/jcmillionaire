@@ -41,42 +41,24 @@ import {
 // Safe haven checkpoints (guaranteed amounts if you lose later)
 const SAFE_HAVEN_QUESTIONS = [5, 10, 15];
 
-// Mock questions for demo (expanded to 15)
+// Mock questions for demo (expanded to 15) - with hints included
 const mockQuestions: QuestionWithHiddenChoices[] = [
-  { id: '1', question: 'What is the primary purpose of World ID?', choices: { A: 'Social media login', B: 'Proof of personhood', C: 'Payment processing', D: 'Cloud storage' }, difficulty: 1, category: 'World' },
-  { id: '2', question: 'Which blockchain does World App primarily operate on?', choices: { A: 'Ethereum', B: 'Solana', C: 'World Chain', D: 'Bitcoin' }, difficulty: 1, category: 'Crypto' },
-  { id: '3', question: 'What does the Orb device scan to verify users?', choices: { A: 'Fingerprint', B: 'Voice', C: 'Iris', D: 'Face' }, difficulty: 1, category: 'World' },
-  { id: '4', question: 'Who founded Worldcoin?', choices: { A: 'Vitalik Buterin', B: 'Sam Altman', C: 'Elon Musk', D: 'Satoshi Nakamoto' }, difficulty: 1, category: 'World' },
-  { id: '5', question: 'What does WLD stand for?', choices: { A: 'World Digital', B: 'Worldcoin', C: 'World Ledger', D: 'World Dollar' }, difficulty: 2, category: 'Crypto' },
-  { id: '6', question: 'Which proof system does World ID use?', choices: { A: 'Proof of Work', B: 'Proof of Stake', C: 'Zero-Knowledge Proofs', D: 'Proof of Authority' }, difficulty: 2, category: 'Crypto' },
-  { id: '7', question: 'What is the main benefit of World ID verification?', choices: { A: 'Free tokens', B: 'Sybil resistance', C: 'Faster transactions', D: 'Lower fees' }, difficulty: 2, category: 'World' },
-  { id: '8', question: 'What year was Worldcoin launched?', choices: { A: '2021', B: '2022', C: '2023', D: '2024' }, difficulty: 2, category: 'World' },
-  { id: '9', question: 'Which company created ChatGPT?', choices: { A: 'Google', B: 'Meta', C: 'OpenAI', D: 'Microsoft' }, difficulty: 2, category: 'Tech' },
-  { id: '10', question: 'What is a nullifier in World ID?', choices: { A: 'A cancel button', B: 'A unique anonymous identifier', C: 'A hacking tool', D: 'A wallet address' }, difficulty: 3, category: 'World' },
-  { id: '11', question: 'What consensus mechanism does World Chain use?', choices: { A: 'Proof of Work', B: 'Proof of Stake', C: 'Delegated PoS', D: 'Proof of Identity' }, difficulty: 3, category: 'Crypto' },
-  { id: '12', question: 'What is the total supply of WLD tokens?', choices: { A: '21 million', B: '100 million', C: '1 billion', D: '10 billion' }, difficulty: 3, category: 'Crypto' },
-  { id: '13', question: 'Which layer is World Chain?', choices: { A: 'Layer 1', B: 'Layer 2', C: 'Layer 3', D: 'Sidechain' }, difficulty: 4, category: 'Crypto' },
-  { id: '14', question: 'What technology does the Orb use for iris scanning?', choices: { A: 'X-ray', B: 'Infrared', C: 'Ultrasound', D: 'Laser' }, difficulty: 4, category: 'World' },
-  { id: '15', question: 'What is the name of World ID\'s developer SDK?', choices: { A: 'WorldKit', B: 'IDKit', C: 'OrbSDK', D: 'ProofKit' }, difficulty: 5, category: 'World' },
+  { id: '1', question: 'What is the primary purpose of World ID?', choices: { A: 'Social media login', B: 'Proof of personhood', C: 'Payment processing', D: 'Cloud storage' }, difficulty: 1, category: 'World', hint: 'Think about what makes you unique as a human online...' },
+  { id: '2', question: 'Which blockchain does World App primarily operate on?', choices: { A: 'Ethereum', B: 'Solana', C: 'World Chain', D: 'Bitcoin' }, difficulty: 1, category: 'Crypto', hint: "It's in the name of the app!" },
+  { id: '3', question: 'What does the Orb device scan to verify users?', choices: { A: 'Fingerprint', B: 'Voice', C: 'Iris', D: 'Face' }, difficulty: 1, category: 'World', hint: "It's something very unique to each person and visible in your eyes." },
+  { id: '4', question: 'Who founded Worldcoin?', choices: { A: 'Vitalik Buterin', B: 'Sam Altman', C: 'Elon Musk', D: 'Satoshi Nakamoto' }, difficulty: 1, category: 'World', hint: "He's also known for leading a famous AI company..." },
+  { id: '5', question: 'What does WLD stand for?', choices: { A: 'World Digital', B: 'Worldcoin', C: 'World Ledger', D: 'World Dollar' }, difficulty: 2, category: 'Crypto', hint: "It's the abbreviation of the project name." },
+  { id: '6', question: 'Which proof system does World ID use?', choices: { A: 'Proof of Work', B: 'Proof of Stake', C: 'Zero-Knowledge Proofs', D: 'Proof of Authority' }, difficulty: 2, category: 'Crypto', hint: 'These proofs let you verify something without revealing the data.' },
+  { id: '7', question: 'What is the main benefit of World ID verification?', choices: { A: 'Free tokens', B: 'Sybil resistance', C: 'Faster transactions', D: 'Lower fees' }, difficulty: 2, category: 'World', hint: 'It prevents one person from creating multiple fake accounts.' },
+  { id: '8', question: 'What year was Worldcoin launched?', choices: { A: '2021', B: '2022', C: '2023', D: '2024' }, difficulty: 2, category: 'World', hint: 'It launched during the summer with much fanfare.' },
+  { id: '9', question: 'Which company created ChatGPT?', choices: { A: 'Google', B: 'Meta', C: 'OpenAI', D: 'Microsoft' }, difficulty: 2, category: 'Tech', hint: 'Sam Altman is the CEO of this company.' },
+  { id: '10', question: 'What is a nullifier in World ID?', choices: { A: 'A cancel button', B: 'A unique anonymous identifier', C: 'A hacking tool', D: 'A wallet address' }, difficulty: 3, category: 'World', hint: 'It helps keep your identity private while proving uniqueness.' },
+  { id: '11', question: 'What consensus mechanism does World Chain use?', choices: { A: 'Proof of Work', B: 'Proof of Stake', C: 'Delegated PoS', D: 'Proof of Identity' }, difficulty: 3, category: 'Crypto', hint: 'Validators stake tokens to participate.' },
+  { id: '12', question: 'What is the total supply of WLD tokens?', choices: { A: '21 million', B: '100 million', C: '1 billion', D: '10 billion' }, difficulty: 3, category: 'Crypto', hint: "It's a very large number, in the billions." },
+  { id: '13', question: 'Which layer is World Chain?', choices: { A: 'Layer 1', B: 'Layer 2', C: 'Layer 3', D: 'Sidechain' }, difficulty: 4, category: 'Crypto', hint: 'It builds on top of Ethereum for scalability.' },
+  { id: '14', question: 'What technology does the Orb use for iris scanning?', choices: { A: 'X-ray', B: 'Infrared', C: 'Ultrasound', D: 'Laser' }, difficulty: 4, category: 'World', hint: 'This technology uses light beyond the visible spectrum.' },
+  { id: '15', question: 'What is the name of World ID\'s developer SDK?', choices: { A: 'WorldKit', B: 'IDKit', C: 'OrbSDK', D: 'ProofKit' }, difficulty: 5, category: 'World', hint: 'It sounds like "ID" + a common software toolkit name.' },
 ];
-
-const mockHints: Record<string, string> = {
-  '1': 'Think about what makes you unique as a human online...',
-  '2': 'It\'s in the name of the app!',
-  '3': 'It\'s something very unique to each person and visible in your eyes.',
-  '4': 'He\'s also known for leading a famous AI company...',
-  '5': 'It\'s the abbreviation of the project name.',
-  '6': 'These proofs let you verify something without revealing the data.',
-  '7': 'It prevents one person from creating multiple fake accounts.',
-  '8': 'It launched during the summer with much fanfare.',
-  '9': 'Sam Altman is the CEO of this company.',
-  '10': 'It helps keep your identity private while proving uniqueness.',
-  '11': 'Validators stake tokens to participate.',
-  '12': 'It\'s a very large number, in the billions.',
-  '13': 'It builds on top of Ethereum for scalability.',
-  '14': 'This technology uses light beyond the visible spectrum.',
-  '15': 'It sounds like "ID" + a common software toolkit name.',
-};
 
 const mockStats: Record<string, AnswerStats> = {
   '1': { choiceACount: 120, choiceBCount: 780, choiceCCount: 60, choiceDCount: 40, total: 1000, percentages: { A: 12, B: 78, C: 6, D: 4 } },
@@ -668,7 +650,7 @@ const Game: React.FC = () => {
             selectedChoice={selectedChoice}
             correctChoice={showResult ? correctAnswers[currentQuestion.id] : undefined}
             showResult={showResult}
-            hint={mockHints[currentQuestion.id]}
+            hint={currentQuestion.hint}
             showHint={showHint}
             answerStats={mockStats[currentQuestion.id]}
             showStats={showStats}
