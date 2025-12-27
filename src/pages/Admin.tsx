@@ -5,7 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useGame } from '@/contexts/GameContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Upload, Trash2, RefreshCw, Shield, ArrowLeft, Check, AlertCircle } from 'lucide-react';
+import { Upload, Trash2, RefreshCw, Shield, ArrowLeft, Check, AlertCircle, BarChart3 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
 interface QuestionInput {
@@ -28,6 +29,17 @@ interface ExistingQuestion {
   category: string;
   is_active: boolean;
   active_from: string;
+}
+
+interface QuestionStats {
+  question_id: string;
+  question_text: string;
+  category: string;
+  difficulty: number;
+  total_answers: number;
+  correct_count: number;
+  wrong_count: number;
+  success_rate: number;
 }
 
 const SAMPLE_FORMAT = `[
@@ -57,6 +69,8 @@ const Admin: React.FC = () => {
   const [existingQuestions, setExistingQuestions] = useState<ExistingQuestion[]>([]);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
   const [validationResult, setValidationResult] = useState<{ valid: boolean; errors: string[] } | null>(null);
+  const [questionStats, setQuestionStats] = useState<QuestionStats[]>([]);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
 
   // Redirect non-admins
   useEffect(() => {
@@ -66,7 +80,7 @@ const Admin: React.FC = () => {
     }
   }, [user, isAdmin, navigate]);
 
-  // Fetch existing questions
+  // Fetch existing questions and stats
   useEffect(() => {
     const fetchQuestions = async () => {
       setIsLoadingQuestions(true);
@@ -85,8 +99,61 @@ const Admin: React.FC = () => {
       setIsLoadingQuestions(false);
     };
 
+    const fetchStats = async () => {
+      setIsLoadingStats(true);
+      
+      // Fetch all answers with question info
+      const { data: answers, error: answersError } = await supabase
+        .from('answers')
+        .select('question_id, is_correct');
+      
+      const { data: questions, error: questionsError } = await supabase
+        .from('questions')
+        .select('id, question, category, difficulty');
+      
+      if (answersError || questionsError) {
+        console.error('Error fetching stats:', answersError || questionsError);
+      } else if (answers && questions) {
+        // Aggregate stats per question
+        const statsMap = new Map<string, { correct: number; wrong: number }>();
+        
+        answers.forEach((a) => {
+          const current = statsMap.get(a.question_id) || { correct: 0, wrong: 0 };
+          if (a.is_correct) {
+            current.correct++;
+          } else {
+            current.wrong++;
+          }
+          statsMap.set(a.question_id, current);
+        });
+        
+        // Build stats array
+        const stats: QuestionStats[] = questions
+          .filter(q => statsMap.has(q.id))
+          .map(q => {
+            const s = statsMap.get(q.id)!;
+            const total = s.correct + s.wrong;
+            return {
+              question_id: q.id,
+              question_text: q.question,
+              category: q.category,
+              difficulty: q.difficulty,
+              total_answers: total,
+              correct_count: s.correct,
+              wrong_count: s.wrong,
+              success_rate: total > 0 ? Math.round((s.correct / total) * 100) : 0,
+            };
+          })
+          .sort((a, b) => b.total_answers - a.total_answers);
+        
+        setQuestionStats(stats);
+      }
+      setIsLoadingStats(false);
+    };
+
     if (isAdmin) {
       fetchQuestions();
+      fetchStats();
     }
   }, [isAdmin]);
 
@@ -355,6 +422,70 @@ const Admin: React.FC = () => {
               Upload Questions
             </Button>
           </div>
+        </section>
+
+        {/* Question Analytics */}
+        <section className="bg-card rounded-xl border border-border p-5 space-y-4">
+          <h2 className="text-lg font-display font-bold flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-primary" />
+            Question Analytics
+          </h2>
+
+          {isLoadingStats ? (
+            <div className="flex justify-center py-8">
+              <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : questionStats.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              No answer data yet. Stats will appear once players answer questions.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[200px]">Question</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead className="text-center">Diff</TableHead>
+                    <TableHead className="text-center">Total</TableHead>
+                    <TableHead className="text-center text-success">Correct</TableHead>
+                    <TableHead className="text-center text-destructive">Wrong</TableHead>
+                    <TableHead className="text-center">Rate</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {questionStats.map((stat) => (
+                    <TableRow key={stat.question_id}>
+                      <TableCell className="font-medium text-sm max-w-[300px] truncate">
+                        {stat.question_text}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {stat.category}
+                      </TableCell>
+                      <TableCell className="text-center">{stat.difficulty}</TableCell>
+                      <TableCell className="text-center font-medium">{stat.total_answers}</TableCell>
+                      <TableCell className="text-center text-success font-medium">
+                        {stat.correct_count}
+                      </TableCell>
+                      <TableCell className="text-center text-destructive font-medium">
+                        {stat.wrong_count}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className={cn(
+                          'px-2 py-0.5 rounded-full text-xs font-medium',
+                          stat.success_rate >= 70 ? 'bg-success/20 text-success' :
+                          stat.success_rate >= 40 ? 'bg-warning/20 text-warning' :
+                          'bg-destructive/20 text-destructive'
+                        )}>
+                          {stat.success_rate}%
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </section>
 
         {/* Existing Questions */}
