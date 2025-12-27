@@ -143,5 +143,13 @@ export async function loadStoredUser(): Promise<{ user: User | null; error: stri
     return { user: null, error: null };
   }
 
-  return getUserById(storedId);
+  const result = await getUserById(storedId);
+  
+  // If user not found in database, clear the stale localStorage entry
+  if (!result.user) {
+    console.log('Stored user not found in database, clearing localStorage');
+    clearStoredUser();
+  }
+  
+  return result;
 }
