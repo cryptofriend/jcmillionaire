@@ -17,24 +17,26 @@ export async function createReferralFromCode(
   inviteCode: string
 ): Promise<{ success: boolean; inviterUserId: string | null; error: string | null }> {
   try {
-    // Find the inviter by their referral code
-    const { data: users, error: fetchError } = await supabase
+    const normalizedCode = inviteCode.trim().toLowerCase();
+
+    // Find the inviter by their referral code (case-insensitive, since some UIs display uppercase)
+    const { data: user, error: fetchError } = await supabase
       .from('users')
       .select('id')
-      .eq('referral_code', inviteCode)
-      .limit(1);
+      .ilike('referral_code', normalizedCode)
+      .maybeSingle();
 
     if (fetchError) {
       console.error('Error finding inviter:', fetchError);
       return { success: false, inviterUserId: null, error: fetchError.message };
     }
 
-    if (!users || users.length === 0) {
-      console.log('No inviter found for code:', inviteCode);
+    if (!user) {
+      console.log('No inviter found for code:', normalizedCode);
       return { success: false, inviterUserId: null, error: 'Invalid referral code' };
     }
 
-    const inviterUserId = users[0].id;
+    const inviterUserId = user.id;
     console.log('Found inviter:', inviterUserId);
 
     return { success: true, inviterUserId, error: null };
@@ -52,8 +54,10 @@ export async function linkInvitedUserToReferral(
   invitedUserId: string
 ): Promise<{ success: boolean; error: string | null }> {
   try {
+    const normalizedCode = inviteCode.trim().toLowerCase();
+
     // Find the inviter by their referral code
-    const { inviterUserId, error: findError } = await createReferralFromCode(inviteCode);
+    const { inviterUserId, error: findError } = await createReferralFromCode(normalizedCode);
 
     if (findError || !inviterUserId) {
       return { success: false, error: findError || 'Inviter not found' };
@@ -86,7 +90,7 @@ export async function linkInvitedUserToReferral(
     const { error: insertError } = await supabase
       .from('referrals')
       .insert({
-        invite_code: inviteCode,
+        invite_code: normalizedCode,
         inviter_user_id: inviterUserId,
         invited_user_id: invitedUserId,
         status: 'verified',
