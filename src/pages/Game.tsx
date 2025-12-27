@@ -758,7 +758,7 @@ const Game: React.FC = () => {
 
       {/* Progress Dialog - shown after clicking Keep Going */}
       <AlertDialog open={showProgressDialog} onOpenChange={setShowProgressDialog}>
-        <AlertDialogContent className="max-w-sm max-h-[85vh] overflow-hidden">
+        <AlertDialogContent className="max-w-sm max-h-[90vh] overflow-hidden">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-center text-xl font-display">
               Your Progress
@@ -768,9 +768,9 @@ const Game: React.FC = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           
-          {/* Prize Ladder Progress */}
+          {/* Prize Ladder Progress - full height to show all 15 levels */}
           <div className="relative bg-gradient-to-b from-primary/20 via-background to-background rounded-xl border border-border overflow-hidden">
-            <div className="max-h-[45vh] overflow-y-auto py-2 px-3 hide-scrollbar">
+            <div className="py-2 px-3">
               <div className="flex flex-col-reverse gap-1">
                 {prizeLadder.map((item) => {
                   const isCompleted = item.questionNumber <= currentQuestionIndex + 1;
