@@ -223,6 +223,15 @@ const Profile: React.FC = () => {
     fetchProfileData();
   }, [user?.id, fetchAttempts]);
 
+  const [codeCopied, setCodeCopied] = useState(false);
+
+  const copyInviteCode = () => {
+    navigator.clipboard.writeText(inviteCode.toUpperCase());
+    setCodeCopied(true);
+    toast.success('Referral code copied!');
+    setTimeout(() => setCodeCopied(false), 2000);
+  };
+
   const copyInviteLink = () => {
     navigator.clipboard.writeText(inviteLink);
     toast.success('Invite link copied!');
@@ -458,10 +467,29 @@ const Profile: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-2 bg-secondary rounded-lg p-3">
-              <span className="flex-1 text-sm font-mono truncate">{inviteCode}</span>
-              <Button variant="ghost" size="sm" onClick={copyInviteLink}>
-                <Copy className="w-4 h-4" />
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground text-center">Your referral code</p>
+              <div className="flex items-center gap-2 bg-secondary rounded-lg p-3">
+                <span className="flex-1 text-center text-lg font-mono font-bold tracking-widest">
+                  {inviteCode.toUpperCase()}
+                </span>
+              </div>
+              <Button 
+                variant={codeCopied ? "default" : "outline"} 
+                className="w-full gap-2" 
+                onClick={copyInviteCode}
+              >
+                {codeCopied ? (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    Copy Code
+                  </>
+                )}
               </Button>
             </div>
 
