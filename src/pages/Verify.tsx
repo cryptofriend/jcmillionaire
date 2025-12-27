@@ -145,7 +145,7 @@ const Verify: React.FC = () => {
         <div className="text-center space-y-4 animate-fade-in">
           <JackieIcon size={80} className="mx-auto animate-float" />
           <h1 className="text-2xl font-display font-bold text-foreground">
-            Verify with World ID
+            Login with World ID
           </h1>
           <p className="text-muted-foreground max-w-xs mx-auto">
             Prove you're human to play and earn $JC tokens. One account per person.
@@ -230,7 +230,7 @@ const Verify: React.FC = () => {
             ) : (
               <>
                 <Shield className="w-6 h-6" />
-                Verify with World ID
+                Login with World ID
               </>
             )}
           </Button>
