@@ -48,6 +48,8 @@ export interface QuestionWithHiddenChoices {
   };
   difficulty: number;
   category: string;
+  hint: string; // Hint text for the hint lifeline
+  correctChoice?: 'A' | 'B' | 'C' | 'D'; // Only available after answer
   hiddenChoices?: ('A' | 'B' | 'C' | 'D')[]; // For 50:50 lifeline
 }
 
