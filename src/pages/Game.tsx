@@ -771,7 +771,7 @@ const Game: React.FC = () => {
           {/* Prize Ladder Progress - full height to show all 15 levels */}
           <div className="relative bg-gradient-to-b from-primary/20 via-background to-background rounded-xl border border-border overflow-hidden">
             <div className="py-2 px-3">
-              <div className="flex flex-col-reverse gap-1">
+              <div className="flex flex-col-reverse gap-0.5">
                 {prizeLadder.map((item) => {
                   const isCompleted = item.questionNumber <= currentQuestionIndex + 1;
                   const isCurrent = item.questionNumber === currentQuestionIndex + 1;
@@ -782,8 +782,8 @@ const Game: React.FC = () => {
                     <div
                       key={item.questionNumber}
                       className={cn(
-                        'flex items-center gap-3 px-3 py-2 rounded-lg transition-all',
-                        isCurrent && 'bg-primary text-primary-foreground scale-105 shadow-lg ring-2 ring-primary/50',
+                        'flex items-center gap-2 px-2 py-1 rounded-md transition-all text-sm',
+                        isCurrent && 'bg-primary text-primary-foreground scale-[1.02] shadow-md ring-1 ring-primary/50',
                         isCompleted && !isCurrent && 'bg-success/20 text-success',
                         !isCompleted && !isNext && 'opacity-50',
                         isNext && 'bg-accent/20 border border-accent/30',
@@ -791,7 +791,7 @@ const Game: React.FC = () => {
                       )}
                     >
                       <span className={cn(
-                        'w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold',
+                        'w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold',
                         isCurrent ? 'bg-primary-foreground text-primary' : 
                         isCompleted ? 'bg-success text-success-foreground' :
                         isSafeHaven ? 'bg-primary/30 text-primary' : 'bg-muted text-muted-foreground'
@@ -800,14 +800,14 @@ const Game: React.FC = () => {
                       </span>
                       
                       <div className={cn(
-                        'w-3 h-3 rounded-full flex-shrink-0',
+                        'w-2 h-2 rounded-full flex-shrink-0',
                         isCurrent ? 'bg-primary-foreground animate-pulse' :
                         isCompleted ? 'bg-success' :
                         isSafeHaven ? 'bg-primary/50' : 'bg-muted-foreground/30'
                       )} />
                       
                       <span className={cn(
-                        'font-display font-bold flex-1',
+                        'font-display font-bold flex-1 text-xs',
                         isCurrent ? 'text-primary-foreground' :
                         isCompleted ? 'text-success' :
                         isSafeHaven ? 'text-primary' : 'text-muted-foreground'
@@ -817,7 +817,7 @@ const Game: React.FC = () => {
                       
                       {isSafeHaven && (
                         <span className={cn(
-                          'text-[10px] font-medium px-1.5 py-0.5 rounded',
+                          'text-[8px] font-medium px-1 py-0.5 rounded',
                           isCurrent ? 'bg-primary-foreground/20' : 'bg-primary/20 text-primary'
                         )}>
                           SAFE
@@ -825,13 +825,13 @@ const Game: React.FC = () => {
                       )}
                       
                       {isCurrent && (
-                        <span className="text-[10px] font-bold bg-primary-foreground/20 px-1.5 py-0.5 rounded animate-pulse">
+                        <span className="text-[8px] font-bold bg-primary-foreground/20 px-1 py-0.5 rounded animate-pulse">
                           YOU
                         </span>
                       )}
                       
                       {isNext && (
-                        <span className="text-[10px] font-medium text-accent">
+                        <span className="text-[8px] font-medium text-accent">
                           NEXT →
                         </span>
                       )}
