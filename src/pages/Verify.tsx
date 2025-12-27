@@ -1,63 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
 import { useGame } from '@/contexts/GameContext';
 import { Shield, ArrowLeft, CheckCircle, Loader2, Smartphone } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { createOrGetUser, persistUser } from '@/lib/userService';
-import { linkInvitedUserToReferral } from '@/lib/referralService';
 import { isInWorldApp, authenticateWithWallet } from '@/lib/minikit';
 import { toast } from 'sonner';
 
 const Verify: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { dispatch } = useGame();
   const [isVerifying, setIsVerifying] = useState(false);
   const verificationLevel: 'device' | 'orb' = 'device';
   const [isSuccess, setIsSuccess] = useState(false);
   const [inWorldApp, setInWorldApp] = useState(false);
 
-  // Get referral code from multiple sources (World App deeplink may encode it differently)
-  const getReferralCodeFromUrl = (): string | null => {
-    // 1. Check standard query params
-    const fromSearchParams = searchParams.get('ref');
-    if (fromSearchParams) return fromSearchParams;
-    
-    // 2. Check if ref is in the full URL (World App may include it in path)
-    const fullUrl = window.location.href;
-    const refMatch = fullUrl.match(/[?&]ref=([a-zA-Z0-9]+)/);
-    if (refMatch) return refMatch[1];
-    
-    // 3. Check hash params (some routers use hash-based routing)
-    const hashMatch = window.location.hash.match(/[?&]ref=([a-zA-Z0-9]+)/);
-    if (hashMatch) return hashMatch[1];
-    
-    return null;
-  };
-
-  const referralCodeFromUrl = getReferralCodeFromUrl();
-  const referralCode = referralCodeFromUrl || localStorage.getItem('jc_referral_code');
-
   // Check if we're in World App on mount
   useEffect(() => {
     setInWorldApp(isInWorldApp());
-    
-    console.log('Referral debug:', {
-      searchParamsRef: searchParams.get('ref'),
-      fullUrl: window.location.href,
-      extractedRef: referralCodeFromUrl,
-      storedRef: localStorage.getItem('jc_referral_code'),
-      finalRef: referralCode,
-    });
-
-    // Persist referral code if it exists in the URL
-    if (referralCodeFromUrl) {
-      console.log('Storing referral code:', referralCodeFromUrl);
-      localStorage.setItem('jc_referral_code', referralCodeFromUrl);
-    }
-  }, [referralCodeFromUrl, referralCode, searchParams]);
+  }, []);
 
   const handleVerify = async () => {
     setIsVerifying(true);
@@ -108,18 +70,6 @@ const Verify: React.FC = () => {
       }
       
       console.log('User verified:', user.id);
-      
-      // If user came from a referral link, link them to the referral
-      if (referralCode) {
-        console.log('Processing referral code:', referralCode);
-        const { success, error } = await linkInvitedUserToReferral(referralCode, user.id);
-        if (success) {
-          console.log('Referral linked successfully');
-          localStorage.removeItem('jc_referral_code');
-        } else if (error) {
-          console.log('Referral linking failed:', error);
-        }
-      }
       
       dispatch({ type: 'SET_USER', payload: user });
       setIsSuccess(true);
@@ -187,13 +137,6 @@ const Verify: React.FC = () => {
           </div>
         )}
 
-        {referralCode && (
-          <div className="bg-success/10 border border-success/30 rounded-xl px-4 py-3 animate-slide-up">
-            <p className="text-sm text-center">
-              🎉 <span className="font-medium">You were invited!</span> Complete verification and your first run to both earn +1 play.
-            </p>
-          </div>
-        )}
 
 
         {/* Verify Button */}
