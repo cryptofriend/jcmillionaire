@@ -67,6 +67,7 @@ interface GameContextType {
   fetchAttempts: () => Promise<void>;
   fetchPrizeLadder: () => Promise<void>;
   isLoading: boolean;
+  isAdmin: boolean;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -74,6 +75,31 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check admin status when user changes
+  const checkAdminStatus = useCallback(async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+        return;
+      }
+      
+      setIsAdmin(!!data);
+      console.log('Admin status:', !!data);
+    } catch (err) {
+      console.error('Error in checkAdminStatus:', err);
+      setIsAdmin(false);
+    }
+  }, []);
 
   const fetchDayState = useCallback(async () => {
     try {
@@ -129,8 +155,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       
       if (data) {
         // Calculate remaining: 1 free play + earned from referrals - used
+        // Admins get unlimited plays (999)
         const totalAvailable = (data.free_granted ? 1 : 0) + data.earned_from_referrals;
-        const remaining = Math.max(0, totalAvailable - data.used);
+        const remaining = isAdmin ? 999 : Math.max(0, totalAvailable - data.used);
         dispatch({
           type: 'SET_ATTEMPTS',
           payload: {
@@ -139,12 +166,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             freeGranted: data.free_granted,
             earnedFromReferrals: data.earned_from_referrals,
             used: data.used,
-            cap: data.cap,
+            cap: isAdmin ? 999 : data.cap,
             remaining,
           },
         });
       } else {
-        // Default state for new user today: 1 free play per day
+        // Default state for new user today: 1 free play per day (admins get unlimited)
         dispatch({
           type: 'SET_ATTEMPTS',
           payload: {
@@ -153,15 +180,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             freeGranted: true,
             earnedFromReferrals: 0,
             used: 0,
-            cap: 1,
-            remaining: 1,
+            cap: isAdmin ? 999 : 1,
+            remaining: isAdmin ? 999 : 1,
           },
         });
       }
     } catch (error) {
       console.error('Error fetching attempts:', error);
     }
-  }, [state.user]);
+  }, [state.user, isAdmin]);
 
   const fetchPrizeLadder = useCallback(async () => {
     try {
@@ -247,15 +274,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Fetch attempts when user changes
+  // Check admin status and fetch attempts when user changes
+  useEffect(() => {
+    if (state.user) {
+      checkAdminStatus(state.user.id);
+    }
+  }, [state.user, checkAdminStatus]);
+
+  // Fetch attempts after admin status is determined
   useEffect(() => {
     if (state.user) {
       fetchAttempts();
     }
-  }, [state.user, fetchAttempts]);
+  }, [state.user, isAdmin, fetchAttempts]);
 
   return (
-    <GameContext.Provider value={{ state, dispatch, fetchDayState, fetchAttempts, fetchPrizeLadder, isLoading }}>
+    <GameContext.Provider value={{ state, dispatch, fetchDayState, fetchAttempts, fetchPrizeLadder, isLoading, isAdmin }}>
       {children}
     </GameContext.Provider>
   );
