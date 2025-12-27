@@ -18,6 +18,7 @@ interface QuestionInput {
   difficulty: number;
   category: string;
   hint: string;
+  active_from?: string; // Optional: YYYY-MM-DD format
 }
 
 interface ExistingQuestion {
@@ -39,9 +40,25 @@ const SAMPLE_FORMAT = `[
     "correct_choice": "B",
     "difficulty": 1,
     "category": "World",
-    "hint": "Think about what makes you unique as a human online..."
+    "hint": "Think about what makes you unique as a human online...",
+    "active_from": "2025-12-27"
+  },
+  {
+    "question": "What blockchain does Worldcoin use?",
+    "choice_a": "Bitcoin",
+    "choice_b": "Ethereum",
+    "choice_c": "World Chain",
+    "choice_d": "Solana",
+    "correct_choice": "C",
+    "difficulty": 2,
+    "category": "Crypto",
+    "hint": "It's in the name...",
+    "active_from": "2025-12-28"
   }
-]`;
+]
+
+💡 TIP: Add "active_from": "YYYY-MM-DD" to schedule questions for specific days.
+   Questions without active_from will default to today.`;
 
 const Admin: React.FC = () => {
   const navigate = useNavigate();
@@ -153,6 +170,7 @@ const Admin: React.FC = () => {
     setIsLoading(true);
     try {
       const parsed: QuestionInput[] = JSON.parse(jsonInput);
+      const today = new Date().toISOString().split('T')[0];
       
       // Generate text_hash for each question (simple hash for deduplication)
       const questionsToInsert = parsed.map(q => ({
@@ -167,7 +185,7 @@ const Admin: React.FC = () => {
         hint: q.hint,
         text_hash: btoa(q.question.slice(0, 50)).replace(/[^a-zA-Z0-9]/g, '').slice(0, 32),
         is_active: true,
-        active_from: new Date().toISOString().split('T')[0],
+        active_from: q.active_from || today, // Use provided date or default to today
       }));
 
       const { data, error } = await supabase
@@ -394,6 +412,8 @@ const Admin: React.FC = () => {
                       <span>Difficulty: {q.difficulty}</span>
                       <span>•</span>
                       <span>{q.category}</span>
+                      <span>•</span>
+                      <span className="text-primary">{q.active_from}</span>
                     </div>
                   </div>
                 </div>
