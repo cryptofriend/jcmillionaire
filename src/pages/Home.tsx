@@ -45,16 +45,35 @@ const Home: React.FC = () => {
   const { isVerified, attempts, dayState, user } = state;
   const [activePopup, setActivePopup] = useState<string | null>(null);
 
+  // Robust referral code extraction (handles World App deeplink encoding)
+  const getReferralCodeFromUrl = (): string | null => {
+    // 1. Check standard query params
+    const fromSearchParams = searchParams.get('ref');
+    if (fromSearchParams) return fromSearchParams;
+    
+    // 2. Check if ref is in the full URL (World App may include it in path)
+    const fullUrl = window.location.href;
+    const refMatch = fullUrl.match(/[?&]ref=([a-zA-Z0-9]+)/);
+    if (refMatch) return refMatch[1];
+    
+    // 3. Check hash params (some routers use hash-based routing)
+    const hashMatch = window.location.hash.match(/[?&]ref=([a-zA-Z0-9]+)/);
+    if (hashMatch) return hashMatch[1];
+    
+    return null;
+  };
+
   // Persist referral code across navigation (e.g. /?ref=XXXX -> /verify)
   useEffect(() => {
-    const ref = searchParams.get('ref');
+    const ref = getReferralCodeFromUrl();
     if (ref) {
+      console.log('Home: Storing referral code:', ref);
       localStorage.setItem('jc_referral_code', ref);
     }
   }, [searchParams]);
 
   const getVerifyPath = () => {
-    const ref = searchParams.get('ref') || localStorage.getItem('jc_referral_code');
+    const ref = getReferralCodeFromUrl() || localStorage.getItem('jc_referral_code');
     return ref ? `/verify?ref=${encodeURIComponent(ref)}` : '/verify';
   };
 

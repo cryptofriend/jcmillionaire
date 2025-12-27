@@ -19,18 +19,45 @@ const Verify: React.FC = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [inWorldApp, setInWorldApp] = useState(false);
 
-  const referralCodeFromUrl = searchParams.get('ref');
+  // Get referral code from multiple sources (World App deeplink may encode it differently)
+  const getReferralCodeFromUrl = (): string | null => {
+    // 1. Check standard query params
+    const fromSearchParams = searchParams.get('ref');
+    if (fromSearchParams) return fromSearchParams;
+    
+    // 2. Check if ref is in the full URL (World App may include it in path)
+    const fullUrl = window.location.href;
+    const refMatch = fullUrl.match(/[?&]ref=([a-zA-Z0-9]+)/);
+    if (refMatch) return refMatch[1];
+    
+    // 3. Check hash params (some routers use hash-based routing)
+    const hashMatch = window.location.hash.match(/[?&]ref=([a-zA-Z0-9]+)/);
+    if (hashMatch) return hashMatch[1];
+    
+    return null;
+  };
+
+  const referralCodeFromUrl = getReferralCodeFromUrl();
   const referralCode = referralCodeFromUrl || localStorage.getItem('jc_referral_code');
 
   // Check if we're in World App on mount
   useEffect(() => {
     setInWorldApp(isInWorldApp());
+    
+    console.log('Referral debug:', {
+      searchParamsRef: searchParams.get('ref'),
+      fullUrl: window.location.href,
+      extractedRef: referralCodeFromUrl,
+      storedRef: localStorage.getItem('jc_referral_code'),
+      finalRef: referralCode,
+    });
 
     // Persist referral code if it exists in the URL
     if (referralCodeFromUrl) {
+      console.log('Storing referral code:', referralCodeFromUrl);
       localStorage.setItem('jc_referral_code', referralCodeFromUrl);
     }
-  }, [referralCodeFromUrl]);
+  }, [referralCodeFromUrl, referralCode, searchParams]);
 
   const handleVerify = async () => {
     setIsVerifying(true);
