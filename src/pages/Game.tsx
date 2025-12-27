@@ -589,12 +589,6 @@ const Game: React.FC = () => {
 
   return (
     <div className="min-h-screen gradient-hero flex flex-col">
-      {/* Answer Result Banner */}
-      <AnswerBanner 
-        isCorrect={bannerCorrect} 
-        show={showAnswerBanner} 
-        onHide={() => setShowAnswerBanner(false)}
-      />
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 backdrop-blur">
         <Button
