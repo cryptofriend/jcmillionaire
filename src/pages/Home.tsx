@@ -46,15 +46,25 @@ const Home: React.FC = () => {
   const [showReferralDialog, setShowReferralDialog] = useState(false);
   const [hasRedeemed, setHasRedeemed] = useState<boolean | null>(null);
 
-  // Check if user has already redeemed a code
+  // Check if user has already redeemed a code and show popup on first visit
   React.useEffect(() => {
-    const checkRedeemed = async () => {
+    const checkRedeemedAndShowPopup = async () => {
       if (user) {
         const redeemed = await hasAlreadyRedeemedCode(user.id);
         setHasRedeemed(redeemed);
+        
+        // Show referral popup on first visit if user hasn't redeemed
+        const hasSeenPopup = localStorage.getItem(`jc_referral_popup_seen_${user.id}`);
+        if (!redeemed && !hasSeenPopup) {
+          // Small delay to let the page load first
+          setTimeout(() => {
+            setShowReferralDialog(true);
+            localStorage.setItem(`jc_referral_popup_seen_${user.id}`, 'true');
+          }, 500);
+        }
       }
     };
-    checkRedeemed();
+    checkRedeemedAndShowPopup();
   }, [user]);
 
   const canPlay = isVerified && (attempts?.remaining || 0) > 0;
