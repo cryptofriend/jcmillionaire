@@ -51,7 +51,7 @@ const Profile: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [runHistory, setRunHistory] = useState<RunHistoryItem[]>([]);
   const [referrals, setReferrals] = useState<ReferralItem[]>([]);
-  const [userProfile, setUserProfile] = useState<{ username?: string; profilePictureUrl?: string }>({});
+  const [userProfile, setUserProfile] = useState<{ username?: string; profilePictureUrl?: string; referralCode?: string }>({});
   const [userStats, setUserStats] = useState<UserStats>({
     totalRuns: 0,
     bestQuestion: 0,
@@ -61,8 +61,8 @@ const Profile: React.FC = () => {
     longestStreak: 0,
   });
   
-  // Invite code from user ID
-  const inviteCode = user?.id.slice(0, 8).toUpperCase() || 'JACKIE';
+  // Invite code from backend (fallback to user id prefix)
+  const inviteCode = (userProfile.referralCode || user?.id.slice(0, 8) || 'jackie').toLowerCase();
   const inviteLink = getWorldAppLink(`/?ref=${inviteCode}`);
 
   // Fetch World ID username
@@ -73,7 +73,7 @@ const Profile: React.FC = () => {
       // First check if username is stored in database
       const { data: userData } = await supabase
         .from('users')
-        .select('username, profile_picture_url')
+        .select('username, profile_picture_url, referral_code')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -81,6 +81,7 @@ const Profile: React.FC = () => {
         setUserProfile({
           username: userData.username,
           profilePictureUrl: userData.profile_picture_url || undefined,
+          referralCode: userData.referral_code || undefined,
         });
         return;
       }

@@ -19,12 +19,18 @@ const Verify: React.FC = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [inWorldApp, setInWorldApp] = useState(false);
 
-  const referralCode = searchParams.get('ref');
+  const referralCodeFromUrl = searchParams.get('ref');
+  const referralCode = referralCodeFromUrl || localStorage.getItem('jc_referral_code');
 
   // Check if we're in World App on mount
   useEffect(() => {
     setInWorldApp(isInWorldApp());
-  }, []);
+
+    // Persist referral code if it exists in the URL
+    if (referralCodeFromUrl) {
+      localStorage.setItem('jc_referral_code', referralCodeFromUrl);
+    }
+  }, [referralCodeFromUrl]);
 
   const handleVerify = async () => {
     setIsVerifying(true);
@@ -82,6 +88,7 @@ const Verify: React.FC = () => {
         const { success, error } = await linkInvitedUserToReferral(referralCode, user.id);
         if (success) {
           console.log('Referral linked successfully');
+          localStorage.removeItem('jc_referral_code');
         } else if (error) {
           console.log('Referral linking failed:', error);
         }

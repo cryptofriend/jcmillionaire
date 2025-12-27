@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
 import { PoolStats } from '@/components/game/PoolStats';
@@ -40,16 +40,29 @@ const InfoPopup: React.FC<InfoPopupProps> = ({ title, description, onClose }) =>
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { state } = useGame();
   const { isVerified, attempts, dayState, user } = state;
   const [activePopup, setActivePopup] = useState<string | null>(null);
 
+  // Persist referral code across navigation (e.g. /?ref=XXXX -> /verify)
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref) {
+      localStorage.setItem('jc_referral_code', ref);
+    }
+  }, [searchParams]);
+
+  const getVerifyPath = () => {
+    const ref = searchParams.get('ref') || localStorage.getItem('jc_referral_code');
+    return ref ? `/verify?ref=${encodeURIComponent(ref)}` : '/verify';
+  };
 
   const canPlay = isVerified && (attempts?.remaining || 0) > 0;
 
   const handleStartRun = () => {
     if (!isVerified) {
-      navigate('/verify');
+      navigate(getVerifyPath());
       return;
     }
     if (canPlay) {
@@ -225,7 +238,7 @@ const Home: React.FC = () => {
               variant="gold"
               size="xl"
               className="w-full"
-              onClick={() => navigate('/verify')}
+              onClick={() => navigate(getVerifyPath())}
             >
               <UserCheck className="w-6 h-6" />
               Verify to Play
