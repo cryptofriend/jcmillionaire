@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const REFERRAL_STORAGE_KEY = 'jc_pending_referral';
+const REFERRAL_SHOWN_KEY = 'jc_referral_popup_shown';
 
 interface PendingReferral {
   code: string;
@@ -11,20 +13,21 @@ interface PendingReferral {
   clickedAt: string;
 }
 
+export type ReferralStatus = 
+  | 'new_referral'      // New user, referral tracked successfully
+  | 'already_tracked'   // Referral already in localStorage
+  | 'invalid_code'      // Code doesn't exist
+  | 'already_played'    // User already has an account/played before
+  | null;
+
 /**
  * Hook to track referral link clicks and manage pending referrals
- * 
- * Flow:
- * 1. User clicks referral link with ?ref=CODE
- * 2. We record the click in the referrals table with status='clicked'
- * 3. Store referral ID in localStorage for later attribution
- * 4. When user verifies, we upgrade status to 'verified' and set invited_user_id
- * 5. When user completes first run, status becomes 'first_run_completed'
  */
 export function useReferralTracking() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isProcessing, setIsProcessing] = useState(false);
   const [pendingReferral, setPendingReferral] = useState<PendingReferral | null>(null);
+  const [referralStatus, setReferralStatus] = useState<ReferralStatus>(null);
 
   // Load pending referral from localStorage on mount
   useEffect(() => {
@@ -39,6 +42,39 @@ export function useReferralTracking() {
     }
   }, []);
 
+  // Show toast notification based on referral status
+  useEffect(() => {
+    if (!referralStatus) return;
+
+    // Check if we've already shown a popup for this session
+    const shownKey = sessionStorage.getItem(REFERRAL_SHOWN_KEY);
+    if (shownKey) return;
+
+    // Mark as shown for this session
+    sessionStorage.setItem(REFERRAL_SHOWN_KEY, 'true');
+
+    switch (referralStatus) {
+      case 'new_referral':
+        toast.success('🎁 Referral Bonus Ready! Login to claim +1 extra play', {
+          duration: 5000,
+        });
+        break;
+      case 'already_tracked':
+        // Don't show anything if already tracked
+        break;
+      case 'invalid_code':
+        toast.error('Invalid referral code - this code doesn\'t exist', {
+          duration: 4000,
+        });
+        break;
+      case 'already_played':
+        toast.error('Referral can\'t be used - you already have an account', {
+          duration: 4000,
+        });
+        break;
+    }
+  }, [referralStatus]);
+
   // Track referral click when ?ref= parameter is present
   useEffect(() => {
     const refCode = searchParams.get('ref');
@@ -50,13 +86,24 @@ export function useReferralTracking() {
       const normalizedCode = refCode.trim().toLowerCase();
       
       try {
+        // Check if user already has a stored user (already played)
+        const storedUser = localStorage.getItem('jc_user');
+        if (storedUser) {
+          console.log('User already has an account, referral cannot be applied');
+          setReferralStatus('already_played');
+          searchParams.delete('ref');
+          setSearchParams(searchParams, { replace: true });
+          setIsProcessing(false);
+          return;
+        }
+
         // Check if we already have this referral tracked
         const existingReferral = localStorage.getItem(REFERRAL_STORAGE_KEY);
         if (existingReferral) {
           const parsed = JSON.parse(existingReferral) as PendingReferral;
           if (parsed.code === normalizedCode) {
             console.log('Referral already tracked:', normalizedCode);
-            // Clear the URL param
+            setReferralStatus('already_tracked');
             searchParams.delete('ref');
             setSearchParams(searchParams, { replace: true });
             setIsProcessing(false);
@@ -67,7 +114,7 @@ export function useReferralTracking() {
         // Find the inviter by their referral code
         const { data: inviter, error: inviterError } = await supabase
           .from('users')
-          .select('id, referral_code')
+          .select('id, referral_code, username')
           .ilike('referral_code', normalizedCode)
           .maybeSingle();
 
@@ -79,7 +126,7 @@ export function useReferralTracking() {
 
         if (!inviter) {
           console.log('Invalid referral code:', normalizedCode);
-          // Clear the URL param even if invalid
+          setReferralStatus('invalid_code');
           searchParams.delete('ref');
           setSearchParams(searchParams, { replace: true });
           setIsProcessing(false);
@@ -92,7 +139,7 @@ export function useReferralTracking() {
           .insert({
             invite_code: normalizedCode,
             inviter_user_id: inviter.id,
-            invited_user_id: null, // Will be set when user verifies
+            invited_user_id: null,
             status: 'clicked',
           })
           .select('id')
@@ -114,6 +161,7 @@ export function useReferralTracking() {
         
         localStorage.setItem(REFERRAL_STORAGE_KEY, JSON.stringify(pending));
         setPendingReferral(pending);
+        setReferralStatus('new_referral');
         
         console.log('Referral click tracked:', { code: normalizedCode, referralId: referral.id });
 
@@ -133,7 +181,6 @@ export function useReferralTracking() {
 
   /**
    * Upgrade referral status when user verifies
-   * Should be called after successful verification with the new user's ID
    */
   const linkReferralToUser = async (userId: string): Promise<boolean> => {
     const stored = localStorage.getItem(REFERRAL_STORAGE_KEY);
@@ -179,9 +226,6 @@ export function useReferralTracking() {
       }
 
       console.log('Referral linked to user:', { referralId: pending.referralId, userId });
-      
-      // Keep the referral in storage until first run is completed
-      // The trigger will handle upgrading to 'first_run_completed'
       return true;
       
     } catch (error) {
@@ -191,7 +235,7 @@ export function useReferralTracking() {
   };
 
   /**
-   * Clear the pending referral (called after first run completes)
+   * Clear the pending referral
    */
   const clearPendingReferral = () => {
     localStorage.removeItem(REFERRAL_STORAGE_KEY);
@@ -199,7 +243,7 @@ export function useReferralTracking() {
   };
 
   /**
-   * Get the pending referral info (for display purposes)
+   * Get the pending referral info
    */
   const getPendingReferral = (): PendingReferral | null => {
     return pendingReferral;
@@ -207,6 +251,7 @@ export function useReferralTracking() {
 
   return {
     pendingReferral,
+    referralStatus,
     linkReferralToUser,
     clearPendingReferral,
     getPendingReferral,
@@ -216,7 +261,6 @@ export function useReferralTracking() {
 
 /**
  * Standalone function to link referral on verification
- * Can be called from Verify page
  */
 export async function linkPendingReferralToUser(userId: string): Promise<boolean> {
   const stored = localStorage.getItem(REFERRAL_STORAGE_KEY);
