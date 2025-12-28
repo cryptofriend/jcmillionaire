@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useGame } from '@/contexts/GameContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Upload, Trash2, RefreshCw, Shield, ArrowLeft, Check, AlertCircle, BarChart3 } from 'lucide-react';
+import { Upload, Trash2, RefreshCw, Shield, ArrowLeft, Check, AlertCircle, BarChart3, RotateCcw } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
@@ -71,6 +71,7 @@ const Admin: React.FC = () => {
   const [validationResult, setValidationResult] = useState<{ valid: boolean; errors: string[] } | null>(null);
   const [questionStats, setQuestionStats] = useState<QuestionStats[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [isResetting, setIsResetting] = useState(false);
 
   // Redirect non-admins
   useEffect(() => {
@@ -324,6 +325,36 @@ const Admin: React.FC = () => {
     }
   };
 
+  const handleResetAllData = async () => {
+    if (!confirm('⚠️ WARNING: This will delete ALL game data including:\n\n• Attempts/Plays\n• Referrals\n• Leaderboard\n• User Balances\n• Runs & Answers\n• Claims\n• User Streaks\n\nThis action cannot be undone. Continue?')) {
+      return;
+    }
+    
+    setIsResetting(true);
+    try {
+      // Delete from each table - using gt to match all UUIDs
+      await supabase.from('claims').delete().gt('created_at', '1970-01-01');
+      await supabase.from('answers').delete().gt('created_at', '1970-01-01');
+      await supabase.from('runs').delete().gt('started_at', '1970-01-01');
+      await supabase.from('attempts').delete().gt('day_id', '1970-01-01');
+      await supabase.from('referrals').delete().gt('created_at', '1970-01-01');
+      await supabase.from('leaderboard_snapshots').delete().gt('created_at', '1970-01-01');
+      await supabase.from('user_balances').delete().gt('created_at', '1970-01-01');
+      await supabase.from('user_streaks').delete().gt('created_at', '1970-01-01');
+      
+      toast.success('All game data has been reset!');
+      
+      // Refresh stats
+      setQuestionStats([]);
+      
+    } catch (err) {
+      console.error('Reset error:', err);
+      toast.error('Failed to reset data');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   // Show loading while checking admin status
   if (isAdmin === undefined) {
     return (
@@ -550,6 +581,32 @@ const Admin: React.FC = () => {
               ))}
             </div>
           )}
+        </section>
+
+        {/* Reset All Data Section */}
+        <section className="bg-destructive/5 rounded-xl border border-destructive/30 p-5 space-y-4">
+          <h2 className="text-lg font-display font-bold flex items-center gap-2 text-destructive">
+            <RotateCcw className="w-5 h-5" />
+            Reset All Game Data
+          </h2>
+          
+          <p className="text-sm text-muted-foreground">
+            This will permanently delete all game data including attempts, referrals, leaderboard, 
+            user balances, runs, answers, claims, and streaks. Questions will NOT be deleted.
+          </p>
+          
+          <Button 
+            variant="destructive" 
+            onClick={handleResetAllData}
+            disabled={isResetting}
+          >
+            {isResetting ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <RotateCcw className="w-4 h-4" />
+            )}
+            Reset All Data
+          </Button>
         </section>
       </main>
     </div>
