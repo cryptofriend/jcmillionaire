@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Bug, RefreshCw, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { clearPendingReferral } from '@/hooks/useReferralTracking';
+import { clearPendingReferral, getPendingReferral } from '@/hooks/useReferralTracking';
 import { supabase } from '@/integrations/supabase/client';
 
 interface PendingReferral {
@@ -21,17 +21,8 @@ export const ReferralDebugPanel: React.FC = () => {
   const refresh = async () => {
     setIsRefreshing(true);
     
-    // Read from localStorage
-    const stored = localStorage.getItem('jc_pending_referral');
-    if (stored) {
-      try {
-        setPendingReferral(JSON.parse(stored));
-      } catch (e) {
-        setPendingReferral(null);
-      }
-    } else {
-      setPendingReferral(null);
-    }
+    // Read from localStorage using the helper function
+    setPendingReferral(getPendingReferral());
 
     // Fetch recent referrals from DB
     try {
