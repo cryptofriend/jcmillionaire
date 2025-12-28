@@ -51,6 +51,16 @@ export const ReferralDebugPanel: React.FC = () => {
     setPendingReferral(null);
   };
 
+  const handleFullReset = () => {
+    // Clear all app-related localStorage
+    localStorage.removeItem('jc_user');
+    localStorage.removeItem('jc_pending_referral');
+    sessionStorage.removeItem('jc_referral_popup_shown');
+    
+    // Force reload the page
+    window.location.href = '/';
+  };
+
   if (!isOpen) {
     return (
       <button
@@ -177,11 +187,27 @@ export const ReferralDebugPanel: React.FC = () => {
         <div className="pt-2 border-t border-border">
           <p className="text-muted-foreground mb-2">Test referral tracking:</p>
           <a
-            href="/?ref=5bb146d5"
+            href="/?ref=65c3964a"
             className="text-primary hover:underline font-mono"
           >
-            /?ref=5bb146d5
+            /?ref=65c3964a
           </a>
+        </div>
+
+        {/* Full Reset Button */}
+        <div className="pt-2 border-t border-border">
+          <Button
+            variant="destructive"
+            size="sm"
+            className="w-full"
+            onClick={handleFullReset}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Reset All Local Data & Reload
+          </Button>
+          <p className="text-muted-foreground text-[10px] mt-2 text-center">
+            Clears jc_user, pending referral, and reloads app
+          </p>
         </div>
       </div>
     </div>
