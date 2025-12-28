@@ -212,9 +212,10 @@ const Home: React.FC = () => {
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      const code = user ? generateReferralCode(user.id) : '';
-                      navigator.clipboard.writeText(code);
-                      toast.success('Code copied!');
+                      const { getReferralDeeplink } = require('@/lib/worldShare');
+                      const link = user ? getReferralDeeplink(generateReferralCode(user.id)) : '';
+                      navigator.clipboard.writeText(link);
+                      toast.success('Invite link copied!');
                     }}
                     className="h-8 w-8 p-0"
                   >

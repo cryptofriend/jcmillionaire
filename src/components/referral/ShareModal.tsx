@@ -29,9 +29,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
   const handleCopyCode = async () => {
     try {
-      await navigator.clipboard.writeText(displayCode);
+      await navigator.clipboard.writeText(inviteLink);
       setCopied(true);
-      toast.success('Code copied!');
+      toast.success('Invite link copied!');
       setTimeout(() => setCopied(false), 2000);
     } catch (e) {
       toast.error('Failed to copy');
