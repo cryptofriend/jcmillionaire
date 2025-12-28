@@ -7,6 +7,7 @@ import { GameProvider, useGame } from "@/contexts/GameContext";
 import { initMiniKit } from "@/lib/minikit";
 import BottomNav from "@/components/BottomNav";
 import LoadingScreen from "@/components/LoadingScreen";
+import { ReferralTracker } from "@/components/referral/ReferralTracker";
 import Home from "./pages/Home";
 import Verify from "./pages/Verify";
 import Game from "./pages/Game";
@@ -30,6 +31,8 @@ const AppContent = () => {
 
   return (
     <>
+      {/* Track referral clicks from ?ref= param */}
+      <ReferralTracker />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/verify" element={<Verify />} />

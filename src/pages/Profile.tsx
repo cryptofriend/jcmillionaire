@@ -4,15 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { AttemptsDisplay } from '@/components/game/AttemptsDisplay';
+import { ShareModal } from '@/components/referral/ShareModal';
 import { useGame } from '@/contexts/GameContext';
 import { formatJC, getWorldAppLink } from '@/lib/constants';
-import { ArrowLeft, Copy, Share2, Trophy, History, Users, CheckCircle, Loader2, Flame, MessageCircle, Shield } from 'lucide-react';
+import { ArrowLeft, Copy, Share2, Trophy, History, Users, CheckCircle, Loader2, Flame, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { sendToWorldChat, shareViaNative } from '@/lib/worldShare';
-import { isInWorldApp, getCurrentUserInfo, getUserInfoByAddress } from '@/lib/minikit';
+import { getCurrentUserInfo } from '@/lib/minikit';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { ReferralDashboard } from '@/components/referral/ReferralDashboard';
 
@@ -224,57 +224,13 @@ const Profile: React.FC = () => {
   }, [user?.id, fetchAttempts]);
 
   const [codeCopied, setCodeCopied] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const copyInviteCode = () => {
     navigator.clipboard.writeText(inviteCode.toUpperCase());
     setCodeCopied(true);
     toast.success('Referral code copied!');
     setTimeout(() => setCodeCopied(false), 2000);
-  };
-
-  const copyInviteLink = () => {
-    navigator.clipboard.writeText(inviteLink);
-    toast.success('Invite link copied!');
-  };
-
-  const shareInvite = () => {
-    // Important: include the invite link via the `url` field so World Chat renders a Mini App card
-    const shareText = `🎮 Play Jackie Chain: Millionaire and win $JC tokens!`;
-
-    if (navigator.share) {
-      navigator.share({
-        title: 'Jackie Chain: Millionaire',
-        text: shareText,
-        url: inviteLink,
-      });
-    } else {
-      copyInviteLink();
-    }
-  };
-
-  const sendWorldChat = async () => {
-    const message = `🎮 Join me on Jackie Chain: Millionaire!\n\nAnswer trivia questions and earn $JC tokens.\n\n${inviteLink}`;
-    
-    if (isInWorldApp()) {
-      const result = await sendToWorldChat({ message });
-      if (result.success) {
-        toast.success('Sent to World Chat!');
-      } else {
-        toast.error(result.error || 'Failed to send');
-      }
-    } else {
-      // Fallback to native share with the URL
-      const result = await shareViaNative({
-        title: 'Jackie Chain: Millionaire',
-        text: message,
-        url: inviteLink,
-      });
-      if (result.success) {
-        toast.success('Shared!');
-      } else if (result.error !== 'Share cancelled') {
-        toast.error(result.error || 'Failed to share');
-      }
-    }
   };
 
   const completedReferrals = referrals.filter(r => r.status === 'first_run_completed').length;
@@ -504,16 +460,19 @@ const Profile: React.FC = () => {
               </Button>
             </div>
 
-            <Button variant="gold" className="w-full" onClick={shareInvite}>
+            <Button variant="gold" className="w-full" onClick={() => setIsShareModalOpen(true)}>
               <Share2 className="w-5 h-5" />
               Share Invite Link
             </Button>
-
-            <Button variant="outline" className="w-full" onClick={sendWorldChat}>
-              <MessageCircle className="w-5 h-5" />
-              Send in World Chat
-            </Button>
           </div>
+
+          {/* Share Modal */}
+          <ShareModal
+            isOpen={isShareModalOpen}
+            onClose={() => setIsShareModalOpen(false)}
+            referralCode={inviteCode}
+            username={userProfile.username}
+          />
 
           {/* Real-time Referral Dashboard */}
           {user?.id && <ReferralDashboard userId={user.id} />}

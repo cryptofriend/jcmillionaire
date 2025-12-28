@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
 import { useGame } from '@/contexts/GameContext';
-import { Shield, ArrowLeft, CheckCircle, Loader2, Smartphone } from 'lucide-react';
+import { Shield, ArrowLeft, CheckCircle, Loader2, Smartphone, Gift } from 'lucide-react';
 import { createOrGetUser, persistUser } from '@/lib/userService';
 import { isInWorldApp, authenticateWithWallet } from '@/lib/minikit';
+import { linkPendingReferralToUser } from '@/hooks/useReferralTracking';
 import { toast } from 'sonner';
 
 const Verify: React.FC = () => {
@@ -15,6 +16,10 @@ const Verify: React.FC = () => {
   const verificationLevel: 'device' | 'orb' = 'device';
   const [isSuccess, setIsSuccess] = useState(false);
   const [inWorldApp, setInWorldApp] = useState(false);
+  const [referralLinked, setReferralLinked] = useState(false);
+
+  // Check if there's a pending referral
+  const hasPendingReferral = !!localStorage.getItem('jc_pending_referral');
 
   // Check if we're in World App on mount
   useEffect(() => {
@@ -70,6 +75,14 @@ const Verify: React.FC = () => {
       }
       
       console.log('User verified:', user.id);
+      
+      // Link pending referral if exists
+      const wasLinked = await linkPendingReferralToUser(user.id);
+      if (wasLinked) {
+        console.log('Referral linked successfully');
+        setReferralLinked(true);
+        toast.success('Referral bonus applied!');
+      }
       
       dispatch({ type: 'SET_USER', payload: user });
       setIsSuccess(true);
@@ -137,7 +150,15 @@ const Verify: React.FC = () => {
           </div>
         )}
 
-
+        {/* Pending Referral Indicator */}
+        {hasPendingReferral && (
+          <div className="flex items-center gap-2 px-4 py-3 bg-success/10 border border-success/30 rounded-lg text-sm animate-slide-up">
+            <Gift className="w-5 h-5 text-success" />
+            <span className="text-foreground">
+              <span className="font-medium text-success">Referral bonus ready!</span> Login to claim your extra play.
+            </span>
+          </div>
+        )}
 
         {/* Verify Button */}
         <div className="w-full max-w-sm animate-slide-up stagger-2">
