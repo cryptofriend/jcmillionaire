@@ -5,12 +5,11 @@ import { JackieIcon } from '@/components/icons/JackieIcon';
 import { PoolStats } from '@/components/game/PoolStats';
 import { UserBalance } from '@/components/game/UserBalance';
 import { MiniLeaderboard } from '@/components/game/MiniLeaderboard';
+import { ShareModal } from '@/components/referral/ShareModal';
 import { useGame } from '@/contexts/GameContext';
 import { Play, ChevronRight, X, Zap, Gift, UserCheck, Share2, Copy, Clock } from 'lucide-react';
-import { sendToWorldChat, shareViaNative, getReferralDeeplink } from '@/lib/worldShare';
 import { generateReferralCode } from '@/lib/referralService';
 import { getWorldAppLink } from '@/lib/constants';
-import { isInWorldApp } from '@/lib/minikit';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -57,6 +56,10 @@ const Home: React.FC = () => {
   const { isVerified, attempts, dayState, user } = state;
   const [activePopup, setActivePopup] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(getTimeUntilMidnight());
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+  // Referral code for sharing
+  const referralCode = user ? generateReferralCode(user.id) : '';
 
   // Countdown timer for next attempt
   useEffect(() => {
@@ -78,35 +81,8 @@ const Home: React.FC = () => {
     }
   };
 
-  const handleSendWorldChat = async () => {
-    // Generate referral link with user's referral code
-    const referralCode = user ? generateReferralCode(user.id) : null;
-    const inviteLink = referralCode 
-      ? getReferralDeeplink(referralCode)
-      : getWorldAppLink('/');
-    
-    const message = `🎮 Join me on Jackie Chain: Millionaire!\n\nAnswer trivia questions and earn $JC tokens.\n\n${inviteLink}`;
-    
-    if (isInWorldApp()) {
-      const result = await sendToWorldChat({ message });
-      if (result.success) {
-        toast.success('Sent to World Chat!');
-      } else {
-        toast.error(result.error || 'Failed to send');
-      }
-    } else {
-      // Fallback to native share
-      const result = await shareViaNative({
-        title: 'Jackie Chain: Millionaire',
-        text: message,
-        url: inviteLink,
-      });
-      if (result.success) {
-        toast.success('Shared!');
-      } else if (result.error !== 'Share cancelled') {
-        navigate('/profile?tab=referrals');
-      }
-    }
+  const handleOpenShareModal = () => {
+    setIsShareModalOpen(true);
   };
 
   const infoItems = [
@@ -132,6 +108,13 @@ const Home: React.FC = () => {
 
   return (
     <div className="min-h-screen gradient-hero flex flex-col">
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        referralCode={referralCode}
+      />
+
       {/* Popup */}
       {activePopup && (
         <InfoPopup
@@ -240,7 +223,7 @@ const Home: React.FC = () => {
                   <Button
                     variant="gold"
                     size="sm"
-                    onClick={handleSendWorldChat}
+                    onClick={handleOpenShareModal}
                     className="gap-1.5"
                   >
                     <Share2 className="w-4 h-4" />
