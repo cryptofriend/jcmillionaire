@@ -484,24 +484,32 @@ const Profile: React.FC = () => {
                 <span className="flex-1 text-center text-lg font-mono font-bold tracking-widest">
                   {inviteCode.toUpperCase()}
                 </span>
+                <Button 
+                  size="sm" 
+                  variant={codeCopied ? "default" : "ghost"} 
+                  className="shrink-0"
+                  onClick={copyInviteCode}
+                >
+                  {codeCopied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                </Button>
               </div>
-              <Button 
-                variant={codeCopied ? "default" : "outline"} 
-                className="w-full gap-2" 
-                onClick={copyInviteCode}
-              >
-                {codeCopied ? (
-                  <>
-                    <CheckCircle className="w-4 h-4" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4" />
-                    Copy Code
-                  </>
-                )}
-              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground text-center">Or share invite link</p>
+              <div className="flex items-center gap-2 bg-secondary rounded-lg p-3">
+                <span className="flex-1 text-xs font-mono text-muted-foreground truncate">
+                  {inviteLink}
+                </span>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="shrink-0"
+                  onClick={copyInviteLink}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
 
             <Button variant="gold" className="w-full" onClick={shareInvite}>
