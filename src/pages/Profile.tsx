@@ -5,13 +5,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { AttemptsDisplay } from '@/components/game/AttemptsDisplay';
 import { useGame } from '@/contexts/GameContext';
-import { formatJC } from '@/lib/constants';
+import { formatJC, getWorldAppLink } from '@/lib/constants';
 import { ArrowLeft, Copy, Share2, Trophy, History, Users, CheckCircle, Loader2, Flame, MessageCircle, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { sendToWorldChat, shareViaNative, getReferralDeeplink } from '@/lib/worldShare';
+import { sendToWorldChat, shareViaNative } from '@/lib/worldShare';
 import { isInWorldApp, getCurrentUserInfo, getUserInfoByAddress } from '@/lib/minikit';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { ReferralDashboard } from '@/components/referral/ReferralDashboard';
@@ -64,7 +64,7 @@ const Profile: React.FC = () => {
   
   // Invite code from backend (fallback to user id prefix)
   const inviteCode = (userProfile.referralCode || user?.id.slice(0, 8) || 'jackie').toLowerCase();
-  const inviteLink = getReferralDeeplink(inviteCode);
+  const inviteLink = getWorldAppLink(`/?ref=${inviteCode}`);
 
   // Fetch World ID username
   useEffect(() => {
@@ -484,32 +484,24 @@ const Profile: React.FC = () => {
                 <span className="flex-1 text-center text-lg font-mono font-bold tracking-widest">
                   {inviteCode.toUpperCase()}
                 </span>
-                <Button 
-                  size="sm" 
-                  variant={codeCopied ? "default" : "ghost"} 
-                  className="shrink-0"
-                  onClick={copyInviteCode}
-                >
-                  {codeCopied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                </Button>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground text-center">Or share invite link</p>
-              <div className="flex items-center gap-2 bg-secondary rounded-lg p-3">
-                <span className="flex-1 text-xs font-mono text-muted-foreground truncate">
-                  {inviteLink}
-                </span>
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  className="shrink-0"
-                  onClick={copyInviteLink}
-                >
-                  <Copy className="w-4 h-4" />
-                </Button>
-              </div>
+              <Button 
+                variant={codeCopied ? "default" : "outline"} 
+                className="w-full gap-2" 
+                onClick={copyInviteCode}
+              >
+                {codeCopied ? (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    Copy Code
+                  </>
+                )}
+              </Button>
             </div>
 
             <Button variant="gold" className="w-full" onClick={shareInvite}>
