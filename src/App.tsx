@@ -8,6 +8,7 @@ import { initMiniKit } from "@/lib/minikit";
 import BottomNav from "@/components/BottomNav";
 import LoadingScreen from "@/components/LoadingScreen";
 import { ReferralTracker } from "@/components/referral/ReferralTracker";
+import { ReferralDebugPanel } from "@/components/referral/ReferralDebugPanel";
 import Home from "./pages/Home";
 import Verify from "./pages/Verify";
 import Game from "./pages/Game";
@@ -33,6 +34,8 @@ const AppContent = () => {
     <>
       {/* Track referral clicks from ?ref= param */}
       <ReferralTracker />
+      {/* Debug panel for referral testing */}
+      <ReferralDebugPanel />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/verify" element={<Verify />} />
