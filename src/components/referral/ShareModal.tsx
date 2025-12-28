@@ -93,7 +93,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
         if (result.success) {
           toast.success('Sent to World Chat!');
           onClose();
-        } else {
+        } else if (result.error !== 'Share cancelled') {
           toast.error(result.error || 'Failed to send');
         }
       } else {
@@ -106,6 +106,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({
         if (result.success) {
           toast.success('Shared!');
           onClose();
+        } else if (result.error !== 'Share cancelled') {
+          // Fallback to copy if share not available
+          handleCopyLink();
         }
       }
     } finally {
