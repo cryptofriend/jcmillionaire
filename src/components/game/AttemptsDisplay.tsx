@@ -51,9 +51,11 @@ export const AttemptsDisplay: React.FC<AttemptsDisplayProps> = ({ attempts, comp
       </div>
       
       {earnedFromReferrals > 0 && (
-        <div className="flex items-center gap-1 text-xs text-success">
-          <Gift className="w-3 h-3" />
-          <span>+{earnedFromReferrals} from referrals</span>
+        <div className="flex items-center gap-1.5 px-2 py-1 bg-success/15 rounded-lg border border-success/30">
+          <Gift className="w-3.5 h-3.5 text-success" />
+          <span className="text-xs font-semibold text-success">
+            Referral Bonus: +{earnedFromReferrals} Play{earnedFromReferrals > 1 ? 's' : ''}
+          </span>
         </div>
       )}
 
