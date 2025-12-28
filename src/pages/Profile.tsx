@@ -227,9 +227,9 @@ const Profile: React.FC = () => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const copyInviteCode = () => {
-    navigator.clipboard.writeText(inviteCode.toUpperCase());
+    navigator.clipboard.writeText(inviteLink);
     setCodeCopied(true);
-    toast.success('Referral code copied!');
+    toast.success('Invite link copied!');
     setTimeout(() => setCodeCopied(false), 2000);
   };
 
