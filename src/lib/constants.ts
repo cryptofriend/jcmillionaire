@@ -45,9 +45,12 @@ export type LifelineType = typeof LIFELINES[keyof typeof LIFELINES];
 
 // World App Deep Link format
 // Format: https://world.org/mini-app?app_id={APP_ID}&path={encodedPath}
-// Note: World App expects slashes (/) to remain unescaped in the path.
+// Note: World App expects certain chars to remain unescaped in the path.
 export const encodeWorldAppPath = (path: string) =>
-  encodeURIComponent(path).replace(/%2F/g, '/');
+  encodeURIComponent(path)
+    .replace(/%2F/g, '/')   // Keep slashes unescaped
+    .replace(/%3F/g, '?')   // Keep ? unescaped for query params
+    .replace(/%3D/g, '=');  // Keep = unescaped for query params
 
 export const getWorldAppLink = (path: string) =>
   `https://world.org/mini-app?app_id=${APP_ID}&path=${encodeWorldAppPath(path)}`;
