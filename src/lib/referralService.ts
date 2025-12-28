@@ -83,10 +83,10 @@ export async function redeemReferralCode(
       return { success: false, error: 'Failed to redeem code' };
     }
 
-    // Grant +1 extra life to the INVITED user
-    // Note: The INVITER gets +1 automatically via the database trigger 'grant_referral_attempt'
-    const today = new Date().toISOString().slice(0, 10);
-    await grantExtraLife(invitedUserId, today);
+    // Note: The database trigger 'grant_referral_attempt' automatically grants:
+    // - +1 to invited user when status becomes 'first_run_completed'
+    // - +1 to inviter when status becomes 'first_run_completed'
+    // No need to call grantExtraLife here as it would cause double-granting
 
     console.log('Referral redeemed successfully:', { inviterId: inviter.id, invitedUserId });
     return { success: true, error: null };
