@@ -5,13 +5,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { AttemptsDisplay } from '@/components/game/AttemptsDisplay';
 import { useGame } from '@/contexts/GameContext';
-import { formatJC, getWorldAppLink } from '@/lib/constants';
+import { formatJC } from '@/lib/constants';
 import { ArrowLeft, Copy, Share2, Trophy, History, Users, CheckCircle, Loader2, Flame, MessageCircle, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { sendToWorldChat, shareViaNative } from '@/lib/worldShare';
+import { sendToWorldChat, shareViaNative, getReferralDeeplink } from '@/lib/worldShare';
 import { isInWorldApp, getCurrentUserInfo, getUserInfoByAddress } from '@/lib/minikit';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { ReferralDashboard } from '@/components/referral/ReferralDashboard';
@@ -64,7 +64,7 @@ const Profile: React.FC = () => {
   
   // Invite code from backend (fallback to user id prefix)
   const inviteCode = (userProfile.referralCode || user?.id.slice(0, 8) || 'jackie').toLowerCase();
-  const inviteLink = getWorldAppLink(`/?ref=${inviteCode}`);
+  const inviteLink = getReferralDeeplink(inviteCode);
 
   // Fetch World ID username
   useEffect(() => {
