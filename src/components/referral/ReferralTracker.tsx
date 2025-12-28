@@ -29,7 +29,7 @@ export const ReferralTrackerInner: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [referralStatus, setReferralStatus] = useState<ReferralStatus>(null);
 
-  // Show toast notification based on referral status
+  // Show toast notification based on referral status (only for errors, success shown after verify)
   useEffect(() => {
     if (!referralStatus) return;
 
@@ -40,9 +40,8 @@ export const ReferralTrackerInner: React.FC = () => {
 
     switch (referralStatus) {
       case 'new_referral':
-        toast.success('🎁 Referral Bonus Ready! Login to claim +1 extra play', {
-          duration: 5000,
-        });
+        // Don't show toast here - the Verify page shows the bonus indicator instead
+        // This prevents duplicate "referral bonus" messages
         break;
       case 'invalid_code':
         toast.error("Invalid referral code - this code doesn't exist", {

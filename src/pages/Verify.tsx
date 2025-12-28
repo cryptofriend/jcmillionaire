@@ -76,12 +76,12 @@ const Verify: React.FC = () => {
       
       console.log('User verified:', user.id);
       
-      // Link pending referral if exists
+      // Link pending referral if exists (clears localStorage so no duplicate handling)
       const wasLinked = await linkPendingReferralToUser(user.id);
       if (wasLinked) {
         console.log('Referral linked successfully');
         setReferralLinked(true);
-        toast.success('Referral bonus applied!');
+        // Toast is shown once here only - ReferralTracker toast is for pre-login notification
       }
       
       dispatch({ type: 'SET_USER', payload: user });
