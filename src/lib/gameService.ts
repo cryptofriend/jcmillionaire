@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Run } from '@/lib/types';
+import { Run, QuestionWithHiddenChoices, AnswerStats } from '@/lib/types';
 
 export interface CreateRunParams {
   userId: string;
@@ -328,4 +328,98 @@ export async function incrementAttemptsUsed(
   }
 
   return { success: true, error: null };
+}
+
+/**
+ * Fetch today's questions from the database
+ * Returns 15 questions ordered by difficulty for today's game
+ */
+export async function fetchTodayQuestions(): Promise<{
+  questions: QuestionWithHiddenChoices[];
+  correctAnswers: Record<string, 'A' | 'B' | 'C' | 'D'>;
+  error: string | null;
+}> {
+  const today = getTodayDayId();
+
+  const { data, error } = await supabase
+    .from('questions')
+    .select('*')
+    .eq('active_from', today)
+    .eq('is_active', true)
+    .order('difficulty', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching questions:', error);
+    return { questions: [], correctAnswers: {}, error: error.message };
+  }
+
+  if (!data || data.length === 0) {
+    console.warn('No questions found for today:', today);
+    return { questions: [], correctAnswers: {}, error: 'No questions available for today' };
+  }
+
+  // Transform database questions to game format
+  const questions: QuestionWithHiddenChoices[] = data.map((q) => ({
+    id: q.id,
+    question: q.question,
+    choices: {
+      A: q.choice_a,
+      B: q.choice_b,
+      C: q.choice_c,
+      D: q.choice_d,
+    },
+    difficulty: q.difficulty,
+    category: q.category,
+    hint: q.hint,
+  }));
+
+  // Build correct answers map (not exposed to client during game)
+  const correctAnswers: Record<string, 'A' | 'B' | 'C' | 'D'> = {};
+  data.forEach((q) => {
+    correctAnswers[q.id] = q.correct_choice as 'A' | 'B' | 'C' | 'D';
+  });
+
+  console.log(`Loaded ${questions.length} questions for ${today}`);
+  return { questions, correctAnswers, error: null };
+}
+
+/**
+ * Fetch answer statistics for a question
+ */
+export async function fetchAnswerStats(questionId: string): Promise<AnswerStats | null> {
+  const { data, error } = await supabase
+    .from('answer_stats')
+    .select('*')
+    .eq('question_id', questionId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  const total = data.choice_a_count + data.choice_b_count + data.choice_c_count + data.choice_d_count;
+  if (total === 0) {
+    return {
+      choiceACount: 0,
+      choiceBCount: 0,
+      choiceCCount: 0,
+      choiceDCount: 0,
+      total: 0,
+      percentages: { A: 25, B: 25, C: 25, D: 25 },
+    };
+  }
+
+  return {
+    choiceACount: data.choice_a_count,
+    choiceBCount: data.choice_b_count,
+    choiceCCount: data.choice_c_count,
+    choiceDCount: data.choice_d_count,
+    total,
+    percentages: {
+      A: Math.round((data.choice_a_count / total) * 100),
+      B: Math.round((data.choice_b_count / total) * 100),
+      C: Math.round((data.choice_c_count / total) * 100),
+      D: Math.round((data.choice_d_count / total) * 100),
+    },
+  };
 }

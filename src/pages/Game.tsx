@@ -19,6 +19,8 @@ import {
   completeRun,
   getTodayDayId,
   incrementAttemptsUsed,
+  fetchTodayQuestions,
+  fetchAnswerStats,
 } from '@/lib/gameService';
 import {
   AlertDialog,
@@ -41,48 +43,10 @@ import {
 // Safe haven checkpoints (guaranteed amounts if you lose later)
 const SAFE_HAVEN_QUESTIONS = [5, 10, 15];
 
-// Mock questions for demo (expanded to 15) - with hints included
-const mockQuestions: QuestionWithHiddenChoices[] = [
-  { id: '1', question: 'What is the primary purpose of World ID?', choices: { A: 'Social media login', B: 'Proof of personhood', C: 'Payment processing', D: 'Cloud storage' }, difficulty: 1, category: 'World', hint: 'Think about what makes you unique as a human online...' },
-  { id: '2', question: 'Which blockchain does World App primarily operate on?', choices: { A: 'Ethereum', B: 'Solana', C: 'World Chain', D: 'Bitcoin' }, difficulty: 1, category: 'Crypto', hint: "It's in the name of the app!" },
-  { id: '3', question: 'What does the Orb device scan to verify users?', choices: { A: 'Fingerprint', B: 'Voice', C: 'Iris', D: 'Face' }, difficulty: 1, category: 'World', hint: "It's something very unique to each person and visible in your eyes." },
-  { id: '4', question: 'Who founded Worldcoin?', choices: { A: 'Vitalik Buterin', B: 'Sam Altman', C: 'Elon Musk', D: 'Satoshi Nakamoto' }, difficulty: 1, category: 'World', hint: "He's also known for leading a famous AI company..." },
-  { id: '5', question: 'What does WLD stand for?', choices: { A: 'World Digital', B: 'Worldcoin', C: 'World Ledger', D: 'World Dollar' }, difficulty: 2, category: 'Crypto', hint: "It's the abbreviation of the project name." },
-  { id: '6', question: 'Which proof system does World ID use?', choices: { A: 'Proof of Work', B: 'Proof of Stake', C: 'Zero-Knowledge Proofs', D: 'Proof of Authority' }, difficulty: 2, category: 'Crypto', hint: 'These proofs let you verify something without revealing the data.' },
-  { id: '7', question: 'What is the main benefit of World ID verification?', choices: { A: 'Free tokens', B: 'Sybil resistance', C: 'Faster transactions', D: 'Lower fees' }, difficulty: 2, category: 'World', hint: 'It prevents one person from creating multiple fake accounts.' },
-  { id: '8', question: 'What year was Worldcoin launched?', choices: { A: '2021', B: '2022', C: '2023', D: '2024' }, difficulty: 2, category: 'World', hint: 'It launched during the summer with much fanfare.' },
-  { id: '9', question: 'Which company created ChatGPT?', choices: { A: 'Google', B: 'Meta', C: 'OpenAI', D: 'Microsoft' }, difficulty: 2, category: 'Tech', hint: 'Sam Altman is the CEO of this company.' },
-  { id: '10', question: 'What is a nullifier in World ID?', choices: { A: 'A cancel button', B: 'A unique anonymous identifier', C: 'A hacking tool', D: 'A wallet address' }, difficulty: 3, category: 'World', hint: 'It helps keep your identity private while proving uniqueness.' },
-  { id: '11', question: 'What consensus mechanism does World Chain use?', choices: { A: 'Proof of Work', B: 'Proof of Stake', C: 'Delegated PoS', D: 'Proof of Identity' }, difficulty: 3, category: 'Crypto', hint: 'Validators stake tokens to participate.' },
-  { id: '12', question: 'What is the total supply of WLD tokens?', choices: { A: '21 million', B: '100 million', C: '1 billion', D: '10 billion' }, difficulty: 3, category: 'Crypto', hint: "It's a very large number, in the billions." },
-  { id: '13', question: 'Which layer is World Chain?', choices: { A: 'Layer 1', B: 'Layer 2', C: 'Layer 3', D: 'Sidechain' }, difficulty: 4, category: 'Crypto', hint: 'It builds on top of Ethereum for scalability.' },
-  { id: '14', question: 'What technology does the Orb use for iris scanning?', choices: { A: 'X-ray', B: 'Infrared', C: 'Ultrasound', D: 'Laser' }, difficulty: 4, category: 'World', hint: 'This technology uses light beyond the visible spectrum.' },
-  { id: '15', question: 'What is the name of World ID\'s developer SDK?', choices: { A: 'WorldKit', B: 'IDKit', C: 'OrbSDK', D: 'ProofKit' }, difficulty: 5, category: 'World', hint: 'It sounds like "ID" + a common software toolkit name.' },
+// Fallback questions if database is empty (should not happen in production)
+const fallbackQuestions: QuestionWithHiddenChoices[] = [
+  { id: 'fallback-1', question: 'Loading question...', choices: { A: 'Option A', B: 'Option B', C: 'Option C', D: 'Option D' }, difficulty: 1, category: 'General', hint: 'Please wait...' },
 ];
-
-const mockStats: Record<string, AnswerStats> = {
-  '1': { choiceACount: 120, choiceBCount: 780, choiceCCount: 60, choiceDCount: 40, total: 1000, percentages: { A: 12, B: 78, C: 6, D: 4 } },
-  '2': { choiceACount: 200, choiceBCount: 150, choiceCCount: 600, choiceDCount: 50, total: 1000, percentages: { A: 20, B: 15, C: 60, D: 5 } },
-  '3': { choiceACount: 100, choiceBCount: 50, choiceCCount: 800, choiceDCount: 50, total: 1000, percentages: { A: 10, B: 5, C: 80, D: 5 } },
-  '4': { choiceACount: 150, choiceBCount: 700, choiceCCount: 100, choiceDCount: 50, total: 1000, percentages: { A: 15, B: 70, C: 10, D: 5 } },
-  '5': { choiceACount: 100, choiceBCount: 750, choiceCCount: 100, choiceDCount: 50, total: 1000, percentages: { A: 10, B: 75, C: 10, D: 5 } },
-  '6': { choiceACount: 100, choiceBCount: 150, choiceCCount: 700, choiceDCount: 50, total: 1000, percentages: { A: 10, B: 15, C: 70, D: 5 } },
-  '7': { choiceACount: 200, choiceBCount: 600, choiceCCount: 100, choiceDCount: 100, total: 1000, percentages: { A: 20, B: 60, C: 10, D: 10 } },
-  '8': { choiceACount: 100, choiceBCount: 150, choiceCCount: 650, choiceDCount: 100, total: 1000, percentages: { A: 10, B: 15, C: 65, D: 10 } },
-  '9': { choiceACount: 100, choiceBCount: 100, choiceCCount: 700, choiceDCount: 100, total: 1000, percentages: { A: 10, B: 10, C: 70, D: 10 } },
-  '10': { choiceACount: 150, choiceBCount: 600, choiceCCount: 150, choiceDCount: 100, total: 1000, percentages: { A: 15, B: 60, C: 15, D: 10 } },
-  '11': { choiceACount: 200, choiceBCount: 500, choiceCCount: 200, choiceDCount: 100, total: 1000, percentages: { A: 20, B: 50, C: 20, D: 10 } },
-  '12': { choiceACount: 100, choiceBCount: 150, choiceCCount: 200, choiceDCount: 550, total: 1000, percentages: { A: 10, B: 15, C: 20, D: 55 } },
-  '13': { choiceACount: 200, choiceBCount: 550, choiceCCount: 150, choiceDCount: 100, total: 1000, percentages: { A: 20, B: 55, C: 15, D: 10 } },
-  '14': { choiceACount: 100, choiceBCount: 600, choiceCCount: 150, choiceDCount: 150, total: 1000, percentages: { A: 10, B: 60, C: 15, D: 15 } },
-  '15': { choiceACount: 200, choiceBCount: 550, choiceCCount: 150, choiceDCount: 100, total: 1000, percentages: { A: 20, B: 55, C: 15, D: 10 } },
-};
-
-const correctAnswers: Record<string, 'A' | 'B' | 'C' | 'D'> = {
-  '1': 'B', '2': 'C', '3': 'C', '4': 'B', '5': 'B',
-  '6': 'C', '7': 'B', '8': 'C', '9': 'C', '10': 'B',
-  '11': 'B', '12': 'D', '13': 'B', '14': 'B', '15': 'B',
-};
 
 // Helper to get today's date key
 const getTodayKey = () => new Date().toISOString().split('T')[0];
@@ -107,6 +71,12 @@ const Game: React.FC = () => {
   const { state, fetchAttempts } = useGame();
   const { prizeLadder, isVerified, user, attempts } = state;
 
+  // Questions loaded from database
+  const [questions, setQuestions] = useState<QuestionWithHiddenChoices[]>(fallbackQuestions);
+  const [correctAnswersMap, setCorrectAnswersMap] = useState<Record<string, 'A' | 'B' | 'C' | 'D'>>({});
+  const [questionsLoaded, setQuestionsLoaded] = useState(false);
+  const [questionLoadError, setQuestionLoadError] = useState<string | null>(null);
+
   // Database run tracking
   const [currentRun, setCurrentRun] = useState<Run | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -114,7 +84,7 @@ const Game: React.FC = () => {
   const questionStartTimeRef = useRef<number>(Date.now());
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [currentQuestion, setCurrentQuestion] = useState<QuestionWithHiddenChoices>(mockQuestions[0]);
+  const [currentQuestion, setCurrentQuestion] = useState<QuestionWithHiddenChoices | null>(null);
   const [selectedChoice, setSelectedChoice] = useState<'A' | 'B' | 'C' | 'D' | undefined>();
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -134,6 +104,29 @@ const Game: React.FC = () => {
   const [countdown, setCountdown] = useState(getTimeUntilMidnight());
   const [showAnswerBanner, setShowAnswerBanner] = useState(false);
   const [bannerCorrect, setBannerCorrect] = useState(false);
+  const [currentQuestionStats, setCurrentQuestionStats] = useState<AnswerStats | null>(null);
+
+  // Load questions from database on mount
+  useEffect(() => {
+    const loadQuestions = async () => {
+      const { questions: loadedQuestions, correctAnswers, error } = await fetchTodayQuestions();
+      
+      if (error || loadedQuestions.length === 0) {
+        console.error('Failed to load questions:', error);
+        setQuestionLoadError(error || 'No questions available for today');
+        setQuestionsLoaded(true);
+        return;
+      }
+
+      setQuestions(loadedQuestions);
+      setCorrectAnswersMap(correctAnswers);
+      setCurrentQuestion(loadedQuestions[0]);
+      setQuestionsLoaded(true);
+      console.log(`Loaded ${loadedQuestions.length} questions for today's game`);
+    };
+
+    loadQuestions();
+  }, []);
 
   // Initialize game run in database - check attempts first
   useEffect(() => {
@@ -272,7 +265,7 @@ const Game: React.FC = () => {
     const timeTaken = Date.now() - questionStartTimeRef.current;
     setSelectedChoice(choice);
     
-    const correct = correctAnswers[currentQuestion.id] === choice;
+    const correct = currentQuestion ? correctAnswersMap[currentQuestion.id] === choice : false;
     
     // Record answer in database
     if (currentRun) {
@@ -319,7 +312,7 @@ const Game: React.FC = () => {
         setEarnedAmount(currentPrize);
         
         // Check if won all questions (last question)
-        if (currentQuestionIndex >= mockQuestions.length - 1) {
+        if (currentQuestionIndex >= questions.length - 1) {
           const finalAmount = prizeLadder[currentQuestionIndex]?.prizeAmount || 0;
           setEarnedAmount(finalAmount);
           setIsCompletingRun(true);
@@ -386,10 +379,10 @@ const Game: React.FC = () => {
   const handleContinueFromProgress = () => {
     // Close progress dialog and move to next question
     setShowProgressDialog(false);
-    if (currentQuestionIndex < mockQuestions.length - 1) {
+    if (currentQuestionIndex < questions.length - 1) {
       const nextIndex = currentQuestionIndex + 1;
       setCurrentQuestionIndex(nextIndex);
-      setCurrentQuestion(mockQuestions[nextIndex]);
+      setCurrentQuestion(questions[nextIndex]);
       setSelectedChoice(undefined);
       setShowResult(false);
       setTimeRemaining(QUESTION_TIME_LIMIT_SECONDS);
@@ -400,10 +393,10 @@ const Game: React.FC = () => {
   };
 
   const handleNextQuestion = () => {
-    if (currentQuestionIndex < mockQuestions.length - 1) {
+    if (currentQuestionIndex < questions.length - 1) {
       const nextIndex = currentQuestionIndex + 1;
       setCurrentQuestionIndex(nextIndex);
-      setCurrentQuestion(mockQuestions[nextIndex]);
+      setCurrentQuestion(questions[nextIndex]);
       setSelectedChoice(undefined);
       setShowResult(false);
       setTimeRemaining(QUESTION_TIME_LIMIT_SECONDS);
@@ -426,13 +419,15 @@ const Game: React.FC = () => {
     
     switch (lifeline) {
       case LIFELINES.FIFTY_FIFTY:
-        const correct = correctAnswers[currentQuestion.id];
-        const wrongChoices = (['A', 'B', 'C', 'D'] as const).filter(c => c !== correct);
-        const toHide = wrongChoices.slice(0, 2);
-        setCurrentQuestion({
-          ...currentQuestion,
-          hiddenChoices: toHide,
-        });
+        if (currentQuestion) {
+          const correct = correctAnswersMap[currentQuestion.id];
+          const wrongChoices = (['A', 'B', 'C', 'D'] as const).filter(c => c !== correct);
+          const toHide = wrongChoices.slice(0, 2);
+          setCurrentQuestion({
+            ...currentQuestion,
+            hiddenChoices: toHide,
+          });
+        }
         break;
         
       case LIFELINES.HINT:
@@ -440,6 +435,11 @@ const Game: React.FC = () => {
         break;
         
       case LIFELINES.CHAIN_SCAN:
+        // Fetch real stats from database for this question
+        if (currentQuestion) {
+          const stats = await fetchAnswerStats(currentQuestion.id);
+          setCurrentQuestionStats(stats);
+        }
         setShowStats(true);
         break;
     }
@@ -472,7 +472,7 @@ const Game: React.FC = () => {
       state: { 
         earnedAmount, 
         reachedQuestion: currentQuestionIndex + 1,
-        isWinner: (isCorrect && currentQuestionIndex >= mockQuestions.length - 1) || claimedEarly,
+        isWinner: (isCorrect && currentQuestionIndex >= questions.length - 1) || claimedEarly,
         runId: currentRun?.id, // Pass the run ID for claiming
       } 
     });
@@ -481,14 +481,39 @@ const Game: React.FC = () => {
   // Check if current question is a safe haven (for UI highlighting)
   const isSafeHavenQuestion = SAFE_HAVEN_QUESTIONS.includes(currentQuestionIndex + 1);
 
-  // Show loading while initializing run
-  if (isInitializing || isCompletingRun) {
+  // Show loading while initializing run or loading questions
+  if (isInitializing || isCompletingRun || !questionsLoaded) {
     return (
       <div className="min-h-screen gradient-hero flex flex-col items-center justify-center px-4 gap-6">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
         <p className="text-muted-foreground">
-          {isCompletingRun ? 'Saving your progress...' : 'Starting game...'}
+          {isCompletingRun ? 'Saving your progress...' : !questionsLoaded ? 'Loading questions...' : 'Starting game...'}
         </p>
+      </div>
+    );
+  }
+
+  // Show error if questions failed to load
+  if (questionLoadError) {
+    return (
+      <div className="min-h-screen gradient-hero flex flex-col items-center justify-center px-4 gap-6">
+        <div className="text-center space-y-4">
+          <h2 className="text-2xl font-display font-bold">No Questions Available</h2>
+          <p className="text-muted-foreground">{questionLoadError}</p>
+          <Button variant="outline" onClick={() => navigate('/')}>
+            Go Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Ensure currentQuestion is set
+  if (!currentQuestion) {
+    return (
+      <div className="min-h-screen gradient-hero flex flex-col items-center justify-center px-4 gap-6">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+        <p className="text-muted-foreground">Loading question...</p>
       </div>
     );
   }
@@ -498,7 +523,7 @@ const Game: React.FC = () => {
       <div className="min-h-screen gradient-hero flex flex-col items-center justify-center px-4 gap-6">
         <div className={cn(
           'animate-bounce-in',
-          (isCorrect && currentQuestionIndex >= mockQuestions.length - 1) || claimedEarly
+          (isCorrect && currentQuestionIndex >= questions.length - 1) || claimedEarly
             ? ''
             : earnedAmount > 0
             ? ''
@@ -509,7 +534,7 @@ const Game: React.FC = () => {
 
         <div className="text-center space-y-2">
           <h2 className="text-2xl font-display font-bold">
-            {isCorrect && currentQuestionIndex >= mockQuestions.length - 1 
+            {isCorrect && currentQuestionIndex >= questions.length - 1
               ? '🎉 JACKPOT!' 
               : claimedEarly
               ? '🎉 Smart Move!'
@@ -648,11 +673,11 @@ const Game: React.FC = () => {
             onAnswer={handleAnswer}
             disabled={showResult}
             selectedChoice={selectedChoice}
-            correctChoice={showResult ? correctAnswers[currentQuestion.id] : undefined}
+            correctChoice={showResult && currentQuestion ? correctAnswersMap[currentQuestion.id] : undefined}
             showResult={showResult}
-            hint={currentQuestion.hint}
+            hint={currentQuestion?.hint || ''}
             showHint={showHint}
-            answerStats={mockStats[currentQuestion.id]}
+            answerStats={currentQuestionStats || undefined}
             showStats={showStats}
           />
 
