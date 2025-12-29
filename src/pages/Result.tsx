@@ -240,15 +240,22 @@ const Result: React.FC = () => {
           </Button>
           
           {isInWorldApp() && (
-            <Button
-              variant="outline"
-              size="lg"
-              className="flex-1"
-              onClick={handleInviteFriends}
-            >
-              <MessageCircle className="w-5 h-5" />
-              Invite
-            </Button>
+            <div className="flex-1 flex flex-col gap-1">
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full"
+                onClick={handleInviteFriends}
+              >
+                <MessageCircle className="w-5 h-5" />
+                Invite
+              </Button>
+              {gameState.user?.referralCode && (
+                <span className="text-[10px] text-muted-foreground text-center">
+                  Code: {gameState.user.referralCode}
+                </span>
+              )}
+            </div>
           )}
         </div>
         
