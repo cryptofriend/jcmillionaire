@@ -5,6 +5,7 @@ export interface User {
   createdAt: string;
   username?: string;
   profilePictureUrl?: string;
+  referralCode?: string;
 }
 
 export interface DayState {

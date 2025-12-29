@@ -82,8 +82,8 @@ const Result: React.FC = () => {
   };
 
   const handleInviteFriends = async () => {
-    // TODO: Generate referral code from user's profile
-    const result = await inviteFriends();
+    const referralCode = gameState.user?.referralCode;
+    const result = await inviteFriends(referralCode || undefined);
     
     if (result.success) {
       toast.success('Invite sent!');

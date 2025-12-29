@@ -30,6 +30,7 @@ export async function createOrGetUser(
         nullifierHash: existingUser.nullifier_hash,
         verificationLevel: existingUser.verification_level,
         createdAt: existingUser.created_at,
+        referralCode: existingUser.referral_code || undefined,
       };
       
       // Store user ID in localStorage
@@ -59,6 +60,7 @@ export async function createOrGetUser(
       nullifierHash: newUser.nullifier_hash,
       verificationLevel: newUser.verification_level,
       createdAt: newUser.created_at,
+      referralCode: newUser.referral_code || undefined,
     };
 
     // Store user ID in localStorage
@@ -96,6 +98,7 @@ export async function getUserById(userId: string): Promise<{ user: User | null; 
       nullifierHash: data.nullifier_hash,
       verificationLevel: data.verification_level,
       createdAt: data.created_at,
+      referralCode: data.referral_code || undefined,
     };
 
     return { user, error: null };
