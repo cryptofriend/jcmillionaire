@@ -6,12 +6,15 @@ import { PoolStats } from '@/components/game/PoolStats';
 import { UserBalance } from '@/components/game/UserBalance';
 import { MiniLeaderboard } from '@/components/game/MiniLeaderboard';
 import { ShareModal } from '@/components/referral/ShareModal';
+import { TrailerCard } from '@/components/home/TrailerCard';
 import { useGame } from '@/contexts/GameContext';
 import { Play, ChevronRight, X, Zap, Gift, UserCheck, Share2, Copy, Clock } from 'lucide-react';
 import { generateReferralCode } from '@/lib/referralService';
 import { getWorldAppLink } from '@/lib/constants';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+
+const TRAILER_DISMISSED_KEY = 'jc_trailer_dismissed';
 
 // Helper to get time until midnight
 const getTimeUntilMidnight = (): string => {
@@ -57,6 +60,14 @@ const Home: React.FC = () => {
   const [activePopup, setActivePopup] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(getTimeUntilMidnight());
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [showTrailer, setShowTrailer] = useState(() => {
+    return !localStorage.getItem(TRAILER_DISMISSED_KEY);
+  });
+
+  const handleDismissTrailer = () => {
+    localStorage.setItem(TRAILER_DISMISSED_KEY, 'true');
+    setShowTrailer(false);
+  };
 
   // Referral code for sharing
   const referralCode = user ? generateReferralCode(user.id) : '';
@@ -156,7 +167,7 @@ const Home: React.FC = () => {
           <UserBalance />
           <PoolStats dayState={dayState} />
           
-          {/* Attempts and Invite Section - Merged */}
+          {/* Attempts and Invite/Trailer Section */}
           {isVerified && attempts && (
             <div className="px-4 py-3 bg-card rounded-xl border border-border shadow-soft space-y-3">
               {/* Attempts Header */}
@@ -197,7 +208,7 @@ const Home: React.FC = () => {
                 ))}
               </div>
 
-              {/* Invite Section - Redesigned */}
+              {/* Invite Section */}
               <div className="border-t border-border pt-3 space-y-3">
                 <h3 className="text-center font-display font-bold text-lg text-foreground">
                   Invite a friend = <span className="text-success">+1 extra play</span>
@@ -234,6 +245,11 @@ const Home: React.FC = () => {
               </div>
 
             </div>
+          )}
+
+          {/* Trailer Card - Show for first time visitors */}
+          {showTrailer && (
+            <TrailerCard onDismiss={handleDismissTrailer} />
           )}
         </div>
 
