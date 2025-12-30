@@ -372,12 +372,18 @@ const Admin: React.FC = () => {
   return (
     <div className="min-h-screen gradient-hero pb-8">
       {/* Header */}
-      <header className="flex items-center gap-3 px-4 py-4 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
-          <ArrowLeft className="w-4 h-4" />
+      <header className="flex items-center justify-between px-4 py-4 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <Shield className="w-6 h-6 text-primary" />
+          <h1 className="text-xl font-display font-bold">Admin: Questions</h1>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => navigate('/analytics')}>
+          <BarChart3 className="w-4 h-4 mr-2" />
+          Analytics
         </Button>
-        <Shield className="w-6 h-6 text-primary" />
-        <h1 className="text-xl font-display font-bold">Admin: Questions</h1>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
