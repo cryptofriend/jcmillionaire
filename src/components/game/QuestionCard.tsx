@@ -115,6 +115,13 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           const choiceText = question.choices[label];
           const isHidden = isChoiceHidden(label);
           
+          // Determine font size based on text length
+          const getTextSizeClass = (text: string) => {
+            if (text.length > 80) return 'text-xs';
+            if (text.length > 50) return 'text-sm';
+            return 'text-base';
+          };
+          
           return (
             <Button
               key={label}
@@ -140,7 +147,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                 )}>
                   {label}
                 </span>
-                <span className="flex-1 text-left">{choiceText}</span>
+                <span className={cn('flex-1 text-left', getTextSizeClass(choiceText))}>{choiceText}</span>
               </span>
             </Button>
           );
