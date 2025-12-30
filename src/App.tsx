@@ -16,6 +16,7 @@ import Result from "./pages/Result";
 import Profile from "./pages/Profile";
 import Leaderboard from "./pages/Leaderboard";
 import Admin from "./pages/Admin";
+import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const AppContent = () => {
         <Route path="/profile" element={<Profile />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/analytics" element={<Analytics />} />
         <Route path="/welcome" element={<Verify />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
