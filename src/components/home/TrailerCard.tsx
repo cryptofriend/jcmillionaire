@@ -17,37 +17,6 @@ export const TrailerCard: React.FC<TrailerCardProps> = ({ onDismiss, activeTab, 
 
   return (
     <div className="px-4 py-3 bg-card rounded-xl border border-border shadow-soft space-y-3">
-      {/* Toggle Switches */}
-      <div className="flex justify-center">
-        <div className="inline-flex bg-secondary rounded-full p-1">
-          <button
-            onClick={() => onTabChange('story')}
-            className={cn(
-              "px-4 py-1.5 text-sm font-medium rounded-full transition-all",
-              activeTab === 'story'
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Story
-          </button>
-          <button
-            onClick={() => {
-              onTabChange('referral');
-              onDismiss();
-            }}
-            className={cn(
-              "px-4 py-1.5 text-sm font-medium rounded-full transition-all",
-              activeTab === 'referral'
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Referral
-          </button>
-        </div>
-      </div>
-
       {/* Header */}
       <div className="text-center">
         <h3 className="font-display font-bold text-lg text-foreground">
@@ -94,6 +63,36 @@ export const TrailerCard: React.FC<TrailerCardProps> = ({ onDismiss, activeTab, 
         )}
       </div>
 
+      {/* Toggle Switches */}
+      <div className="flex justify-center">
+        <div className="inline-flex bg-secondary rounded-full p-1">
+          <button
+            onClick={() => onTabChange('story')}
+            className={cn(
+              "px-4 py-1.5 text-sm font-medium rounded-full transition-all",
+              activeTab === 'story'
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Story
+          </button>
+          <button
+            onClick={() => {
+              onTabChange('referral');
+              onDismiss();
+            }}
+            className={cn(
+              "px-4 py-1.5 text-sm font-medium rounded-full transition-all",
+              activeTab === 'referral'
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Referral
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
