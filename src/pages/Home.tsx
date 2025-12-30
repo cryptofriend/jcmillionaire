@@ -14,7 +14,7 @@ import { getWorldAppLink } from '@/lib/constants';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-const TRAILER_DISMISSED_KEY = 'jc_trailer_dismissed';
+// Trailer shows every page load, dismissible for current session
 
 // Helper to get time until midnight
 const getTimeUntilMidnight = (): string => {
@@ -60,12 +60,9 @@ const Home: React.FC = () => {
   const [activePopup, setActivePopup] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(getTimeUntilMidnight());
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [showTrailer, setShowTrailer] = useState(() => {
-    return !localStorage.getItem(TRAILER_DISMISSED_KEY);
-  });
+  const [showTrailer, setShowTrailer] = useState(true);
 
   const handleDismissTrailer = () => {
-    localStorage.setItem(TRAILER_DISMISSED_KEY, 'true');
     setShowTrailer(false);
   };
 
