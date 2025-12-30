@@ -60,10 +60,10 @@ const Home: React.FC = () => {
   const [activePopup, setActivePopup] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(getTimeUntilMidnight());
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [showTrailer, setShowTrailer] = useState(true);
+  const [activeTab, setActiveTab] = useState<'story' | 'referral'>('story');
 
   const handleDismissTrailer = () => {
-    setShowTrailer(false);
+    setActiveTab('referral');
   };
 
   // Referral code for sharing
@@ -164,8 +164,12 @@ const Home: React.FC = () => {
           <UserBalance />
           
           {/* Trailer Card - Show for first time visitors, right after balance */}
-          {showTrailer ? (
-            <TrailerCard onDismiss={handleDismissTrailer} />
+          {activeTab === 'story' ? (
+            <TrailerCard 
+              onDismiss={handleDismissTrailer} 
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
           ) : null}
           
           <PoolStats dayState={dayState} />
@@ -211,8 +215,8 @@ const Home: React.FC = () => {
                 ))}
               </div>
 
-              {/* Invite Section - only show when trailer is dismissed */}
-              {!showTrailer && (
+              {/* Invite Section - only show when referral tab is active */}
+              {activeTab === 'referral' && (
                 <div className="border-t border-border pt-3 space-y-3">
                   <h3 className="text-center font-display font-bold text-lg text-foreground">
                     Invite a friend = <span className="text-success">+1 extra play</span>
