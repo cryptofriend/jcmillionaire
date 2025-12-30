@@ -165,9 +165,15 @@ const Home: React.FC = () => {
         {/* Stats Cards */}
         <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-1">
           <UserBalance />
+          
+          {/* Trailer Card - Show for first time visitors, right after balance */}
+          {showTrailer ? (
+            <TrailerCard onDismiss={handleDismissTrailer} />
+          ) : null}
+          
           <PoolStats dayState={dayState} />
           
-          {/* Attempts and Invite/Trailer Section */}
+          {/* Attempts and Invite Section */}
           {isVerified && attempts && (
             <div className="px-4 py-3 bg-card rounded-xl border border-border shadow-soft space-y-3">
               {/* Attempts Header */}
@@ -208,48 +214,45 @@ const Home: React.FC = () => {
                 ))}
               </div>
 
-              {/* Invite Section */}
-              <div className="border-t border-border pt-3 space-y-3">
-                <h3 className="text-center font-display font-bold text-lg text-foreground">
-                  Invite a friend = <span className="text-success">+1 extra play</span>
-                </h3>
-                
-                {/* Referral Code Display */}
-                <div className="flex items-center gap-2 bg-secondary/50 rounded-lg p-2">
-                  <span className="flex-1 text-center text-lg font-mono font-bold tracking-widest text-foreground">
-                    {user ? generateReferralCode(user.id) : '--------'}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      const { getReferralDeeplink } = require('@/lib/worldShare');
-                      const link = user ? getReferralDeeplink(generateReferralCode(user.id)) : '';
-                      navigator.clipboard.writeText(link);
-                      toast.success('Invite link copied!');
-                    }}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="gold"
-                    size="sm"
-                    onClick={handleOpenShareModal}
-                    className="gap-1.5"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    Share
-                  </Button>
+              {/* Invite Section - only show when trailer is dismissed */}
+              {!showTrailer && (
+                <div className="border-t border-border pt-3 space-y-3">
+                  <h3 className="text-center font-display font-bold text-lg text-foreground">
+                    Invite a friend = <span className="text-success">+1 extra play</span>
+                  </h3>
+                  
+                  {/* Referral Code Display */}
+                  <div className="flex items-center gap-2 bg-secondary/50 rounded-lg p-2">
+                    <span className="flex-1 text-center text-lg font-mono font-bold tracking-widest text-foreground">
+                      {user ? generateReferralCode(user.id) : '--------'}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const { getReferralDeeplink } = require('@/lib/worldShare');
+                        const link = user ? getReferralDeeplink(generateReferralCode(user.id)) : '';
+                        navigator.clipboard.writeText(link);
+                        toast.success('Invite link copied!');
+                      }}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="gold"
+                      size="sm"
+                      onClick={handleOpenShareModal}
+                      className="gap-1.5"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      Share
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
 
             </div>
-          )}
-
-          {/* Trailer Card - Show for first time visitors */}
-          {showTrailer && (
-            <TrailerCard onDismiss={handleDismissTrailer} />
           )}
         </div>
 
