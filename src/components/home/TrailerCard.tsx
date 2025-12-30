@@ -1,31 +1,55 @@
 import React, { useState } from 'react';
-import { X, Play } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Play } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface TrailerCardProps {
   onDismiss: () => void;
+  activeTab: 'story' | 'referral';
+  onTabChange: (tab: 'story' | 'referral') => void;
 }
 
 const YOUTUBE_VIDEO_ID = 'zn09NIJB92k';
 
-export const TrailerCard: React.FC<TrailerCardProps> = ({ onDismiss }) => {
+export const TrailerCard: React.FC<TrailerCardProps> = ({ onDismiss, activeTab, onTabChange }) => {
   const [isPlaying, setIsPlaying] = useState(false);
 
   const thumbnailUrl = `https://img.youtube.com/vi/${YOUTUBE_VIDEO_ID}/maxresdefault.jpg`;
 
   return (
-    <div className="px-4 py-3 bg-card rounded-xl border border-border shadow-soft space-y-3 relative">
-      {/* Close button */}
-      <button
-        onClick={onDismiss}
-        className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-background/80 hover:bg-background transition-colors"
-        aria-label="Close trailer"
-      >
-        <X className="w-4 h-4 text-muted-foreground" />
-      </button>
+    <div className="px-4 py-3 bg-card rounded-xl border border-border shadow-soft space-y-3">
+      {/* Toggle Switches */}
+      <div className="flex justify-center">
+        <div className="inline-flex bg-secondary rounded-full p-1">
+          <button
+            onClick={() => onTabChange('story')}
+            className={cn(
+              "px-4 py-1.5 text-sm font-medium rounded-full transition-all",
+              activeTab === 'story'
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Story
+          </button>
+          <button
+            onClick={() => {
+              onTabChange('referral');
+              onDismiss();
+            }}
+            className={cn(
+              "px-4 py-1.5 text-sm font-medium rounded-full transition-all",
+              activeTab === 'referral'
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Referral
+          </button>
+        </div>
+      </div>
 
       {/* Header */}
-      <div className="text-center pr-6">
+      <div className="text-center">
         <h3 className="font-display font-bold text-lg text-foreground">
           🎬 Watch the Trailer!
         </h3>
@@ -70,15 +94,6 @@ export const TrailerCard: React.FC<TrailerCardProps> = ({ onDismiss }) => {
         )}
       </div>
 
-      {/* Skip button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onDismiss}
-        className="w-full text-muted-foreground"
-      >
-        Skip & show referral link
-      </Button>
     </div>
   );
 };
