@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useGame } from '@/contexts/GameContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { RefreshCw, ArrowLeft, BarChart3, Users, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
+import { RefreshCw, ArrowLeft, BarChart3, Users, TrendingUp, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +24,11 @@ interface QuestionAnalytics {
   successRate: number;
 }
 
+interface ReferralFailure {
+  failure_reason: string;
+  count: number;
+}
+
 const Analytics: React.FC = () => {
   const navigate = useNavigate();
   const { state, isAdmin } = useGame();
@@ -31,6 +36,7 @@ const Analytics: React.FC = () => {
   
   const [playerStats, setPlayerStats] = useState<PlayerStats>({ todayPlayers: 0, totalPlayers: 0 });
   const [questionAnalytics, setQuestionAnalytics] = useState<QuestionAnalytics[]>([]);
+  const [referralFailures, setReferralFailures] = useState<ReferralFailure[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Redirect non-admins
@@ -115,6 +121,28 @@ const Analytics: React.FC = () => {
           }).sort((a, b) => b.totalAnswers - a.totalAnswers);
           
           setQuestionAnalytics(analytics);
+        }
+
+        // Fetch referral failure analytics
+        const { data: failures, error: failuresError } = await supabase
+          .from('referral_failures')
+          .select('failure_reason');
+        
+        if (failuresError) {
+          console.error('Referral failures error:', failuresError);
+        } else if (failures) {
+          // Aggregate by reason
+          const reasonCounts = new Map<string, number>();
+          failures.forEach(f => {
+            const count = reasonCounts.get(f.failure_reason) || 0;
+            reasonCounts.set(f.failure_reason, count + 1);
+          });
+          
+          const aggregated: ReferralFailure[] = Array.from(reasonCounts.entries())
+            .map(([reason, count]) => ({ failure_reason: reason, count }))
+            .sort((a, b) => b.count - a.count);
+          
+          setReferralFailures(aggregated);
         }
       } catch (err) {
         console.error('Analytics fetch error:', err);
@@ -256,6 +284,45 @@ const Analytics: React.FC = () => {
             <p className="text-xs text-muted-foreground text-center">
               Showing {questionAnalytics.length} questions • {questionAnalytics.filter(q => q.totalAnswers > 0).length} with answers
             </p>
+          )}
+        </section>
+
+        {/* Referral Failure Analytics */}
+        <section className="bg-card rounded-xl border border-border p-5 space-y-4">
+          <h2 className="text-lg font-display font-bold flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-warning" />
+            Referral Failures
+          </h2>
+
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : referralFailures.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              No referral failures recorded.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {referralFailures.map((f) => (
+                <div key={f.failure_reason} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                  <span className="text-sm font-medium capitalize">
+                    {f.failure_reason.replace(/_/g, ' ')}
+                  </span>
+                  <span className={cn(
+                    "px-3 py-1 text-sm font-bold rounded-full",
+                    f.count > 10 ? "bg-destructive/20 text-destructive" :
+                    f.count > 5 ? "bg-warning/20 text-warning" :
+                    "bg-muted text-muted-foreground"
+                  )}>
+                    {f.count}
+                  </span>
+                </div>
+              ))}
+              <p className="text-xs text-muted-foreground text-center pt-2">
+                Total: {referralFailures.reduce((sum, f) => sum + f.count, 0)} failed attempts
+              </p>
+            </div>
           )}
         </section>
       </main>

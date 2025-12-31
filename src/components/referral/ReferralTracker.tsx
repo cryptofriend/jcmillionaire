@@ -66,11 +66,25 @@ export const ReferralTrackerInner: React.FC = () => {
       setIsProcessing(true);
       const normalizedCode = refCode.trim().toLowerCase();
       
+      // Helper to log failures
+      const logFailure = async (reason: string) => {
+        try {
+          await supabase.from('referral_failures').insert({
+            attempted_code: normalizedCode,
+            failure_reason: reason,
+            user_id: null,
+          });
+        } catch (e) {
+          console.error('Failed to log referral failure:', e);
+        }
+      };
+      
       try {
         // Check if user already has a stored user (already played)
         const storedUser = localStorage.getItem('jc_user');
         if (storedUser) {
           console.log('User already has an account, referral cannot be applied');
+          await logFailure('already_played');
           setReferralStatus('already_played');
           searchParams.delete('ref');
           setSearchParams(searchParams, { replace: true });
@@ -105,6 +119,7 @@ export const ReferralTrackerInner: React.FC = () => {
 
         if (inviterError) {
           console.error('Error finding inviter:', inviterError);
+          await logFailure('lookup_error');
           searchParams.delete('ref');
           setSearchParams(searchParams, { replace: true });
           setIsProcessing(false);
@@ -113,6 +128,7 @@ export const ReferralTrackerInner: React.FC = () => {
 
         if (!inviter) {
           console.log('Invalid referral code:', normalizedCode);
+          await logFailure('invalid_code');
           setReferralStatus('invalid_code');
           searchParams.delete('ref');
           setSearchParams(searchParams, { replace: true });

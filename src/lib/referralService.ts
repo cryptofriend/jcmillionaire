@@ -35,9 +35,22 @@ export async function redeemReferralCode(
   code: string,
   invitedUserId: string
 ): Promise<{ success: boolean; error: string | null }> {
-  try {
-    const normalizedCode = code.trim().toLowerCase();
+  const normalizedCode = code.trim().toLowerCase();
 
+  // Helper to log failures
+  const logFailure = async (reason: string) => {
+    try {
+      await supabase.from('referral_failures').insert({
+        attempted_code: normalizedCode,
+        failure_reason: reason,
+        user_id: invitedUserId,
+      });
+    } catch (e) {
+      console.error('Failed to log referral failure:', e);
+    }
+  };
+
+  try {
     // Find the inviter by their referral code
     const { data: inviter, error: fetchError } = await supabase
       .from('users')
@@ -47,21 +60,25 @@ export async function redeemReferralCode(
 
     if (fetchError) {
       console.error('Error finding inviter:', fetchError);
+      await logFailure('lookup_error');
       return { success: false, error: 'Failed to verify code' };
     }
 
     if (!inviter) {
+      await logFailure('invalid_code');
       return { success: false, error: 'Invalid referral code' };
     }
 
     // Don't allow self-referral
     if (inviter.id === invitedUserId) {
+      await logFailure('self_referral');
       return { success: false, error: 'Cannot use your own code' };
     }
 
     // Check if user has already redeemed a code
     const alreadyRedeemed = await hasAlreadyRedeemedCode(invitedUserId);
     if (alreadyRedeemed) {
+      await logFailure('already_redeemed');
       return { success: false, error: 'Already redeemed a code' };
     }
 
@@ -78,8 +95,10 @@ export async function redeemReferralCode(
     if (insertError) {
       console.error('Error creating referral:', insertError);
       if (insertError.code === '23505') {
+        await logFailure('duplicate_insert');
         return { success: false, error: 'Already redeemed a code' };
       }
+      await logFailure('insert_error');
       return { success: false, error: 'Failed to redeem code' };
     }
 
@@ -92,6 +111,7 @@ export async function redeemReferralCode(
     return { success: true, error: null };
   } catch (err) {
     console.error('Error in redeemReferralCode:', err);
+    await logFailure('unexpected_error');
     return { success: false, error: 'Failed to redeem code' };
   }
 }

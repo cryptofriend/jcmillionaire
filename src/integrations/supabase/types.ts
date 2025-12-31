@@ -317,6 +317,33 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_failures: {
+        Row: {
+          attempted_code: string
+          created_at: string
+          failure_reason: string
+          id: string
+          ip_hint: string | null
+          user_id: string | null
+        }
+        Insert: {
+          attempted_code: string
+          created_at?: string
+          failure_reason: string
+          id?: string
+          ip_hint?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          attempted_code?: string
+          created_at?: string
+          failure_reason?: string
+          id?: string
+          ip_hint?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       referrals: {
         Row: {
           created_at: string
