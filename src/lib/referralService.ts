@@ -51,17 +51,39 @@ export async function redeemReferralCode(
   };
 
   try {
-    // Find the inviter by their referral code
-    const { data: inviter, error: fetchError } = await supabase
+    // Find the inviter by their referral code OR username
+    let inviter = null;
+    
+    // First try referral code
+    const { data: byCode, error: codeError } = await supabase
       .from('users')
       .select('id, referral_code')
       .ilike('referral_code', normalizedCode)
       .maybeSingle();
 
-    if (fetchError) {
-      console.error('Error finding inviter:', fetchError);
+    if (codeError) {
+      console.error('Error finding inviter by code:', codeError);
       await logFailure('lookup_error');
       return { success: false, error: 'Failed to verify code' };
+    }
+
+    if (byCode) {
+      inviter = byCode;
+    } else {
+      // Fall back to username lookup
+      const { data: byUsername, error: usernameError } = await supabase
+        .from('users')
+        .select('id, referral_code')
+        .ilike('username', normalizedCode)
+        .maybeSingle();
+
+      if (usernameError) {
+        console.error('Error finding inviter by username:', usernameError);
+        await logFailure('lookup_error');
+        return { success: false, error: 'Failed to verify code' };
+      }
+
+      inviter = byUsername;
     }
 
     if (!inviter) {

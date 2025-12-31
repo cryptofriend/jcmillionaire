@@ -110,20 +110,45 @@ export const ReferralTrackerInner: React.FC = () => {
           }
         }
 
-        // Find the inviter by their referral code
-        const { data: inviter, error: inviterError } = await supabase
+        // Find the inviter by their referral code OR username
+        let inviter = null;
+
+        // First try referral code
+        const { data: byCode, error: codeError } = await supabase
           .from('users')
           .select('id, referral_code, username')
           .ilike('referral_code', normalizedCode)
           .maybeSingle();
 
-        if (inviterError) {
-          console.error('Error finding inviter:', inviterError);
+        if (codeError) {
+          console.error('Error finding inviter by code:', codeError);
           await logFailure('lookup_error');
           searchParams.delete('ref');
           setSearchParams(searchParams, { replace: true });
           setIsProcessing(false);
           return;
+        }
+
+        if (byCode) {
+          inviter = byCode;
+        } else {
+          // Fall back to username lookup
+          const { data: byUsername, error: usernameError } = await supabase
+            .from('users')
+            .select('id, referral_code, username')
+            .ilike('username', normalizedCode)
+            .maybeSingle();
+
+          if (usernameError) {
+            console.error('Error finding inviter by username:', usernameError);
+            await logFailure('lookup_error');
+            searchParams.delete('ref');
+            setSearchParams(searchParams, { replace: true });
+            setIsProcessing(false);
+            return;
+          }
+
+          inviter = byUsername;
         }
 
         if (!inviter) {
