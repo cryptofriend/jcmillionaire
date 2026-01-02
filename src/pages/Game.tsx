@@ -291,21 +291,25 @@ const Game: React.FC = () => {
         const safeHavens = prizeLadder.filter(p => p.isSafeHaven && p.questionNumber < currentQuestionIndex + 1);
         const safeHavenAmount = safeHavens.length > 0 ? safeHavens[safeHavens.length - 1].prizeAmount : 0;
         setEarnedAmount(safeHavenAmount);
-        setIsCompletingRun(true);
 
-        // Complete run in database BEFORE showing game over
-        if (currentRun) {
-          await completeRun({
-            runId: currentRun.id,
-            reachedQ: currentQuestionIndex + 1,
-            earnedTier: safeHavens.length,
-            earnedAmount: safeHavenAmount,
-            status: 'completed',
-          });
-        }
-        
-        setIsCompletingRun(false);
-        setIsGameOver(true);
+        // Pause to show wrong/correct answer highlighting before game over
+        setTimeout(async () => {
+          setIsCompletingRun(true);
+
+          // Complete run in database BEFORE showing game over
+          if (currentRun) {
+            await completeRun({
+              runId: currentRun.id,
+              reachedQ: currentQuestionIndex + 1,
+              earnedTier: safeHavens.length,
+              earnedAmount: safeHavenAmount,
+              status: 'completed',
+            });
+          }
+          
+          setIsCompletingRun(false);
+          setIsGameOver(true);
+        }, 2000); // 2 second pause to show correct/wrong answers
       } else {
         // Show claim dialog after EVERY correct answer
         const currentPrize = prizeLadder[currentQuestionIndex]?.prizeAmount || 0;
