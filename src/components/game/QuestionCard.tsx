@@ -137,9 +137,9 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                 showResult && selectedChoice === label && label !== correctChoice && 'animate-shake'
               )}
             >
-              <span className="flex items-center gap-3 w-full">
+              <span className="flex items-start gap-3 w-full">
                 <span className={cn(
-                  'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm',
+                  'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mt-0.5',
                   selectedChoice === label && !showResult && 'bg-primary text-primary-foreground',
                   showResult && correctChoice === label && 'bg-success text-success-foreground',
                   showResult && selectedChoice === label && label !== correctChoice && 'bg-destructive text-destructive-foreground',
@@ -147,7 +147,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                 )}>
                   {label}
                 </span>
-                <span className={cn('flex-1 text-left', getTextSizeClass(choiceText))}>{choiceText}</span>
+                <span className={cn('flex-1 text-left break-words leading-snug', getTextSizeClass(choiceText))}>{choiceText}</span>
               </span>
             </Button>
           );
