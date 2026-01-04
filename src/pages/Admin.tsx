@@ -19,7 +19,7 @@ interface QuestionInput {
   difficulty: number;
   category: string;
   hint: string;
-  active_from?: string; // Optional: YYYY-MM-DD format
+  active_dates?: string; // Optional: YYYY-MM-DD format
 }
 
 interface ExistingQuestion {
@@ -28,7 +28,7 @@ interface ExistingQuestion {
   difficulty: number;
   category: string;
   is_active: boolean;
-  active_from: string;
+  active_dates: string;
 }
 
 interface QuestionStats {
@@ -87,7 +87,7 @@ const Admin: React.FC = () => {
       setIsLoadingQuestions(true);
       const { data, error } = await supabase
         .from('questions')
-        .select('id, question, difficulty, category, is_active, active_from')
+        .select('id, question, difficulty, category, is_active, active_dates')
         .order('difficulty', { ascending: true })
         .order('created_at', { ascending: false });
 
@@ -251,7 +251,7 @@ const Admin: React.FC = () => {
           hint: q.hint,
           text_hash: btoa(q.question.slice(0, 50)).replace(/[^a-zA-Z0-9]/g, '').slice(0, 32),
           is_active: true,
-          active_from: q.active_from || getDateForDay(dayIndex),
+          active_dates: q.active_dates || getDateForDay(dayIndex),
         };
       });
 
@@ -271,7 +271,7 @@ const Admin: React.FC = () => {
         // Refresh the list
         const { data: refreshed } = await supabase
           .from('questions')
-          .select('id, question, difficulty, category, is_active, active_from')
+          .select('id, question, difficulty, category, is_active, active_dates')
           .order('difficulty', { ascending: true })
           .order('created_at', { ascending: false });
         setExistingQuestions(refreshed || []);
@@ -580,7 +580,7 @@ const Admin: React.FC = () => {
                       <span>•</span>
                       <span>{q.category}</span>
                       <span>•</span>
-                      <span className="text-primary">{q.active_from}</span>
+                      <span className="text-primary">{q.active_dates}</span>
                     </div>
                   </div>
                 </div>
