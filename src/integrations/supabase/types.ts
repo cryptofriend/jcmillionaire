@@ -268,7 +268,7 @@ export type Database = {
       }
       questions: {
         Row: {
-          active_from: string
+          active_dates: string
           category: string
           choice_a: string
           choice_b: string
@@ -284,7 +284,7 @@ export type Database = {
           text_hash: string
         }
         Insert: {
-          active_from?: string
+          active_dates?: string
           category: string
           choice_a: string
           choice_b: string
@@ -300,7 +300,7 @@ export type Database = {
           text_hash: string
         }
         Update: {
-          active_from?: string
+          active_dates?: string
           category?: string
           choice_a?: string
           choice_b?: string

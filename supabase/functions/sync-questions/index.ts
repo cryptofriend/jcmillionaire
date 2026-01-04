@@ -16,7 +16,7 @@ interface SheetRow {
   hint: string;
   category: string;
   difficulty: number;
-  active_from: string;
+  active_dates: string;
   is_active?: boolean;
 }
 
@@ -74,15 +74,15 @@ async function fetchSheetData(): Promise<SheetRow[]> {
     // Clamp to 1-5 range
     difficulty = Math.max(1, Math.min(5, difficulty));
 
-    // Parse active_from date (default to today if not provided)
-    let activeFrom = rowObj.active_from;
-    if (!activeFrom || !/^\d{4}-\d{2}-\d{2}$/.test(activeFrom)) {
+    // Parse active_dates date (default to today if not provided)
+    let activeDates = rowObj.active_dates;
+    if (!activeDates || !/^\d{4}-\d{2}-\d{2}$/.test(activeDates)) {
       // Try to parse other date formats
-      const dateMatch = activeFrom?.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+      const dateMatch = activeDates?.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
       if (dateMatch) {
-        activeFrom = `${dateMatch[3]}-${dateMatch[1].padStart(2, '0')}-${dateMatch[2].padStart(2, '0')}`;
+        activeDates = `${dateMatch[3]}-${dateMatch[1].padStart(2, '0')}-${dateMatch[2].padStart(2, '0')}`;
       } else {
-        activeFrom = new Date().toISOString().split('T')[0];
+        activeDates = new Date().toISOString().split('T')[0];
       }
     }
 
@@ -99,7 +99,7 @@ async function fetchSheetData(): Promise<SheetRow[]> {
       hint: rowObj.hint?.trim() || 'Think carefully!',
       category: rowObj.category?.trim() || 'General',
       difficulty,
-      active_from: activeFrom,
+      active_dates: activeDates,
       is_active: isActive,
     });
   }
@@ -158,7 +158,7 @@ serve(async (req) => {
       hint: q.hint,
       category: q.category,
       difficulty: q.difficulty,
-      active_from: q.active_from,
+      active_dates: q.active_dates,
       is_active: q.is_active ?? true,
       text_hash: generateTextHash(q.question, [q.choice_a, q.choice_b, q.choice_c, q.choice_d]),
     }));

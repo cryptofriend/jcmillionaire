@@ -344,7 +344,7 @@ export async function fetchTodayQuestions(): Promise<{
   const { data, error } = await supabase
     .from('questions')
     .select('*')
-    .eq('active_from', today)
+    .eq('active_dates', today)
     .eq('is_active', true)
     .order('difficulty', { ascending: true });
 
