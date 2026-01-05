@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { GameProvider, useGame } from "@/contexts/GameContext";
-import { initMiniKit } from "@/lib/minikit";
+import { MiniKitProvider } from "@worldcoin/minikit-js/minikit-provider";
 import BottomNav from "@/components/BottomNav";
 import LoadingScreen from "@/components/LoadingScreen";
 import { ReferralTracker } from "@/components/referral/ReferralTracker";
@@ -20,9 +20,6 @@ import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
-
-// Initialize MiniKit on app load
-initMiniKit();
 
 const AppContent = () => {
   const { isLoading } = useGame();
@@ -56,17 +53,19 @@ const AppContent = () => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <GameProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
-      </GameProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <MiniKitProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <GameProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </GameProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </MiniKitProvider>
 );
 
 export default App;

@@ -1,16 +1,6 @@
 import { MiniKit } from '@worldcoin/minikit-js';
 import { supabase } from '@/integrations/supabase/client';
 
-// Initialize MiniKit (call this once at app start)
-export function initMiniKit() {
-  try {
-    MiniKit.install();
-    console.log('MiniKit initialized, isInstalled:', MiniKit.isInstalled());
-  } catch (error) {
-    console.log('MiniKit not available (not in World App):', error);
-  }
-}
-
 // Check if running inside World App
 export function isInWorldApp(): boolean {
   try {
