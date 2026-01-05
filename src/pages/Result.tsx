@@ -27,27 +27,26 @@ const Result: React.FC = () => {
   const performClaim = React.useCallback(async () => {
     if (earnedAmount <= 0) return;
     
+    // Require proper authentication - no demo mode
+    if (!runId || !gameState.user) {
+      setErrorMessage('Authentication required to claim rewards');
+      setClaimStep('error');
+      return;
+    }
+    
     setClaimStep('claiming');
     setErrorMessage(null);
 
     try {
-      if (runId && gameState.user) {
-        // Real claim via backend
-        const result = await claimRewards(runId, gameState.user.id);
-        
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to claim rewards');
-        }
-
-        setTotalBalance(result.totalBalance || earnedAmount);
-        setClaimStep('success');
-      } else {
-        // Demo mode - simulate claim
-        console.log('Demo mode - simulating claim');
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        setTotalBalance(earnedAmount);
-        setClaimStep('success');
+      // Real claim via backend
+      const result = await claimRewards(runId, gameState.user.id);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to claim rewards');
       }
+
+      setTotalBalance(result.totalBalance || earnedAmount);
+      setClaimStep('success');
     } catch (error) {
       console.error('Claim failed:', error);
       setErrorMessage(error instanceof Error ? error.message : 'Claim failed');

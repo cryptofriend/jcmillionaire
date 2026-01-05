@@ -31,6 +31,30 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Verify user exists and was properly verified via World ID
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, nullifier_hash, verification_level')
+      .eq('id', user_id)
+      .maybeSingle();
+
+    if (userError || !user) {
+      console.error('User not found:', userError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'User not found or not verified' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify user was authenticated via World App wallet (not demo mode)
+    if (!user.nullifier_hash || !user.nullifier_hash.startsWith('wallet_')) {
+      console.error('User not properly authenticated via World ID wallet');
+      return new Response(
+        JSON.stringify({ success: false, error: 'World ID wallet verification required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Get the run and verify it belongs to the user and is claimable
     const { data: run, error: runError } = await supabase
       .from('runs')
