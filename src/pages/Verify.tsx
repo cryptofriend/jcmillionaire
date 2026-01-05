@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
 import { useGame } from '@/contexts/GameContext';
-import { Shield, ArrowLeft, CheckCircle, Loader2, Smartphone, Gift } from 'lucide-react';
-import { createOrGetUser, persistUser } from '@/lib/userService';
+import { Shield, ArrowLeft, CheckCircle, Loader2, AlertCircle, Gift } from 'lucide-react';
+import { persistUser } from '@/lib/userService';
 import { isInWorldApp, authenticateWithWallet } from '@/lib/minikit';
 import { linkPendingReferralToUser } from '@/hooks/useReferralTracking';
 import { toast } from 'sonner';
@@ -16,72 +16,64 @@ const Verify: React.FC = () => {
   const verificationLevel: 'device' | 'orb' = 'device';
   const [isSuccess, setIsSuccess] = useState(false);
   const [inWorldApp, setInWorldApp] = useState(false);
-  const [referralLinked, setReferralLinked] = useState(false);
+  const [isCheckingEnv, setIsCheckingEnv] = useState(true);
 
   // Check if there's a pending referral
   const hasPendingReferral = !!localStorage.getItem('jc_pending_referral');
 
   // Check if we're in World App on mount
   useEffect(() => {
-    setInWorldApp(isInWorldApp());
+    // Small delay to allow MiniKit to initialize
+    const checkEnv = setTimeout(() => {
+      const isInstalled = isInWorldApp();
+      console.log('World App check:', isInstalled);
+      setInWorldApp(isInstalled);
+      setIsCheckingEnv(false);
+    }, 500);
+    
+    return () => clearTimeout(checkEnv);
   }, []);
 
   const handleVerify = async () => {
+    // Only allow verification inside World App
+    if (!inWorldApp) {
+      toast.error('Please open this app in World App to verify');
+      return;
+    }
+
     setIsVerifying(true);
     
     try {
-      let user;
-
-      if (inWorldApp) {
-        // Use MiniKit wallet auth in World App
-        console.log('Authenticating with World App wallet...');
-        const result = await authenticateWithWallet(verificationLevel);
-        
-        if (!result.success || !result.user) {
-          throw new Error(result.error || 'Wallet authentication failed');
-        }
-        
-        // Store the wallet address for later use
-        localStorage.setItem('jc_wallet_address', result.user.wallet_address);
-        
-        // Create the user object matching our type
-        user = {
-          id: result.user.id,
-          verification_level: result.user.verification_level as 'device' | 'orb',
-          nullifier_hash: `wallet_${result.user.wallet_address}`,
-          created_at: result.user.created_at,
-          updated_at: result.user.created_at,
-        };
-        
-        // Persist user to localStorage
-        persistUser(user);
-        
-      } else {
-        // Demo mode - simulate World ID verification
-        console.log('Demo mode - simulating verification...');
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Generate a mock nullifier hash
-        const mockNullifierHash = `world_id_nullifier_${verificationLevel}_test_user`;
-        
-        // Create or get user in database
-        const { user: dbUser, error } = await createOrGetUser(mockNullifierHash, verificationLevel);
-        
-        if (error || !dbUser) {
-          throw new Error(error || 'Failed to create user');
-        }
-        
-        user = dbUser;
+      // Use MiniKit wallet auth in World App
+      console.log('Authenticating with World App wallet...');
+      const result = await authenticateWithWallet(verificationLevel);
+      
+      if (!result.success || !result.user) {
+        throw new Error(result.error || 'Wallet authentication failed');
       }
+      
+      // Store the wallet address for later use
+      localStorage.setItem('jc_wallet_address', result.user.wallet_address);
+      
+      // Create the user object matching our type
+      const user = {
+        id: result.user.id,
+        verificationLevel: result.user.verification_level as 'device' | 'orb',
+        nullifierHash: `wallet_${result.user.wallet_address}`,
+        createdAt: result.user.created_at,
+        username: result.user.username,
+        profilePictureUrl: result.user.profile_picture_url,
+      };
+      
+      // Persist user to localStorage
+      persistUser(user);
       
       console.log('User verified:', user.id);
       
-      // Link pending referral if exists (clears localStorage so no duplicate handling)
+      // Link pending referral if exists
       const wasLinked = await linkPendingReferralToUser(user.id);
       if (wasLinked) {
         console.log('Referral linked successfully');
-        setReferralLinked(true);
-        // Toast is shown once here only - ReferralTracker toast is for pre-login notification
       }
       
       dispatch({ type: 'SET_USER', payload: user });
@@ -142,16 +134,34 @@ const Verify: React.FC = () => {
           </p>
         </div>
 
-        {/* World App / Demo Mode Indicator */}
-        {!inWorldApp && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-lg text-xs text-muted-foreground animate-slide-up">
-            <Smartphone className="w-4 h-4" />
-            <span>Demo mode — open in World App for wallet authentication</span>
+        {/* Environment Check */}
+        {isCheckingEnv ? (
+          <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 rounded-lg animate-pulse">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Checking environment...</span>
           </div>
-        )}
+        ) : !inWorldApp ? (
+          <div className="flex flex-col items-center gap-3 px-4 py-4 bg-destructive/10 border border-destructive/30 rounded-lg animate-slide-up max-w-sm">
+            <AlertCircle className="w-8 h-8 text-destructive" />
+            <p className="text-sm text-center text-foreground">
+              <span className="font-bold">World App Required</span>
+            </p>
+            <p className="text-xs text-center text-muted-foreground">
+              This app must be opened inside World App to verify your identity and play.
+            </p>
+            <a 
+              href="https://world.org/download"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-primary underline hover:no-underline"
+            >
+              Download World App →
+            </a>
+          </div>
+        ) : null}
 
         {/* Pending Referral Indicator */}
-        {hasPendingReferral && (
+        {hasPendingReferral && inWorldApp && (
           <div className="flex items-center gap-2 px-4 py-3 bg-success/10 border border-success/30 rounded-lg text-sm animate-slide-up">
             <Gift className="w-5 h-5 text-success" />
             <span className="text-foreground">
@@ -167,7 +177,7 @@ const Verify: React.FC = () => {
             size="xl"
             className="w-full"
             onClick={handleVerify}
-            disabled={isVerifying}
+            disabled={isVerifying || isCheckingEnv || !inWorldApp}
           >
             {isVerifying ? (
               <>
