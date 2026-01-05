@@ -53,6 +53,8 @@ const InfoPopup: React.FC<InfoPopupProps> = ({ title, description, onClose }) =>
   </div>
 );
 
+const TRAILER_WATCHED_KEY = 'jc_trailer_watched';
+
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const { state } = useGame();
@@ -60,9 +62,14 @@ const Home: React.FC = () => {
   const [activePopup, setActivePopup] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(getTimeUntilMidnight());
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'story' | 'referral'>('story');
+  
+  // Check if user has watched trailer before - default to referral if they have
+  const hasWatchedTrailer = localStorage.getItem(TRAILER_WATCHED_KEY) === 'true';
+  const [activeTab, setActiveTab] = useState<'story' | 'referral'>(hasWatchedTrailer ? 'referral' : 'story');
 
   const handleDismissTrailer = () => {
+    // Mark trailer as watched so next visit defaults to referral
+    localStorage.setItem(TRAILER_WATCHED_KEY, 'true');
     setActiveTab('referral');
   };
 
