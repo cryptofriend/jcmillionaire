@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Home, Trophy, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -34,11 +35,12 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, isActive, onClick }) => 
 const BottomNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
 
   const navItems = [
-    { icon: <Home className="w-5 h-5" />, label: 'Home', path: '/' },
-    { icon: <Trophy className="w-5 h-5" />, label: 'Leaderboard', path: '/leaderboard' },
-    { icon: <User className="w-5 h-5" />, label: 'Profile', path: '/profile' },
+    { icon: <Home className="w-5 h-5" />, label: t('nav.home'), path: '/' },
+    { icon: <Trophy className="w-5 h-5" />, label: t('nav.leaderboard'), path: '/leaderboard' },
+    { icon: <User className="w-5 h-5" />, label: t('nav.profile'), path: '/profile' },
   ];
 
   // Don't show on game or result pages

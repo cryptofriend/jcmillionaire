@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { QuestionWithHiddenChoices, AnswerStats } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -32,6 +33,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   answerStats,
   showStats = false,
 }) => {
+  const { t } = useTranslation();
   const [animateIn, setAnimateIn] = useState(false);
 
   useEffect(() => {
@@ -62,7 +64,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       {/* Question Number Badge */}
       <div className="flex justify-center">
         <span className="px-4 py-1 rounded-full bg-primary/10 text-primary text-sm font-bold">
-          Question {questionNumber} of 15
+          {t('game.question_of', { current: questionNumber, total: 15 })}
         </span>
       </div>
 
@@ -77,7 +79,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       {showHint && hint && (
         <div className="bg-gold-light/20 rounded-xl p-4 border border-gold-light/40 animate-bounce-in">
           <p className="text-sm text-center">
-            <span className="font-bold text-primary">💡 Jackie says: </span>
+            <span className="font-bold text-primary">💡 {t('game.jackie_says')} </span>
             {hint}
           </p>
         </div>
@@ -87,7 +89,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       {showStats && answerStats && (
         <div className="bg-secondary/50 rounded-xl p-4 border border-border animate-bounce-in">
           <p className="text-xs text-center text-muted-foreground mb-2 font-medium">
-            🔗 Chain Scan Results ({answerStats.total} players)
+            🔗 {t('game.chain_scan_results')} ({answerStats.total} {t('game.players')})
           </p>
           <div className="flex justify-around">
             {choiceLabels.map((label) => {
@@ -115,7 +117,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           const choiceText = question.choices[label];
           const isHidden = isChoiceHidden(label);
           
-          // Determine font size based on text length
           const getTextSizeClass = (text: string) => {
             if (text.length > 80) return 'text-xs';
             if (text.length > 50) return 'text-sm';

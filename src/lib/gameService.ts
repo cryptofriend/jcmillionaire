@@ -334,7 +334,7 @@ export async function incrementAttemptsUsed(
  * Fetch today's questions from the database
  * Returns 15 questions ordered by difficulty for today's game
  */
-export async function fetchTodayQuestions(): Promise<{
+export async function fetchTodayQuestions(language: 'en' | 'es' = 'en'): Promise<{
   questions: QuestionWithHiddenChoices[];
   correctAnswers: Record<string, 'A' | 'B' | 'C' | 'D'>;
   error: string | null;
@@ -358,20 +358,25 @@ export async function fetchTodayQuestions(): Promise<{
     return { questions: [], correctAnswers: {}, error: 'No questions available for today' };
   }
 
-  // Transform database questions to game format
-  const questions: QuestionWithHiddenChoices[] = data.map((q) => ({
-    id: q.id,
-    question: q.question,
-    choices: {
-      A: q.choice_a,
-      B: q.choice_b,
-      C: q.choice_c,
-      D: q.choice_d,
-    },
-    difficulty: q.difficulty,
-    category: q.category,
-    hint: q.hint,
-  }));
+  // Transform database questions to game format with language support
+  const questions: QuestionWithHiddenChoices[] = data.map((q) => {
+    // Use Spanish translations if available and language is Spanish
+    const useSpanish = language === 'es';
+    
+    return {
+      id: q.id,
+      question: (useSpanish && q.question_es) ? q.question_es : q.question,
+      choices: {
+        A: (useSpanish && q.choice_a_es) ? q.choice_a_es : q.choice_a,
+        B: (useSpanish && q.choice_b_es) ? q.choice_b_es : q.choice_b,
+        C: (useSpanish && q.choice_c_es) ? q.choice_c_es : q.choice_c,
+        D: (useSpanish && q.choice_d_es) ? q.choice_d_es : q.choice_d,
+      },
+      difficulty: q.difficulty,
+      category: q.category,
+      hint: (useSpanish && q.hint_es) ? q.hint_es : q.hint,
+    };
+  });
 
   // Build correct answers map (not exposed to client during game)
   const correctAnswers: Record<string, 'A' | 'B' | 'C' | 'D'> = {};
@@ -379,7 +384,7 @@ export async function fetchTodayQuestions(): Promise<{
     correctAnswers[q.id] = q.correct_choice as 'A' | 'B' | 'C' | 'D';
   });
 
-  console.log(`Loaded ${questions.length} questions for ${today}`);
+  console.log(`Loaded ${questions.length} questions for ${today} in ${language}`);
   return { questions, correctAnswers, error: null };
 }
 

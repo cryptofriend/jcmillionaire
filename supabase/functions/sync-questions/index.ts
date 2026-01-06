@@ -18,6 +18,13 @@ interface SheetRow {
   difficulty: number;
   active_dates: string;
   is_active?: boolean;
+  // Spanish translations (optional)
+  question_es?: string;
+  choice_a_es?: string;
+  choice_b_es?: string;
+  choice_c_es?: string;
+  choice_d_es?: string;
+  hint_es?: string;
 }
 
 async function fetchSheetData(): Promise<SheetRow[]> {
@@ -28,8 +35,8 @@ async function fetchSheetData(): Promise<SheetRow[]> {
     throw new Error('Missing GOOGLE_SHEETS_API_KEY or GOOGLE_SHEETS_ID');
   }
 
-  // Fetch all data from the first sheet
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A:K?key=${apiKey}`;
+  // Fetch all data from the first sheet (extended range for Spanish columns)
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A:Q?key=${apiKey}`;
   
   console.log('Fetching from Google Sheets...');
   const response = await fetch(url);
@@ -101,6 +108,13 @@ async function fetchSheetData(): Promise<SheetRow[]> {
       difficulty,
       active_dates: activeDates,
       is_active: isActive,
+      // Spanish translations (optional)
+      question_es: rowObj.question_es?.trim() || undefined,
+      choice_a_es: rowObj.choice_a_es?.trim() || undefined,
+      choice_b_es: rowObj.choice_b_es?.trim() || undefined,
+      choice_c_es: rowObj.choice_c_es?.trim() || undefined,
+      choice_d_es: rowObj.choice_d_es?.trim() || undefined,
+      hint_es: rowObj.hint_es?.trim() || undefined,
     });
   }
 
@@ -161,6 +175,13 @@ serve(async (req) => {
       active_dates: q.active_dates,
       is_active: q.is_active ?? true,
       text_hash: generateTextHash(q.question, [q.choice_a, q.choice_b, q.choice_c, q.choice_d]),
+      // Spanish translations
+      question_es: q.question_es || null,
+      choice_a_es: q.choice_a_es || null,
+      choice_b_es: q.choice_b_es || null,
+      choice_c_es: q.choice_c_es || null,
+      choice_d_es: q.choice_d_es || null,
+      hint_es: q.hint_es || null,
     }));
 
     // Upsert based on text_hash to avoid duplicates
