@@ -7,7 +7,7 @@ import { AttemptsDisplay } from '@/components/game/AttemptsDisplay';
 import { ShareModal } from '@/components/referral/ShareModal';
 import { useGame } from '@/contexts/GameContext';
 import { formatJC, getWorldAppLink } from '@/lib/constants';
-import { ArrowLeft, Copy, Share2, Trophy, History, Users, CheckCircle, Loader2, Flame, Shield, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Copy, Share2, Trophy, History, Users, CheckCircle, Loader2, Flame, Shield, BarChart3, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import { getCurrentUserInfo } from '@/lib/minikit';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { ReferralDashboard } from '@/components/referral/ReferralDashboard';
+import { clearStoredUser } from '@/lib/userService';
 
 interface RunHistoryItem {
   id: string;
@@ -44,7 +45,7 @@ interface UserStats {
 const Profile: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { state, fetchAttempts, isAdmin } = useGame();
+  const { state, dispatch, fetchAttempts, isAdmin } = useGame();
   const { user, attempts, isVerified } = state;
   
   const defaultTab = searchParams.get('tab') || 'stats';
@@ -226,6 +227,13 @@ const Profile: React.FC = () => {
   const [codeCopied, setCodeCopied] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
+  const handleLogout = () => {
+    clearStoredUser();
+    dispatch({ type: 'SET_USER', payload: null });
+    toast.success('Logged out successfully');
+    navigate('/verify');
+  };
+
   const copyInviteCode = () => {
     navigator.clipboard.writeText(inviteLink);
     setCodeCopied(true);
@@ -268,28 +276,36 @@ const Profile: React.FC = () => {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <h1 className="flex-1 text-center font-display font-bold">Profile</h1>
-        {isAdmin ? (
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/analytics')}
-              className="text-primary"
-            >
-              <BarChart3 className="w-5 h-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/admin')}
-              className="text-primary"
-            >
-              <Shield className="w-5 h-5" />
-            </Button>
-          </div>
-        ) : (
-          <div className="w-10" />
-        )}
+        <div className="flex items-center gap-1">
+          {isAdmin && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/analytics')}
+                className="text-primary"
+              >
+                <BarChart3 className="w-5 h-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/admin')}
+                className="text-primary"
+              >
+                <Shield className="w-5 h-5" />
+              </Button>
+            </>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleLogout}
+            className="text-destructive"
+          >
+            <LogOut className="w-5 h-5" />
+          </Button>
+        </div>
       </header>
 
       {/* Profile Header */}
