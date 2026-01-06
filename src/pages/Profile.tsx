@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
+import { WorldIdBadge } from '@/components/icons/WorldIdIcon';
 import { AttemptsDisplay } from '@/components/game/AttemptsDisplay';
 import { ShareModal } from '@/components/referral/ShareModal';
 import { useGame } from '@/contexts/GameContext';
@@ -329,11 +330,9 @@ const Profile: React.FC = () => {
             <p className="text-lg font-bold">
               {userProfile.username || 'Player'}
             </p>
-            <p className="text-xs text-muted-foreground font-mono">
-              {user?.nullifierHash.slice(0, 16)}...
-            </p>
+            <WorldIdBadge className="mt-1" />
             {userStats.currentStreak > 0 && (
-              <div className="flex items-center gap-1 mt-1">
+              <div className="flex items-center gap-1 mt-2">
                 <Flame className="w-4 h-4 text-accent" />
                 <span className="text-xs text-accent font-medium">{userStats.currentStreak} day streak</span>
               </div>

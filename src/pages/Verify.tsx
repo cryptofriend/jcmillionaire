@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
+import { WorldIdIcon, WorldIdBadge, PoweredByWorldId } from '@/components/icons/WorldIdIcon';
 import { useGame } from '@/contexts/GameContext';
-import { Shield, ArrowLeft, CheckCircle, Loader2, AlertCircle, Gift } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Loader2, AlertCircle, Gift } from 'lucide-react';
 import { persistUser } from '@/lib/userService';
 import { isInWorldApp, authenticateWithWallet } from '@/lib/minikit';
 import { linkPendingReferralToUser } from '@/hooks/useReferralTracking';
@@ -101,6 +102,7 @@ const Verify: React.FC = () => {
             </div>
           </div>
           <h2 className="text-2xl font-display font-bold text-foreground">Verified!</h2>
+          <WorldIdBadge />
           <p className="text-muted-foreground">Welcome to Jackie Chain: Millionaire</p>
         </div>
       </div>
@@ -186,7 +188,7 @@ const Verify: React.FC = () => {
               </>
             ) : (
               <>
-                <Shield className="w-6 h-6" />
+                <WorldIdIcon size={24} />
                 Login with World ID
               </>
             )}
@@ -194,7 +196,8 @@ const Verify: React.FC = () => {
         </div>
 
         {/* Info */}
-        <div className="w-full max-w-sm space-y-2 text-center animate-slide-up stagger-3">
+        <div className="w-full max-w-sm space-y-3 text-center animate-slide-up stagger-3">
+          <PoweredByWorldId className="justify-center" />
           <p className="text-xs text-muted-foreground">
             By verifying, you confirm you are a unique human.
           </p>
