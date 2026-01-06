@@ -271,48 +271,66 @@ export type Database = {
           active_dates: string
           category: string
           choice_a: string
+          choice_a_es: string | null
           choice_b: string
+          choice_b_es: string | null
           choice_c: string
+          choice_c_es: string | null
           choice_d: string
+          choice_d_es: string | null
           correct_choice: string
           created_at: string
           difficulty: number
           hint: string
+          hint_es: string | null
           id: string
           is_active: boolean
           question: string
+          question_es: string | null
           text_hash: string
         }
         Insert: {
           active_dates?: string
           category: string
           choice_a: string
+          choice_a_es?: string | null
           choice_b: string
+          choice_b_es?: string | null
           choice_c: string
+          choice_c_es?: string | null
           choice_d: string
+          choice_d_es?: string | null
           correct_choice: string
           created_at?: string
           difficulty: number
           hint: string
+          hint_es?: string | null
           id?: string
           is_active?: boolean
           question: string
+          question_es?: string | null
           text_hash: string
         }
         Update: {
           active_dates?: string
           category?: string
           choice_a?: string
+          choice_a_es?: string | null
           choice_b?: string
+          choice_b_es?: string | null
           choice_c?: string
+          choice_c_es?: string | null
           choice_d?: string
+          choice_d_es?: string | null
           correct_choice?: string
           created_at?: string
           difficulty?: number
           hint?: string
+          hint_es?: string | null
           id?: string
           is_active?: boolean
           question?: string
+          question_es?: string | null
           text_hash?: string
         }
         Relationships: []

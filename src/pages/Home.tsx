@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
 import { PoolStats } from '@/components/game/PoolStats';
@@ -7,14 +8,13 @@ import { UserBalance } from '@/components/game/UserBalance';
 import { MiniLeaderboard } from '@/components/game/MiniLeaderboard';
 import { ShareModal } from '@/components/referral/ShareModal';
 import { TrailerCard } from '@/components/home/TrailerCard';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useGame } from '@/contexts/GameContext';
 import { Play, ChevronRight, X, Zap, Gift, UserCheck, Share2, Copy, Clock } from 'lucide-react';
 import { generateReferralCode } from '@/lib/referralService';
 import { getWorldAppLink } from '@/lib/constants';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-
-// Trailer shows every page load, dismissible for current session
 
 // Helper to get time until midnight
 const getTimeUntilMidnight = (): string => {
@@ -57,6 +57,7 @@ const TRAILER_WATCHED_KEY = 'jc_trailer_watched';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { state } = useGame();
   const { isVerified, attempts, dayState, user } = state;
   const [activePopup, setActivePopup] = useState<string | null>(null);
@@ -68,15 +69,12 @@ const Home: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'story' | 'referral'>(hasWatchedTrailer ? 'referral' : 'story');
 
   const handleDismissTrailer = () => {
-    // Mark trailer as watched so next visit defaults to referral
     localStorage.setItem(TRAILER_WATCHED_KEY, 'true');
     setActiveTab('referral');
   };
 
-  // Referral code for sharing
   const referralCode = user ? generateReferralCode(user.id) : '';
 
-  // Countdown timer for next attempt
   useEffect(() => {
     const timer = setInterval(() => {
       setCountdown(getTimeUntilMidnight());
@@ -104,33 +102,31 @@ const Home: React.FC = () => {
     { 
       id: 'questions', 
       value: '15', 
-      label: 'Questions',
-      description: 'Answer 15 trivia questions of increasing difficulty. Each correct answer moves you up the prize ladder. Get them all right to win the jackpot!'
+      label: t('home.questions'),
+      description: t('home.questions_desc')
     },
     { 
       id: 'lifelines', 
       value: '3', 
-      label: 'Lifelines',
-      description: 'You have 3 lifelines per run: 50/50 removes two wrong answers, Hint gives you a clue, and Chain Scan shows what the community answered.'
+      label: t('home.lifelines'),
+      description: t('home.lifelines_desc')
     },
     { 
       id: 'safehavens', 
       value: '2', 
-      label: 'Safe Havens',
-      description: 'Questions 5 and 10 are safe havens. If you answer wrong after reaching a safe haven, you keep the prize from that level instead of losing everything!'
+      label: t('home.safe_havens'),
+      description: t('home.safe_havens_desc')
     },
   ];
 
   return (
     <div className="min-h-screen gradient-hero flex flex-col">
-      {/* Share Modal */}
       <ShareModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         referralCode={referralCode}
       />
 
-      {/* Popup */}
       {activePopup && (
         <InfoPopup
           title={infoItems.find(i => i.id === activePopup)?.label || ''}
@@ -139,38 +135,34 @@ const Home: React.FC = () => {
         />
       )}
 
-      {/* Header */}
       <header className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
           <JackieIcon size={40} className="animate-float" />
           <div>
-            <h1 className="text-lg font-display font-bold text-foreground">Jackie Chain</h1>
-            <p className="text-xs text-muted-foreground">Millionaire</p>
+            <h1 className="text-lg font-display font-bold text-foreground">{t('app_name')}</h1>
+            <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
           </div>
         </div>
+        <LanguageSwitcher />
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col items-center justify-start px-4 pb-24 gap-5 overflow-y-auto">
-        {/* Hero Section */}
         <div className="text-center space-y-3 animate-fade-in">
           <div className="relative inline-block">
             <JackieIcon size={100} className="animate-float drop-shadow-lg" />
           </div>
           
           <h2 className="text-3xl font-display font-bold text-gradient-gold">
-            Win 1M $JC!
+            {t('home.win_jackpot')}
           </h2>
           <p className="text-muted-foreground max-w-xs mx-auto text-sm">
-            Answer 15 questions to climb the prize ladder. Use lifelines wisely!
+            {t('home.description')}
           </p>
         </div>
 
-        {/* Stats Cards */}
         <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-1">
           <UserBalance />
           
-          {/* Trailer Card - Show for first time visitors, right after balance */}
           {activeTab === 'story' ? (
             <TrailerCard 
               onDismiss={handleDismissTrailer} 
@@ -181,17 +173,15 @@ const Home: React.FC = () => {
           
           <PoolStats dayState={dayState} />
           
-          {/* Attempts and Invite Section */}
           {isVerified && attempts && (
             <div className="px-4 py-3 bg-card rounded-xl border border-border shadow-soft space-y-3">
-              {/* Attempts Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Zap className={cn(
                     'w-5 h-5',
                     attempts.remaining > 0 ? 'text-primary' : 'text-muted-foreground'
                   )} />
-                  <span className="text-sm font-medium text-muted-foreground">Plays Today</span>
+                  <span className="text-sm font-medium text-muted-foreground">{t('home.plays_today')}</span>
                 </div>
                 <span className={cn(
                   'text-lg font-bold',
@@ -201,15 +191,13 @@ const Home: React.FC = () => {
                 </span>
               </div>
 
-              {/* Earned from referrals indicator */}
               {attempts.earnedFromReferrals > 0 && (
                 <div className="flex items-center gap-1.5 text-xs text-success">
                   <Gift className="w-3.5 h-3.5" />
-                  <span className="font-medium">+{attempts.earnedFromReferrals} from referrals</span>
+                  <span className="font-medium">+{attempts.earnedFromReferrals} {t('home.from_referrals')}</span>
                 </div>
               )}
 
-              {/* Visual dots for attempts */}
               <div className="flex gap-1 flex-wrap">
                 {Array.from({ length: Math.min(attempts.cap, 10) }).map((_, i) => (
                   <div
@@ -222,14 +210,12 @@ const Home: React.FC = () => {
                 ))}
               </div>
 
-              {/* Invite Section - only show when referral tab is active */}
               {activeTab === 'referral' && (
                 <div className="border-t border-border pt-3 space-y-3">
                   <h3 className="text-center font-display font-bold text-lg text-foreground">
-                    Invite a friend = <span className="text-success">+1 extra play</span>
+                    {t('home.invite_friend')}
                   </h3>
                   
-                  {/* Referral Code Display */}
                   <div className="flex items-center gap-2 bg-secondary/50 rounded-lg p-2">
                     <span className="flex-1 text-center text-lg font-mono font-bold tracking-widest text-foreground">
                       {user ? generateReferralCode(user.id) : '--------'}
@@ -241,7 +227,7 @@ const Home: React.FC = () => {
                         const { getReferralDeeplink } = require('@/lib/worldShare');
                         const link = user ? getReferralDeeplink(generateReferralCode(user.id)) : '';
                         navigator.clipboard.writeText(link);
-                        toast.success('Invite link copied!');
+                        toast.success(t('home.copied'));
                       }}
                       className="h-8 w-8 p-0"
                     >
@@ -254,17 +240,15 @@ const Home: React.FC = () => {
                       className="gap-1.5"
                     >
                       <Share2 className="w-4 h-4" />
-                      Share
+                      {t('home.share')}
                     </Button>
                   </div>
                 </div>
               )}
-
             </div>
           )}
         </div>
 
-        {/* CTA Button */}
         <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-2">
           {!isVerified ? (
             <Button
@@ -274,7 +258,7 @@ const Home: React.FC = () => {
               onClick={() => navigate('/verify')}
             >
               <UserCheck className="w-6 h-6" />
-              Verify to Play
+              {t('home.verify_to_play')}
               <ChevronRight className="w-5 h-5" />
             </Button>
           ) : canPlay ? (
@@ -285,7 +269,7 @@ const Home: React.FC = () => {
               onClick={handleStartRun}
             >
               <Play className="w-6 h-6" />
-              Start Run
+              {t('home.start_run')}
               <ChevronRight className="w-5 h-5" />
             </Button>
           ) : (
@@ -296,12 +280,11 @@ const Home: React.FC = () => {
               disabled
             >
               <Clock className="w-5 h-5" />
-              Next play in {countdown}
+              {t('home.next_play_in')} {countdown}
             </Button>
           )}
         </div>
 
-        {/* Quick Stats - Clickable */}
         {isVerified && (
           <div className="flex gap-4 text-center animate-slide-up stagger-3">
             {infoItems.map((item) => (
@@ -317,16 +300,14 @@ const Home: React.FC = () => {
           </div>
         )}
 
-        {/* Mini Leaderboard */}
         <div className="w-full max-w-sm animate-slide-up stagger-4">
           <MiniLeaderboard />
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="px-4 py-3 text-center">
         <p className="text-xs text-muted-foreground">
-          Powered by World ID • Rewards on World Chain
+          {t('powered_by')}
         </p>
       </footer>
     </div>

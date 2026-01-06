@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { QuestionCard } from '@/components/game/QuestionCard';
 import { Lifelines } from '@/components/game/Lifelines';
@@ -68,6 +69,7 @@ const formatCountdown = (ms: number) => {
 
 const Game: React.FC = () => {
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
   const { state, fetchAttempts } = useGame();
   const { prizeLadder, isVerified, user, attempts } = state;
 
@@ -109,7 +111,8 @@ const Game: React.FC = () => {
   // Load questions from database on mount
   useEffect(() => {
     const loadQuestions = async () => {
-      const { questions: loadedQuestions, correctAnswers, error } = await fetchTodayQuestions();
+      const currentLang = (localStorage.getItem('jc_language') as 'en' | 'es') || 'en';
+      const { questions: loadedQuestions, correctAnswers, error } = await fetchTodayQuestions(currentLang);
       
       if (error || loadedQuestions.length === 0) {
         console.error('Failed to load questions:', error);
@@ -122,7 +125,7 @@ const Game: React.FC = () => {
       setCorrectAnswersMap(correctAnswers);
       setCurrentQuestion(loadedQuestions[0]);
       setQuestionsLoaded(true);
-      console.log(`Loaded ${loadedQuestions.length} questions for today's game`);
+      console.log(`Loaded ${loadedQuestions.length} questions for today's game in ${currentLang}`);
     };
 
     loadQuestions();
