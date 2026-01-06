@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
 import { WorldIdIcon, WorldIdBadge, PoweredByWorldId } from '@/components/icons/WorldIdIcon';
+import { NotificationSubscription } from '@/components/NotificationSubscription';
 import { useGame } from '@/contexts/GameContext';
 import { ArrowLeft, CheckCircle, Loader2, AlertCircle, Gift } from 'lucide-react';
 import { persistUser } from '@/lib/userService';
@@ -16,6 +17,7 @@ const Verify: React.FC = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const verificationLevel: 'device' | 'orb' = 'device';
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [inWorldApp, setInWorldApp] = useState(false);
   const [isCheckingEnv, setIsCheckingEnv] = useState(true);
 
@@ -80,10 +82,21 @@ const Verify: React.FC = () => {
       dispatch({ type: 'SET_USER', payload: user });
       setIsSuccess(true);
       
-      // Navigate to home after short delay
-      setTimeout(() => {
-        navigate('/');
-      }, 1500);
+      // Check if user already has notifications enabled or skipped
+      const notificationsEnabled = localStorage.getItem('jc_notifications_enabled');
+      const notificationsSkipped = localStorage.getItem('jc_notifications_skipped');
+      
+      if (!notificationsEnabled && !notificationsSkipped) {
+        // Show notification prompt after a brief delay
+        setTimeout(() => {
+          setShowNotificationPrompt(true);
+        }, 1500);
+      } else {
+        // Navigate to home after short delay
+        setTimeout(() => {
+          navigate('/');
+        }, 1500);
+      }
       
     } catch (error) {
       console.error('Verification failed:', error);
@@ -92,19 +105,36 @@ const Verify: React.FC = () => {
     }
   };
 
+  const handleNotificationComplete = () => {
+    navigate('/');
+  };
+
+  const handleNotificationSkip = () => {
+    navigate('/');
+  };
+
   if (isSuccess) {
     return (
       <div className="min-h-screen gradient-hero flex flex-col items-center justify-center px-4">
-        <div className="text-center space-y-6 animate-bounce-in">
-          <div className="relative inline-block">
-            <div className="w-24 h-24 rounded-full gradient-success flex items-center justify-center shadow-glow">
-              <CheckCircle className="w-12 h-12 text-success-foreground" />
-            </div>
+        {showNotificationPrompt ? (
+          <div className="w-full max-w-sm animate-fade-in">
+            <NotificationSubscription
+              onComplete={handleNotificationComplete}
+              onSkip={handleNotificationSkip}
+            />
           </div>
-          <h2 className="text-2xl font-display font-bold text-foreground">Verified!</h2>
-          <WorldIdBadge />
-          <p className="text-muted-foreground">Welcome to Jackie Chain: Millionaire</p>
-        </div>
+        ) : (
+          <div className="text-center space-y-6 animate-bounce-in">
+            <div className="relative inline-block">
+              <div className="w-24 h-24 rounded-full gradient-success flex items-center justify-center shadow-glow">
+                <CheckCircle className="w-12 h-12 text-success-foreground" />
+              </div>
+            </div>
+            <h2 className="text-2xl font-display font-bold text-foreground">Verified!</h2>
+            <WorldIdBadge />
+            <p className="text-muted-foreground">Welcome to Jackie Chain: Millionaire</p>
+          </div>
+        )}
       </div>
     );
   }
