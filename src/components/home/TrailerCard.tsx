@@ -8,7 +8,7 @@ interface TrailerCardProps {
   onTabChange: (tab: 'story' | 'referral') => void;
 }
 
-const YOUTUBE_VIDEO_ID = 'zn09NIJB92k';
+const YOUTUBE_VIDEO_ID = 'GVCSKeS-GfI';
 
 export const TrailerCard: React.FC<TrailerCardProps> = ({ onDismiss, activeTab, onTabChange }) => {
   const [isPlaying, setIsPlaying] = useState(false);
