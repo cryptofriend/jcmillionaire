@@ -22,9 +22,6 @@ export const TrailerCard: React.FC<TrailerCardProps> = ({ onDismiss, activeTab, 
         <h3 className="font-display font-bold text-lg text-foreground">
           🎬 Watch the Trailer!
         </h3>
-        <p className="text-xs text-muted-foreground">
-          See how Jackie Chain works
-        </p>
       </div>
 
       {/* Video Container - 9:16 aspect ratio for Shorts */}
