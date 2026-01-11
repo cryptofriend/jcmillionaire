@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Bell, BellOff, Check, Loader2 } from 'lucide-react';
-import { MiniKit } from '@worldcoin/minikit-js';
+import { MiniKit, Permission, RequestPermissionPayload } from '@worldcoin/minikit-js';
 import { toast } from 'sonner';
 
 type NotificationStatus = 'idle' | 'loading' | 'granted' | 'denied';
@@ -11,15 +11,6 @@ interface NotificationSubscriptionProps {
   onSkip?: () => void;
   className?: string;
 }
-
-// Permission type for MiniKit
-const Permission = {
-  Notifications: 'notifications' as const,
-};
-
-type RequestPermissionPayload = {
-  permission: 'notifications';
-};
 
 export const NotificationSubscription: React.FC<NotificationSubscriptionProps> = ({
   onComplete,
@@ -41,12 +32,12 @@ export const NotificationSubscription: React.FC<NotificationSubscriptionProps> =
         permission: Permission.Notifications,
       };
 
-      // Use the async command API
-      const payload = await (MiniKit as any).commandsAsync.requestPermission(requestPermissionPayload);
+      // Use the async command API with proper typing
+      const { finalPayload } = await MiniKit.commandsAsync.requestPermission(requestPermissionPayload);
 
-      console.log('Permission response:', payload);
+      console.log('Permission response:', finalPayload);
 
-      if (payload.status === 'success') {
+      if (finalPayload.status === 'success') {
         setStatus('granted');
         toast.success('Notifications enabled! We\'ll keep you updated.');
         
@@ -58,7 +49,7 @@ export const NotificationSubscription: React.FC<NotificationSubscriptionProps> =
         }, 1000);
       } else {
         // Handle various error codes
-        const errorCode = payload.error_code || 'unknown';
+        const errorCode = finalPayload.error_code || 'unknown';
         
         if (errorCode === 'already_granted') {
           setStatus('granted');
@@ -73,7 +64,7 @@ export const NotificationSubscription: React.FC<NotificationSubscriptionProps> =
         } else {
           setStatus('idle');
           toast.error('Could not enable notifications. Please try again.');
-          console.error('Permission error:', errorCode);
+          console.error('Permission error:', errorCode, finalPayload);
         }
       }
     } catch (error) {
