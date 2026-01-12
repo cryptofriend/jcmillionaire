@@ -152,10 +152,10 @@ const Home: React.FC = () => {
             href="https://x.com/iamjackiechain"
             target="_blank"
             rel="noopener noreferrer"
-            className="relative inline-block cursor-pointer active:scale-95 transition-transform"
+            className="relative inline-block cursor-pointer active:scale-95 transition-all duration-300 hover:drop-shadow-[0_0_20px_hsl(var(--primary)/0.6)] hover:scale-105"
             aria-label="Follow us on X"
           >
-            <JackieIcon size={100} className="animate-float drop-shadow-lg" />
+            <JackieIcon size={100} className="animate-float drop-shadow-lg transition-all duration-300" />
           </a>
           
           <h2 className="text-3xl font-display font-bold text-gradient-gold">
