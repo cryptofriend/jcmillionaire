@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { useGame } from '@/contexts/GameContext';
-import { Play, ChevronRight, UserCheck, Clock, Zap } from 'lucide-react';
+import { Play, ChevronRight, UserCheck, Clock, Gift, Check } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { generateReferralCode } from '@/lib/referralService';
+import { inviteFriends } from '@/lib/worldShare';
+import { toast } from '@/hooks/use-toast';
 
 interface PlayButtonProps {
   onOpenShareModal: () => void;
@@ -27,8 +31,10 @@ export const PlayButton: React.FC<PlayButtonProps> = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { state } = useGame();
-  const { isVerified, attempts } = state;
+  const { isVerified, attempts, user } = state;
   const [countdown, setCountdown] = React.useState(getTimeUntilMidnight());
+  const [showReferralDialog, setShowReferralDialog] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
 
   React.useEffect(() => {
     const timer = setInterval(() => {
@@ -38,6 +44,7 @@ export const PlayButton: React.FC<PlayButtonProps> = () => {
   }, []);
 
   const canPlay = isVerified && (attempts?.remaining || 0) > 0;
+  const referralCode = user ? generateReferralCode(user.id) : '';
 
   const handleStartRun = () => {
     if (!isVerified) {
@@ -46,6 +53,18 @@ export const PlayButton: React.FC<PlayButtonProps> = () => {
     }
     if (canPlay) {
       navigate('/game');
+    }
+  };
+
+  const handleShareReferral = async () => {
+    const result = await inviteFriends(referralCode);
+    if (result.success) {
+      setCopied(true);
+      toast({
+        title: t('referral.link_copied'),
+        description: t('referral.share_description'),
+      });
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
@@ -65,50 +84,70 @@ export const PlayButton: React.FC<PlayButtonProps> = () => {
     );
   }
 
-  // Can play - show play button with plays info
+  // Can play - show play button
   if (canPlay) {
     return (
-      <div className="w-full space-y-3">
-        <div className="bg-card rounded-xl border border-border shadow-soft px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-              <Play className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <div className="text-left">
-              <p className="font-display font-bold text-foreground">{t('home.start_run')}</p>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Zap className="w-3 h-3 text-primary" />
-                <span>{attempts?.remaining} / {attempts?.cap} {t('home.plays_today')}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Play Now Button */}
-        <Button
-          variant="gold"
-          size="lg"
-          className="w-full animate-pulse-gold"
-          onClick={handleStartRun}
-        >
-          <Play className="w-5 h-5" />
-          {t('home.play_now')}
-          <ChevronRight className="w-4 h-4" />
-        </Button>
-      </div>
+      <Button
+        variant="gold"
+        size="lg"
+        className="w-full animate-pulse-gold"
+        onClick={handleStartRun}
+      >
+        <Play className="w-5 h-5" />
+        {t('home.play_now')}
+        <ChevronRight className="w-4 h-4" />
+      </Button>
     );
   }
 
-  // No plays remaining - show countdown
+  // No plays remaining - show countdown with referral popup on click
   return (
-    <Button
-      variant="outline"
-      size="xl"
-      className="w-full opacity-60 cursor-not-allowed"
-      disabled
-    >
-      <Clock className="w-5 h-5" />
-      {t('home.next_play_in')} {countdown}
-    </Button>
+    <>
+      <Button
+        variant="outline"
+        size="xl"
+        className="w-full opacity-80 cursor-pointer hover:opacity-100 transition-opacity"
+        onClick={() => setShowReferralDialog(true)}
+      >
+        <Clock className="w-5 h-5" />
+        {t('home.next_play_in')} {countdown}
+      </Button>
+
+      <Dialog open={showReferralDialog} onOpenChange={setShowReferralDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 justify-center">
+              <Gift className="w-5 h-5 text-primary" />
+              {t('referral.get_extra_play')}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 text-center py-4">
+            <p className="text-muted-foreground">
+              {t('referral.invite_friend_extra_play')}
+            </p>
+            
+            <Button
+              variant="gold"
+              size="lg"
+              className="w-full"
+              onClick={handleShareReferral}
+            >
+              {copied ? (
+                <>
+                  <Check className="w-5 h-5" />
+                  {t('referral.copied')}
+                </>
+              ) : (
+                <>
+                  <Gift className="w-5 h-5" />
+                  {t('referral.share_invite')}
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
