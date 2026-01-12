@@ -5,10 +5,10 @@ import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { formatJC } from '@/lib/rewardsService';
 import { supabase } from '@/integrations/supabase/client';
 import { useGame } from '@/contexts/GameContext';
-import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket, Users, Gamepad2, TrendingUp, TrendingDown, Minus, MessageCircle, ClipboardCopy } from 'lucide-react';
+import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket, Users, Gamepad2, TrendingUp, TrendingDown, Minus, MessageCircle, ClipboardCopy, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MiniKit } from '@worldcoin/minikit-js';
-import { getWorldChatDeeplinkUrl } from '@/lib/worldShare';
+import { getWorldChatDeeplinkUrl, shareViaWorldApp, shareViaNative, getGameDeeplink } from '@/lib/worldShare';
 import { isInWorldApp } from '@/lib/minikit';
 import { toast } from 'sonner';
 
@@ -476,17 +476,50 @@ const Leaderboard: React.FC = () => {
                 <Gamepad2 className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium">{userStats.games}</span>
                 <span className="text-muted-foreground">games</span>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground">Balance</p>
-              <p className="text-lg font-bold text-gradient-gold">{userBalance.toLocaleString()} JC</p>
-            </div>
+              </div>
               <div className="flex items-center gap-1.5 text-sm">
                 <CoinIcon size={16} />
                 <span className="font-medium">{userBalance.toLocaleString()}</span>
                 <span className="text-muted-foreground">JC</span>
               </div>
             </div>
+            {/* Share Rank Button */}
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full mt-2"
+              onClick={async () => {
+                const shareText = `🏆 I'm ranked #${userRank} on Jackie Chain: Millionaire with ${userBalance.toLocaleString()} $JC tokens!\n\nThink you can beat me? 👇`;
+                const gameUrl = getGameDeeplink('/leaderboard');
+                
+                if (isInWorldApp()) {
+                  const result = await shareViaWorldApp({
+                    title: 'Jackie Chain: Millionaire',
+                    text: shareText,
+                    url: gameUrl,
+                  });
+                  if (result.success) {
+                    toast.success('Shared successfully!');
+                    return;
+                  }
+                }
+                
+                // Fallback to native share
+                const result = await shareViaNative({
+                  title: 'Jackie Chain: Millionaire',
+                  text: shareText,
+                  url: gameUrl,
+                });
+                if (result.success) {
+                  toast.success('Shared successfully!');
+                } else if (result.error !== 'Share cancelled') {
+                  toast.error('Could not share');
+                }
+              }}
+            >
+              <Share2 className="w-4 h-4 mr-2" />
+              Share my rank
+            </Button>
           </div>
         </div>
       )}
