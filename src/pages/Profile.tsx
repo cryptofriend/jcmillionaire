@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
@@ -45,6 +46,7 @@ interface UserStats {
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const { state, dispatch, fetchAttempts, isAdmin } = useGame();
   const { user, attempts, isVerified } = state;
@@ -276,7 +278,7 @@ const Profile: React.FC = () => {
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="flex-1 text-center font-display font-bold">Profile</h1>
+        <h1 className="flex-1 text-center font-display font-bold">{t('profile.title')}</h1>
         <div className="flex items-center gap-1">
           {isAdmin && (
             <>
@@ -334,12 +336,12 @@ const Profile: React.FC = () => {
             {userStats.currentStreak > 0 && (
               <div className="flex items-center gap-1 mt-2">
                 <Flame className="w-4 h-4 text-accent" />
-                <span className="text-xs text-accent font-medium">{userStats.currentStreak} day streak</span>
+                <span className="text-xs text-accent font-medium">{t('profile.day_streak', { count: userStats.currentStreak })}</span>
               </div>
             )}
           </div>
           <div className="text-right">
-            <p className="text-sm text-muted-foreground">Total Earned</p>
+            <p className="text-sm text-muted-foreground">{t('profile.total_earned')}</p>
             <div className="flex items-center gap-1 justify-end">
               <CoinIcon size={20} />
               <span className="text-lg font-bold">{formatJC(userStats.totalEarned)}</span>
@@ -358,15 +360,15 @@ const Profile: React.FC = () => {
         <TabsList className="grid grid-cols-3 mx-4">
           <TabsTrigger value="stats" className="gap-1">
             <Trophy className="w-4 h-4" />
-            Stats
+            {t('profile.stats')}
           </TabsTrigger>
           <TabsTrigger value="history" className="gap-1">
             <History className="w-4 h-4" />
-            History
+            {t('profile.history')}
           </TabsTrigger>
           <TabsTrigger value="referrals" className="gap-1">
             <Users className="w-4 h-4" />
-            Referrals
+            {t('profile.referrals')}
           </TabsTrigger>
         </TabsList>
 
@@ -374,33 +376,33 @@ const Profile: React.FC = () => {
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-card rounded-xl p-4 border border-border shadow-soft">
               <p className="text-3xl font-display font-bold text-primary">{userStats.totalRuns}</p>
-              <p className="text-sm text-muted-foreground">Total Runs</p>
+              <p className="text-sm text-muted-foreground">{t('profile.total_runs')}</p>
             </div>
             <div className="bg-card rounded-xl p-4 border border-border shadow-soft">
               <p className="text-3xl font-display font-bold text-primary">{userStats.bestQuestion}</p>
-              <p className="text-sm text-muted-foreground">Best Question</p>
+              <p className="text-sm text-muted-foreground">{t('profile.best_question')}</p>
             </div>
             <div className="bg-card rounded-xl p-4 border border-border shadow-soft">
               <p className="text-3xl font-display font-bold text-success">{completedReferrals}</p>
-              <p className="text-sm text-muted-foreground">Referrals</p>
+              <p className="text-sm text-muted-foreground">{t('profile.referrals')}</p>
             </div>
             <div className="bg-card rounded-xl p-4 border border-border shadow-soft">
               <div className="flex items-center gap-1">
                 <CoinIcon size={24} />
                 <p className="text-2xl font-display font-bold">{formatJC(userStats.bestWin)}</p>
               </div>
-              <p className="text-sm text-muted-foreground">Best Win</p>
+              <p className="text-sm text-muted-foreground">{t('profile.best_win')}</p>
             </div>
             <div className="bg-card rounded-xl p-4 border border-border shadow-soft">
               <div className="flex items-center gap-1">
                 <Flame className="w-6 h-6 text-accent" />
                 <p className="text-2xl font-display font-bold">{userStats.currentStreak}</p>
               </div>
-              <p className="text-sm text-muted-foreground">Current Streak</p>
+              <p className="text-sm text-muted-foreground">{t('profile.current_streak')}</p>
             </div>
             <div className="bg-card rounded-xl p-4 border border-border shadow-soft">
               <p className="text-3xl font-display font-bold text-accent">{userStats.longestStreak}</p>
-              <p className="text-sm text-muted-foreground">Longest Streak</p>
+              <p className="text-sm text-muted-foreground">{t('profile.longest_streak')}</p>
             </div>
           </div>
         </TabsContent>

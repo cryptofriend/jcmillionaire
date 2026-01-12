@@ -57,6 +57,13 @@ export const resources = {
         share_now: 'Share Now',
         skip_share: 'Skip',
         sharing: 'Sharing...',
+        question_complete: 'Question {{number}} complete!',
+        safe_haven: 'Safe Haven!',
+        safe_haven_note: "This is a safe haven! If you lose later, you'll keep this amount.",
+        claim_or_continue: 'Claim now to secure your prize, or keep going for more!',
+        claim: 'Claim',
+        keep_going: 'Keep Going',
+        your_progress: 'Your Progress',
       },
 
       // Lifelines
@@ -86,6 +93,14 @@ export const resources = {
         days: 'days',
         total_runs: 'Total Runs',
         best_streak: 'Best Streak',
+        best_question: 'Best Question',
+        referrals: 'Referrals',
+        best_win: 'Best Win',
+        longest_streak: 'Longest Streak',
+        day_streak: '{{count}} day streak',
+        verified_world_id: 'Verified with World ID',
+        stats: 'Stats',
+        history: 'History',
       },
 
       // Leaderboard
@@ -96,6 +111,15 @@ export const resources = {
         earnings: 'Earnings',
         you: 'You',
         share_rank: 'Share my rank',
+        your_rank: 'Your Rank',
+        airdrop_in: '$JC Airdrop in',
+        airdrop_distribution: 'airdrop distribution will be based on your leaderboard position',
+        days: 'days',
+        hrs: 'hrs',
+        min: 'min',
+        sec: 'sec',
+        invited: 'invited',
+        games: 'games',
       },
 
       // Verification
@@ -181,6 +205,13 @@ export const resources = {
         share_now: 'Compartir Ahora',
         skip_share: 'Omitir',
         sharing: 'Compartiendo...',
+        question_complete: '¡Pregunta {{number}} completada!',
+        safe_haven: '¡Refugio Seguro!',
+        safe_haven_note: '¡Este es un refugio seguro! Si pierdes después, conservarás esta cantidad.',
+        claim_or_continue: '¡Reclama ahora para asegurar tu premio, o sigue adelante por más!',
+        claim: 'Reclamar',
+        keep_going: 'Seguir Adelante',
+        your_progress: 'Tu Progreso',
       },
 
       // Lifelines
@@ -210,6 +241,14 @@ export const resources = {
         days: 'días',
         total_runs: 'Total de Juegos',
         best_streak: 'Mejor Racha',
+        best_question: 'Mejor Pregunta',
+        referrals: 'Referencias',
+        best_win: 'Mejor Victoria',
+        longest_streak: 'Racha Más Larga',
+        day_streak: 'Racha de {{count}} días',
+        verified_world_id: 'Verificado con World ID',
+        stats: 'Estadísticas',
+        history: 'Historial',
       },
 
       // Leaderboard
@@ -220,6 +259,15 @@ export const resources = {
         earnings: 'Ganancias',
         you: 'Tú',
         share_rank: 'Compartir mi posición',
+        your_rank: 'Tu Posición',
+        airdrop_in: 'Airdrop $JC en',
+        airdrop_distribution: 'la distribución del airdrop se basará en tu posición en el ranking',
+        days: 'días',
+        hrs: 'hrs',
+        min: 'min',
+        sec: 'seg',
+        invited: 'invitados',
+        games: 'juegos',
       },
 
       // Verification
@@ -305,6 +353,13 @@ export const resources = {
         share_now: 'แชร์เลย',
         skip_share: 'ข้าม',
         sharing: 'กำลังแชร์...',
+        question_complete: 'คำถามที่ {{number}} เสร็จสิ้น!',
+        safe_haven: 'จุดปลอดภัย!',
+        safe_haven_note: 'นี่คือจุดปลอดภัย! ถ้าแพ้ทีหลัง คุณจะเก็บจำนวนนี้ไว้ได้',
+        claim_or_continue: 'รับเลยเพื่อรับรางวัล หรือเล่นต่อเพื่อรางวัลมากขึ้น!',
+        claim: 'รับ',
+        keep_going: 'เล่นต่อ',
+        your_progress: 'ความคืบหน้าของคุณ',
       },
 
       // Lifelines
@@ -334,6 +389,14 @@ export const resources = {
         days: 'วัน',
         total_runs: 'รอบเล่นทั้งหมด',
         best_streak: 'สตรีคที่ดีที่สุด',
+        best_question: 'คำถามที่ดีที่สุด',
+        referrals: 'การเชิญ',
+        best_win: 'ชนะสูงสุด',
+        longest_streak: 'สตรีคยาวที่สุด',
+        day_streak: 'สตรีค {{count}} วัน',
+        verified_world_id: 'ยืนยันด้วย World ID',
+        stats: 'สถิติ',
+        history: 'ประวัติ',
       },
 
       // Leaderboard
@@ -344,6 +407,15 @@ export const resources = {
         earnings: 'รายได้',
         you: 'คุณ',
         share_rank: 'แชร์อันดับ',
+        your_rank: 'อันดับของคุณ',
+        airdrop_in: 'Airdrop $JC ใน',
+        airdrop_distribution: 'การแจก airdrop จะขึ้นอยู่กับอันดับของคุณ',
+        days: 'วัน',
+        hrs: 'ชม.',
+        min: 'นาที',
+        sec: 'วิ',
+        invited: 'เชิญแล้ว',
+        games: 'เกม',
       },
 
       // Verification
@@ -429,6 +501,13 @@ export const resources = {
         share_now: 'अभी शेयर करें',
         skip_share: 'छोड़ें',
         sharing: 'शेयर हो रहा है...',
+        question_complete: 'प्रश्न {{number}} पूरा!',
+        safe_haven: 'सुरक्षित ठिकाना!',
+        safe_haven_note: 'यह एक सुरक्षित ठिकाना है! अगर बाद में हारते हैं, तो यह राशि रखेंगे।',
+        claim_or_continue: 'अभी लें अपना इनाम सुरक्षित करने के लिए, या और जीतने के लिए आगे बढ़ें!',
+        claim: 'लें',
+        keep_going: 'आगे बढ़ें',
+        your_progress: 'आपकी प्रगति',
       },
 
       // Lifelines
@@ -458,6 +537,14 @@ export const resources = {
         days: 'दिन',
         total_runs: 'कुल राउंड',
         best_streak: 'सर्वश्रेष्ठ स्ट्रीक',
+        best_question: 'सर्वश्रेष्ठ प्रश्न',
+        referrals: 'रेफरल',
+        best_win: 'सर्वश्रेष्ठ जीत',
+        longest_streak: 'सबसे लंबी स्ट्रीक',
+        day_streak: '{{count}} दिन स्ट्रीक',
+        verified_world_id: 'World ID से सत्यापित',
+        stats: 'आंकड़े',
+        history: 'इतिहास',
       },
 
       // Leaderboard
@@ -468,6 +555,15 @@ export const resources = {
         earnings: 'कमाई',
         you: 'आप',
         share_rank: 'मेरी रैंक शेयर करें',
+        your_rank: 'आपकी रैंक',
+        airdrop_in: '$JC Airdrop में',
+        airdrop_distribution: 'airdrop वितरण आपकी लीडरबोर्ड स्थिति पर आधारित होगा',
+        days: 'दिन',
+        hrs: 'घंटे',
+        min: 'मिनट',
+        sec: 'सेकंड',
+        invited: 'आमंत्रित',
+        games: 'खेल',
       },
 
       // Verification
@@ -553,6 +649,13 @@ export const resources = {
         share_now: 'Bagikan Sekarang',
         skip_share: 'Lewati',
         sharing: 'Membagikan...',
+        question_complete: 'Pertanyaan {{number}} selesai!',
+        safe_haven: 'Zona Aman!',
+        safe_haven_note: 'Ini adalah zona aman! Jika kalah nanti, Anda akan menyimpan jumlah ini.',
+        claim_or_continue: 'Klaim sekarang untuk amankan hadiah, atau lanjutkan untuk lebih banyak!',
+        claim: 'Klaim',
+        keep_going: 'Lanjutkan',
+        your_progress: 'Progres Anda',
       },
 
       // Lifelines
@@ -582,6 +685,14 @@ export const resources = {
         days: 'hari',
         total_runs: 'Total Ronde',
         best_streak: 'Streak Terbaik',
+        best_question: 'Pertanyaan Terbaik',
+        referrals: 'Referral',
+        best_win: 'Kemenangan Terbaik',
+        longest_streak: 'Streak Terpanjang',
+        day_streak: 'Streak {{count}} hari',
+        verified_world_id: 'Terverifikasi dengan World ID',
+        stats: 'Statistik',
+        history: 'Riwayat',
       },
 
       // Leaderboard
@@ -592,6 +703,15 @@ export const resources = {
         earnings: 'Penghasilan',
         you: 'Anda',
         share_rank: 'Bagikan peringkat saya',
+        your_rank: 'Peringkat Anda',
+        airdrop_in: 'Airdrop $JC dalam',
+        airdrop_distribution: 'distribusi airdrop akan berdasarkan posisi papan peringkat Anda',
+        days: 'hari',
+        hrs: 'jam',
+        min: 'menit',
+        sec: 'detik',
+        invited: 'diundang',
+        games: 'permainan',
       },
 
       // Verification
