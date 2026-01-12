@@ -79,8 +79,9 @@ export const UserBalance: React.FC<UserBalanceProps> = ({ className }) => {
   }, [leaderboardPos?.isLeader, isExpanded]);
 
   const handleCardClick = () => {
-    if (!isExpanded) {
-      setIsExpanded(true);
+    setIsExpanded(!isExpanded);
+    if (isExpanded) {
+      setProgressAnimated(false);
     }
   };
 
