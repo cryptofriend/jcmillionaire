@@ -5,6 +5,7 @@ import { getUserBalance, formatJC, getUserLeaderboardPosition, LeaderboardPositi
 import { useGame } from '@/contexts/GameContext';
 import { cn } from '@/lib/utils';
 import { CoinIcon } from '@/components/icons/JackieIcon';
+import { hapticTap } from '@/lib/haptics';
 
 interface UserBalanceProps {
   className?: string;
@@ -89,6 +90,7 @@ export const UserBalance: React.FC<UserBalanceProps> = ({ className }) => {
   }, [leaderboardPos?.isLeader, isExpanded]);
 
   const handleCardClick = () => {
+    hapticTap();
     setIsExpanded(!isExpanded);
     if (isExpanded) {
       setProgressAnimated(false);
