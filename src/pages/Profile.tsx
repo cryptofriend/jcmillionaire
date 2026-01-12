@@ -353,10 +353,6 @@ const Profile: React.FC = () => {
         </div>
       </div>
 
-      {/* Today's Stats */}
-      <div className="px-4 py-4">
-        <AttemptsDisplay attempts={attempts} />
-      </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
