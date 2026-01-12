@@ -610,6 +610,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_create_run: { Args: { p_user_id: string }; Returns: boolean }
       get_or_create_day_state: {
         Args: { p_day_id: string }
         Returns: {
