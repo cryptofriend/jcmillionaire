@@ -42,7 +42,10 @@ export function getWorldChatDeeplinkUrl({
     path += `?message=${message}`;
   }
 
-  return `https://world.org/mini-app?app_id=${WORLD_CHAT_APP_ID}&path=${encodeWorldAppPath(path)}`;
+  // Use standard encodeURIComponent as per World App docs
+  // The entire path should be encoded for World Chat deeplinks
+  const encodedPath = encodeURIComponent(path);
+  return `https://worldcoin.org/mini-app?app_id=${WORLD_CHAT_APP_ID}&path=${encodedPath}`;
 }
 
 /**
