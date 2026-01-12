@@ -72,7 +72,7 @@ const formatCountdown = (ms: number) => {
 
 const Game: React.FC = () => {
   const navigate = useNavigate();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { state, fetchAttempts } = useGame();
   const { prizeLadder, isVerified, user, attempts } = state;
 
@@ -839,10 +839,10 @@ const Game: React.FC = () => {
               <JackieIcon size={80} className="animate-float" />
             </div>
             <AlertDialogTitle className="text-center text-2xl font-display">
-              {isSafeHavenQuestion ? '🏆 Safe Haven!' : '✅ Correct!'}
+              {isSafeHavenQuestion ? `🏆 ${t('game.safe_haven')}` : `✅ ${t('game.correct')}`}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center space-y-4">
-              <p>Question {currentQuestionIndex + 1} complete!</p>
+              <p>{t('game.question_complete', { number: currentQuestionIndex + 1 })}</p>
               <div className="flex items-center justify-center gap-2 py-4 px-6 bg-card rounded-2xl border border-border shadow-card mx-auto">
                 <CoinIcon size={32} />
                 <span className="text-2xl font-display font-bold text-gradient-gold">
@@ -851,11 +851,11 @@ const Game: React.FC = () => {
               </div>
               {isSafeHavenQuestion ? (
                 <p className="text-sm text-primary font-medium">
-                  This is a safe haven! If you lose later, you'll keep this amount.
+                  {t('game.safe_haven_note')}
                 </p>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Claim now to secure your prize, or keep going for more!
+                  {t('game.claim_or_continue')}
                 </p>
               )}
             </AlertDialogDescription>
@@ -868,7 +868,7 @@ const Game: React.FC = () => {
               onClick={handleClaimNow}
             >
               <HandCoins className="w-5 h-5" />
-              Claim {formatJC(earnedAmount)} JC
+              {t('game.claim')} {formatJC(earnedAmount)} JC
             </Button>
             <Button
               variant="outline"
@@ -877,7 +877,7 @@ const Game: React.FC = () => {
               onClick={handleKeepGoing}
             >
               <Rocket className="w-5 h-5" />
-              Keep Going
+              {t('game.keep_going')}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -888,10 +888,10 @@ const Game: React.FC = () => {
         <AlertDialogContent className="max-w-sm max-h-[90vh] overflow-hidden">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-center text-xl font-display">
-              Your Progress
+              {t('game.your_progress')}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center text-sm">
-              Question {currentQuestionIndex + 1} of 15 complete!
+              {t('game.question_complete', { number: currentQuestionIndex + 1 })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           

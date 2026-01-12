@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { formatJC } from '@/lib/rewardsService';
@@ -40,6 +41,7 @@ interface LeaderboardEntry {
 
 const Leaderboard: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { state, isAdmin } = useGame();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
