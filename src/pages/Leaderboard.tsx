@@ -5,7 +5,7 @@ import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { formatJC } from '@/lib/rewardsService';
 import { supabase } from '@/integrations/supabase/client';
 import { useGame } from '@/contexts/GameContext';
-import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket, Users, Gamepad2, TrendingUp, TrendingDown, Minus, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket, Users, Gamepad2, TrendingUp, TrendingDown, Minus, MessageCircle, ClipboardCopy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { getWorldChatDeeplinkUrl } from '@/lib/worldShare';
@@ -40,7 +40,7 @@ interface LeaderboardEntry {
 
 const Leaderboard: React.FC = () => {
   const navigate = useNavigate();
-  const { state } = useGame();
+  const { state, isAdmin } = useGame();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRank, setUserRank] = useState<number | null>(null);
@@ -312,6 +312,42 @@ const Leaderboard: React.FC = () => {
     window.location.href = chatUrl;
   };
 
+  const handleCopyLogs = () => {
+    const debugInfo = {
+      timestamp: new Date().toISOString(),
+      user: {
+        id: state.user?.id,
+        username: state.user?.username,
+        verificationLevel: state.user?.verificationLevel,
+      },
+      gameState: {
+        isVerified: state.isVerified,
+        currentQuestion: state.currentQuestion?.id,
+        attempts: state.attempts,
+      },
+      leaderboard: {
+        totalEntries: entries.length,
+        userRank,
+        userBalance,
+        userStats,
+        top10: entries.slice(0, 10).map(e => ({
+          rank: e.rank,
+          username: e.username,
+          total_claimed: e.total_claimed,
+          games_played: e.games_played,
+        })),
+      },
+      environment: {
+        inWorldApp: isInWorldApp(),
+        userAgent: navigator.userAgent,
+      },
+    };
+
+    navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2))
+      .then(() => toast.success('Debug logs copied to clipboard!'))
+      .catch(() => toast.error('Failed to copy logs'));
+  };
+
   return (
     <div className="min-h-screen gradient-hero flex flex-col">
       {/* Header */}
@@ -323,10 +359,20 @@ const Leaderboard: React.FC = () => {
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1">
           <Trophy className="w-6 h-6 text-primary" />
           <h1 className="text-xl font-display font-bold">Leaderboard</h1>
         </div>
+        {isAdmin && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleCopyLogs}
+            title="Copy debug logs"
+          >
+            <ClipboardCopy className="w-5 h-5 text-muted-foreground" />
+          </Button>
+        )}
       </header>
 
       {/* Airdrop Countdown Hero */}
