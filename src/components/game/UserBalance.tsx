@@ -13,11 +13,13 @@ interface UserBalanceProps {
 export const UserBalance: React.FC<UserBalanceProps> = ({ className }) => {
   const { state } = useGame();
   const [balance, setBalance] = useState<number>(0);
+  const [prevBalance, setPrevBalance] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
   const [leaderboardPos, setLeaderboardPos] = useState<LeaderboardPosition | null>(null);
   const [progressAnimated, setProgressAnimated] = useState(false);
   const [showCrownAnimation, setShowCrownAnimation] = useState(false);
+  const [showCoinShimmer, setShowCoinShimmer] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,6 +30,14 @@ export const UserBalance: React.FC<UserBalanceProps> = ({ className }) => {
           getUserBalance(state.user.id),
           getUserLeaderboardPosition(state.user.id),
         ]);
+        
+        // Detect balance increase and trigger shimmer
+        if (!loading && userBalance > balance) {
+          setShowCoinShimmer(true);
+          setTimeout(() => setShowCoinShimmer(false), 1000);
+        }
+        
+        setPrevBalance(balance);
         setBalance(userBalance);
         setLeaderboardPos(position);
         setLoading(false);
@@ -116,6 +126,7 @@ export const UserBalance: React.FC<UserBalanceProps> = ({ className }) => {
         className="flex items-center gap-2 px-4 py-3"
       >
         <motion.div
+          className="relative"
           animate={{ 
             scale: isExpanded ? 1.1 : 1,
             rotate: isExpanded ? [0, -10, 10, 0] : 0,
@@ -123,6 +134,24 @@ export const UserBalance: React.FC<UserBalanceProps> = ({ className }) => {
           transition={{ duration: 0.3 }}
         >
           <CoinIcon size={24} className="drop-shadow-sm" />
+          
+          {/* Shimmer overlay on balance increase */}
+          <AnimatePresence>
+            {showCoinShimmer && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ 
+                  opacity: [0, 1, 1, 0],
+                  scale: [0.8, 1.2, 1.4, 1.6],
+                }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1, ease: 'easeOut' }}
+                className="absolute inset-0 flex items-center justify-center pointer-events-none"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-yellow-400/60 via-white/80 to-yellow-400/60 blur-sm" />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
         <div className="flex-1">
           <p className="text-xs text-muted-foreground">Your Balance</p>
