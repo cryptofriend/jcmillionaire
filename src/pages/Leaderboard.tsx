@@ -5,9 +5,12 @@ import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { formatJC } from '@/lib/rewardsService';
 import { supabase } from '@/integrations/supabase/client';
 import { useGame } from '@/contexts/GameContext';
-import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket, Users, Gamepad2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket, Users, Gamepad2, TrendingUp, TrendingDown, Minus, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MiniKit } from '@worldcoin/minikit-js';
+import { getWorldChatDeeplinkUrl } from '@/lib/worldShare';
+import { isInWorldApp } from '@/lib/minikit';
+import { toast } from 'sonner';
 
 // Airdrop date - April 3, 2026 at 9pm Vietnam time (UTC+7) = 14:00 UTC
 const AIRDROP_DATE = new Date('2026-03-31T14:00:00Z');
@@ -291,6 +294,24 @@ const Leaderboard: React.FC = () => {
     }
   };
 
+  const handleSendDM = (username: string, rank: number) => {
+    if (!username) {
+      toast.error('Cannot message this player - no username available');
+      return;
+    }
+
+    if (!isInWorldApp()) {
+      toast.error('World Chat is only available in World App');
+      return;
+    }
+
+    const message = `Hey! I saw you're ranked #${rank} on Jackie Chain: Millionaire 🎮 Nice work!`;
+    const chatUrl = getWorldChatDeeplinkUrl({ username, message });
+    
+    // Open World Chat deeplink
+    window.location.href = chatUrl;
+  };
+
   return (
     <div className="min-h-screen gradient-hero flex flex-col">
       {/* Header */}
@@ -486,6 +507,22 @@ const Leaderboard: React.FC = () => {
                       {entry.total_claimed.toLocaleString()}
                     </span>
                   </div>
+
+                  {/* DM Button - only show for other users with usernames */}
+                  {!isCurrentUser && entry.username && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSendDM(entry.username!, entry.rank);
+                      }}
+                      title={`Message ${entry.username}`}
+                    >
+                      <MessageCircle className="w-4 h-4 text-primary" />
+                    </Button>
+                  )}
                 </div>
               );
             })}
