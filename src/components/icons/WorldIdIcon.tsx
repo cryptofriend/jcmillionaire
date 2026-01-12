@@ -55,16 +55,14 @@ export const WorldIdIcon: React.FC<WorldIdIconProps> = ({ size = 24, className =
 };
 
 /**
- * "Rate us" badge component that opens rating dialog
+ * "Verified with World ID" badge component
  */
-export const WorldIdBadge: React.FC<{ className?: string; onRateClick?: () => void }> = ({ className = '', onRateClick }) => {
+export const WorldIdBadge: React.FC<{ className?: string }> = ({ className = '' }) => {
   return (
-    <button 
-      onClick={onRateClick}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black text-white text-xs font-medium hover:bg-black/80 transition-colors ${className}`}
-    >
-      <span>Rate us 🙏</span>
-    </button>
+    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black text-white text-xs font-medium ${className}`}>
+      <WorldIdIcon size={14} />
+      <span>Verified with World ID</span>
+    </div>
   );
 };
 

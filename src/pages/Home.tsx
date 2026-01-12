@@ -1,18 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
 import { PoolStats } from '@/components/game/PoolStats';
 import { UserBalance } from '@/components/game/UserBalance';
 import { MiniLeaderboard } from '@/components/game/MiniLeaderboard';
 import { ShareModal } from '@/components/referral/ShareModal';
 import { TrailerCard } from '@/components/home/TrailerCard';
-import { PlayButton } from '@/components/home/PlayButton';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useGame } from '@/contexts/GameContext';
-import { X } from 'lucide-react';
+import { Play, ChevronRight, X, Zap, Gift, UserCheck, Share2, Copy, Clock } from 'lucide-react';
 import { generateReferralCode } from '@/lib/referralService';
+import { getWorldAppLink } from '@/lib/constants';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
+// Helper to get time until midnight
+const getTimeUntilMidnight = (): string => {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  const diff = midnight.getTime() - now.getTime();
+  
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+  
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+};
 
 interface InfoPopupProps {
   title: string;
@@ -43,8 +59,9 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { state } = useGame();
-  const { isVerified, dayState, user } = state;
+  const { isVerified, attempts, dayState, user } = state;
   const [activePopup, setActivePopup] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(getTimeUntilMidnight());
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   
   // Check if user has watched trailer before - default to referral if they have
@@ -57,6 +74,25 @@ const Home: React.FC = () => {
   };
 
   const referralCode = user ? generateReferralCode(user.id) : '';
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown(getTimeUntilMidnight());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const canPlay = isVerified && (attempts?.remaining || 0) > 0;
+
+  const handleStartRun = () => {
+    if (!isVerified) {
+      navigate('/verify');
+      return;
+    }
+    if (canPlay) {
+      navigate('/game');
+    }
+  };
 
   const handleOpenShareModal = () => {
     setIsShareModalOpen(true);
@@ -112,15 +148,13 @@ const Home: React.FC = () => {
 
       <main className="flex-1 flex flex-col items-center justify-start px-4 pb-24 gap-5 overflow-y-auto">
         <div className="text-center space-y-3 animate-fade-in">
-          <a 
-            href="https://x.com/iamjackiechain"
-            target="_blank"
-            rel="noopener noreferrer"
+          <button 
             className="relative inline-block cursor-pointer active:scale-95 transition-transform"
-            aria-label="Follow us on X"
+            onClick={() => navigate('/profile')}
+            aria-label="View balance"
           >
             <JackieIcon size={100} className="animate-float drop-shadow-lg" />
-          </a>
+          </button>
           
           <h2 className="text-3xl font-display font-bold text-gradient-gold">
             {t('home.win_jackpot')}
@@ -142,10 +176,117 @@ const Home: React.FC = () => {
           ) : null}
           
           <PoolStats dayState={dayState} />
+          
+          {isVerified && attempts && (
+            <div className="px-4 py-3 bg-card rounded-xl border border-border shadow-soft space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Zap className={cn(
+                    'w-5 h-5',
+                    attempts.remaining > 0 ? 'text-primary' : 'text-muted-foreground'
+                  )} />
+                  <span className="text-sm font-medium text-muted-foreground">{t('home.plays_today')}</span>
+                </div>
+                <span className={cn(
+                  'text-lg font-bold',
+                  attempts.remaining > 0 ? 'text-foreground' : 'text-muted-foreground'
+                )}>
+                  {attempts.remaining} / {attempts.cap}
+                </span>
+              </div>
+
+              {attempts.earnedFromReferrals > 0 && (
+                <div className="flex items-center gap-1.5 text-xs text-success">
+                  <Gift className="w-3.5 h-3.5" />
+                  <span className="font-medium">+{attempts.earnedFromReferrals} {t('home.from_referrals')}</span>
+                </div>
+              )}
+
+              <div className="flex gap-1 flex-wrap">
+                {Array.from({ length: Math.min(attempts.cap, 10) }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      'w-2.5 h-2.5 rounded-full transition-colors',
+                      i < attempts.remaining ? 'bg-primary' : 'bg-secondary'
+                    )}
+                  />
+                ))}
+              </div>
+
+              {activeTab === 'referral' && (
+                <div className="border-t border-border pt-3 space-y-3">
+                  <h3 className="text-center font-display font-bold text-lg text-foreground">
+                    {t('home.invite_friend')}
+                  </h3>
+                  
+                  <div className="flex items-center gap-2 bg-secondary/50 rounded-lg p-2">
+                    <span className="flex-1 text-center text-lg font-mono font-bold tracking-widest text-foreground">
+                      {user ? generateReferralCode(user.id) : '--------'}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const { getReferralDeeplink } = require('@/lib/worldShare');
+                        const link = user ? getReferralDeeplink(generateReferralCode(user.id)) : '';
+                        navigator.clipboard.writeText(link);
+                        toast.success(t('home.copied'));
+                      }}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="gold"
+                      size="sm"
+                      onClick={handleOpenShareModal}
+                      className="gap-1.5"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      {t('home.share')}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-2">
-          <PlayButton onOpenShareModal={handleOpenShareModal} />
+          {!isVerified ? (
+            <Button
+              variant="gold"
+              size="xl"
+              className="w-full"
+              onClick={() => navigate('/verify')}
+            >
+              <UserCheck className="w-6 h-6" />
+              {t('home.verify_to_play')}
+              <ChevronRight className="w-5 h-5" />
+            </Button>
+          ) : canPlay ? (
+            <Button
+              variant="gold"
+              size="xl"
+              className="w-full animate-pulse-gold"
+              onClick={handleStartRun}
+            >
+              <Play className="w-6 h-6" />
+              {t('home.start_run')}
+              <ChevronRight className="w-5 h-5" />
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="xl"
+              className="w-full opacity-60 cursor-not-allowed"
+              disabled
+            >
+              <Clock className="w-5 h-5" />
+              {t('home.next_play_in')} {countdown}
+            </Button>
+          )}
         </div>
 
         {isVerified && (

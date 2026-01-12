@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { WorldIdBadge } from '@/components/icons/WorldIdIcon';
-import { RatingDialog } from '@/components/profile/RatingDialog';
 import { AttemptsDisplay } from '@/components/game/AttemptsDisplay';
 import { ShareModal } from '@/components/referral/ShareModal';
 import { useGame } from '@/contexts/GameContext';
@@ -18,7 +17,6 @@ import { format } from 'date-fns';
 import { getCurrentUserInfo } from '@/lib/minikit';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { ReferralDashboard } from '@/components/referral/ReferralDashboard';
-import { EarningsChart } from '@/components/profile/EarningsChart';
 import { clearStoredUser } from '@/lib/userService';
 
 interface RunHistoryItem {
@@ -231,7 +229,6 @@ const Profile: React.FC = () => {
 
   const [codeCopied, setCodeCopied] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isRatingDialogOpen, setIsRatingDialogOpen] = useState(false);
 
   const handleLogout = () => {
     clearStoredUser();
@@ -335,7 +332,7 @@ const Profile: React.FC = () => {
             <p className="text-lg font-bold">
               {userProfile.username || 'Player'}
             </p>
-            <WorldIdBadge className="mt-1" onRateClick={() => setIsRatingDialogOpen(true)} />
+            <WorldIdBadge className="mt-1" />
             {userStats.currentStreak > 0 && (
               <div className="flex items-center gap-1 mt-2">
                 <Flame className="w-4 h-4 text-accent" />
@@ -353,6 +350,10 @@ const Profile: React.FC = () => {
         </div>
       </div>
 
+      {/* Today's Stats */}
+      <div className="px-4 py-4">
+        <AttemptsDisplay attempts={attempts} />
+      </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
@@ -371,10 +372,7 @@ const Profile: React.FC = () => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="stats" className="flex-1 px-4 py-4 space-y-4 overflow-y-auto hide-scrollbar">
-          {/* Earnings Chart */}
-          <EarningsChart runHistory={runHistory} />
-
+        <TabsContent value="stats" className="flex-1 px-4 py-4 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-card rounded-xl p-4 border border-border shadow-soft">
               <p className="text-3xl font-display font-bold text-primary">{userStats.totalRuns}</p>
@@ -507,12 +505,6 @@ const Profile: React.FC = () => {
           {user?.id && <ReferralDashboard userId={user.id} />}
         </TabsContent>
       </Tabs>
-
-      {/* Rating Dialog */}
-      <RatingDialog 
-        open={isRatingDialogOpen} 
-        onOpenChange={setIsRatingDialogOpen} 
-      />
     </div>
   );
 };
