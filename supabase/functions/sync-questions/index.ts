@@ -25,6 +25,27 @@ interface SheetRow {
   choice_c_es?: string;
   choice_d_es?: string;
   hint_es?: string;
+  // Thai translations (optional)
+  question_th?: string;
+  choice_a_th?: string;
+  choice_b_th?: string;
+  choice_c_th?: string;
+  choice_d_th?: string;
+  hint_th?: string;
+  // Hindi translations (optional)
+  question_hi?: string;
+  choice_a_hi?: string;
+  choice_b_hi?: string;
+  choice_c_hi?: string;
+  choice_d_hi?: string;
+  hint_hi?: string;
+  // Indonesian translations (optional)
+  question_id?: string;
+  choice_a_id?: string;
+  choice_b_id?: string;
+  choice_c_id?: string;
+  choice_d_id?: string;
+  hint_id?: string;
 }
 
 async function fetchSheetData(): Promise<SheetRow[]> {
@@ -35,8 +56,9 @@ async function fetchSheetData(): Promise<SheetRow[]> {
     throw new Error('Missing GOOGLE_SHEETS_API_KEY or GOOGLE_SHEETS_ID');
   }
 
-  // Fetch all data from the first sheet (extended range for Spanish columns)
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A:Q?key=${apiKey}`;
+  // Fetch all data from the first sheet (extended range for all translation columns)
+  // Columns: A-K (base) + L-Q (Spanish) + R-W (Thai) + X-AC (Hindi) + AD-AI (Indonesian)
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A:AI?key=${apiKey}`;
   
   console.log('Fetching from Google Sheets...');
   const response = await fetch(url);
@@ -115,6 +137,27 @@ async function fetchSheetData(): Promise<SheetRow[]> {
       choice_c_es: rowObj.choice_c_es?.trim() || undefined,
       choice_d_es: rowObj.choice_d_es?.trim() || undefined,
       hint_es: rowObj.hint_es?.trim() || undefined,
+      // Thai translations (optional)
+      question_th: rowObj.question_th?.trim() || undefined,
+      choice_a_th: rowObj.choice_a_th?.trim() || undefined,
+      choice_b_th: rowObj.choice_b_th?.trim() || undefined,
+      choice_c_th: rowObj.choice_c_th?.trim() || undefined,
+      choice_d_th: rowObj.choice_d_th?.trim() || undefined,
+      hint_th: rowObj.hint_th?.trim() || undefined,
+      // Hindi translations (optional)
+      question_hi: rowObj.question_hi?.trim() || undefined,
+      choice_a_hi: rowObj.choice_a_hi?.trim() || undefined,
+      choice_b_hi: rowObj.choice_b_hi?.trim() || undefined,
+      choice_c_hi: rowObj.choice_c_hi?.trim() || undefined,
+      choice_d_hi: rowObj.choice_d_hi?.trim() || undefined,
+      hint_hi: rowObj.hint_hi?.trim() || undefined,
+      // Indonesian translations (optional)
+      question_id: rowObj.question_id?.trim() || undefined,
+      choice_a_id: rowObj.choice_a_id?.trim() || undefined,
+      choice_b_id: rowObj.choice_b_id?.trim() || undefined,
+      choice_c_id: rowObj.choice_c_id?.trim() || undefined,
+      choice_d_id: rowObj.choice_d_id?.trim() || undefined,
+      hint_id: rowObj.hint_id?.trim() || undefined,
     });
   }
 
@@ -182,6 +225,27 @@ serve(async (req) => {
       choice_c_es: q.choice_c_es || null,
       choice_d_es: q.choice_d_es || null,
       hint_es: q.hint_es || null,
+      // Thai translations
+      question_th: q.question_th || null,
+      choice_a_th: q.choice_a_th || null,
+      choice_b_th: q.choice_b_th || null,
+      choice_c_th: q.choice_c_th || null,
+      choice_d_th: q.choice_d_th || null,
+      hint_th: q.hint_th || null,
+      // Hindi translations
+      question_hi: q.question_hi || null,
+      choice_a_hi: q.choice_a_hi || null,
+      choice_b_hi: q.choice_b_hi || null,
+      choice_c_hi: q.choice_c_hi || null,
+      choice_d_hi: q.choice_d_hi || null,
+      hint_hi: q.hint_hi || null,
+      // Indonesian translations
+      question_id: q.question_id || null,
+      choice_a_id: q.choice_a_id || null,
+      choice_b_id: q.choice_b_id || null,
+      choice_c_id: q.choice_c_id || null,
+      choice_d_id: q.choice_d_id || null,
+      hint_id: q.hint_id || null,
     }));
 
     // Upsert based on text_hash to avoid duplicates

@@ -117,7 +117,7 @@ const Game: React.FC = () => {
   // Load questions from database on mount
   useEffect(() => {
     const loadQuestions = async () => {
-      const currentLang = (localStorage.getItem('jc_language') as 'en' | 'es') || 'en';
+      const currentLang = (localStorage.getItem('jc_language') as 'en' | 'es' | 'th' | 'hi' | 'id') || 'en';
       const { questions: loadedQuestions, correctAnswers, error } = await fetchTodayQuestions(currentLang);
       
       if (error || loadedQuestions.length === 0) {

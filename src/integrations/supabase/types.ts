@@ -272,21 +272,39 @@ export type Database = {
           category: string
           choice_a: string
           choice_a_es: string | null
+          choice_a_hi: string | null
+          choice_a_id: string | null
+          choice_a_th: string | null
           choice_b: string
           choice_b_es: string | null
+          choice_b_hi: string | null
+          choice_b_id: string | null
+          choice_b_th: string | null
           choice_c: string
           choice_c_es: string | null
+          choice_c_hi: string | null
+          choice_c_id: string | null
+          choice_c_th: string | null
           choice_d: string
           choice_d_es: string | null
+          choice_d_hi: string | null
+          choice_d_id: string | null
+          choice_d_th: string | null
           correct_choice: string
           created_at: string
           difficulty: number
           hint: string
           hint_es: string | null
+          hint_hi: string | null
+          hint_id: string | null
+          hint_th: string | null
           id: string
           is_active: boolean
           question: string
           question_es: string | null
+          question_hi: string | null
+          question_id: string | null
+          question_th: string | null
           text_hash: string
         }
         Insert: {
@@ -294,21 +312,39 @@ export type Database = {
           category: string
           choice_a: string
           choice_a_es?: string | null
+          choice_a_hi?: string | null
+          choice_a_id?: string | null
+          choice_a_th?: string | null
           choice_b: string
           choice_b_es?: string | null
+          choice_b_hi?: string | null
+          choice_b_id?: string | null
+          choice_b_th?: string | null
           choice_c: string
           choice_c_es?: string | null
+          choice_c_hi?: string | null
+          choice_c_id?: string | null
+          choice_c_th?: string | null
           choice_d: string
           choice_d_es?: string | null
+          choice_d_hi?: string | null
+          choice_d_id?: string | null
+          choice_d_th?: string | null
           correct_choice: string
           created_at?: string
           difficulty: number
           hint: string
           hint_es?: string | null
+          hint_hi?: string | null
+          hint_id?: string | null
+          hint_th?: string | null
           id?: string
           is_active?: boolean
           question: string
           question_es?: string | null
+          question_hi?: string | null
+          question_id?: string | null
+          question_th?: string | null
           text_hash: string
         }
         Update: {
@@ -316,21 +352,39 @@ export type Database = {
           category?: string
           choice_a?: string
           choice_a_es?: string | null
+          choice_a_hi?: string | null
+          choice_a_id?: string | null
+          choice_a_th?: string | null
           choice_b?: string
           choice_b_es?: string | null
+          choice_b_hi?: string | null
+          choice_b_id?: string | null
+          choice_b_th?: string | null
           choice_c?: string
           choice_c_es?: string | null
+          choice_c_hi?: string | null
+          choice_c_id?: string | null
+          choice_c_th?: string | null
           choice_d?: string
           choice_d_es?: string | null
+          choice_d_hi?: string | null
+          choice_d_id?: string | null
+          choice_d_th?: string | null
           correct_choice?: string
           created_at?: string
           difficulty?: number
           hint?: string
           hint_es?: string | null
+          hint_hi?: string | null
+          hint_id?: string | null
+          hint_th?: string | null
           id?: string
           is_active?: boolean
           question?: string
           question_es?: string | null
+          question_hi?: string | null
+          question_id?: string | null
+          question_th?: string | null
           text_hash?: string
         }
         Relationships: []
