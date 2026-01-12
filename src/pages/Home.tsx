@@ -148,9 +148,13 @@ const Home: React.FC = () => {
 
       <main className="flex-1 flex flex-col items-center justify-start px-4 pb-24 gap-5 overflow-y-auto">
         <div className="text-center space-y-3 animate-fade-in">
-          <div className="relative inline-block">
+          <button 
+            className="relative inline-block cursor-pointer active:scale-95 transition-transform"
+            onClick={() => navigate('/profile')}
+            aria-label="View balance"
+          >
             <JackieIcon size={100} className="animate-float drop-shadow-lg" />
-          </div>
+          </button>
           
           <h2 className="text-3xl font-display font-bold text-gradient-gold">
             {t('home.win_jackpot')}
