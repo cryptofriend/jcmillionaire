@@ -112,13 +112,15 @@ const Home: React.FC = () => {
 
       <main className="flex-1 flex flex-col items-center justify-start px-4 pb-24 gap-5 overflow-y-auto">
         <div className="text-center space-y-3 animate-fade-in">
-          <button 
+          <a 
+            href="https://x.com/iamjackiechain"
+            target="_blank"
+            rel="noopener noreferrer"
             className="relative inline-block cursor-pointer active:scale-95 transition-transform"
-            onClick={() => navigate('/profile')}
-            aria-label="View balance"
+            aria-label="Follow us on X"
           >
             <JackieIcon size={100} className="animate-float drop-shadow-lg" />
-          </button>
+          </a>
           
           <h2 className="text-3xl font-display font-bold text-gradient-gold">
             {t('home.win_jackpot')}
