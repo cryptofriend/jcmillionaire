@@ -294,23 +294,9 @@ const Leaderboard: React.FC = () => {
     }
   };
 
-  const handleSendDM = async (username: string, rank: number) => {
-    if (!username) {
-      toast.error('Cannot message this player - no username available');
-      return;
-    }
-
-    if (!isInWorldApp()) {
-      toast.error('World Chat is only available in World App');
-      return;
-    }
-
+  const getDmUrl = (username: string, rank: number) => {
     const message = `Hey! I saw you're ranked #${rank} on Jackie Chain: Millionaire 🎮 Nice work!`;
-    const chatUrl = getWorldChatDeeplinkUrl({ username, message });
-    
-    // Navigate directly to the World Chat deeplink
-    // This opens World Chat with the recipient pre-filled
-    window.location.href = chatUrl;
+    return getWorldChatDeeplinkUrl({ username, message });
   };
 
   const handleCopyLogs = () => {
@@ -555,19 +541,24 @@ const Leaderboard: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* DM Button - only show for other users with usernames */}
-                  {!isCurrentUser && entry.username && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 shrink-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSendDM(entry.username!, entry.rank);
-                      }}
-                      title={`Message ${entry.username}`}
-                    >
-                      <MessageCircle className="w-4 h-4 text-primary" />
+                  {/* DM Button - only show for other users with usernames (World App only) */}
+                  {!isCurrentUser && entry.username && isInWorldApp() && (
+                    <Button asChild variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                      <a
+                        href={getDmUrl(entry.username, entry.rank)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('[Leaderboard] DM click', {
+                            username: entry.username,
+                            rank: entry.rank,
+                            url: getDmUrl(entry.username, entry.rank),
+                          });
+                        }}
+                        title={`Message ${entry.username}`}
+                      >
+                        <MessageCircle className="w-4 h-4 text-primary" />
+                        <span className="sr-only">Message {entry.username}</span>
+                      </a>
                     </Button>
                   )}
                 </div>
