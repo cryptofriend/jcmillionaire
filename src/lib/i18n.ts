@@ -1,6 +1,17 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
+// Supported languages
+export type Language = 'en' | 'es' | 'th' | 'hi' | 'id';
+
+export const languageOptions: { code: Language; label: string; nativeLabel: string }[] = [
+  { code: 'en', label: 'English', nativeLabel: 'English' },
+  { code: 'es', label: 'Spanish', nativeLabel: 'Español' },
+  { code: 'th', label: 'Thai', nativeLabel: 'ไทย' },
+  { code: 'hi', label: 'Hindi', nativeLabel: 'हिन्दी' },
+  { code: 'id', label: 'Indonesian', nativeLabel: 'Bahasa' },
+];
+
 // Get saved language or default to English
 const savedLanguage = localStorage.getItem('jc_language') || 'en';
 
@@ -41,6 +52,11 @@ export const resources = {
         jackie_says: 'Jackie says:',
         chain_scan_results: 'Chain Scan Results',
         players: 'players',
+        share_to_save: 'Share to Save',
+        share_to_save_desc: 'Share the game to keep your coins!',
+        share_now: 'Share Now',
+        skip_share: 'Skip',
+        sharing: 'Sharing...',
       },
 
       // Lifelines
@@ -79,6 +95,7 @@ export const resources = {
         player: 'Player',
         earnings: 'Earnings',
         you: 'You',
+        share_rank: 'Share my rank',
       },
 
       // Verification
@@ -159,6 +176,11 @@ export const resources = {
         jackie_says: 'Jackie dice:',
         chain_scan_results: 'Resultados del Escaneo',
         players: 'jugadores',
+        share_to_save: 'Compartir para Guardar',
+        share_to_save_desc: '¡Comparte el juego para conservar tus monedas!',
+        share_now: 'Compartir Ahora',
+        skip_share: 'Omitir',
+        sharing: 'Compartiendo...',
       },
 
       // Lifelines
@@ -197,6 +219,7 @@ export const resources = {
         player: 'Jugador',
         earnings: 'Ganancias',
         you: 'Tú',
+        share_rank: 'Compartir mi posición',
       },
 
       // Verification
@@ -241,6 +264,378 @@ export const resources = {
       },
     },
   },
+  th: {
+    translation: {
+      // Common
+      app_name: 'Jackie Chain',
+      subtitle: 'มหาเศรษฐี',
+      powered_by: 'ขับเคลื่อนโดย World ID • รางวัลบน World Chain',
+      
+      // Home
+      home: {
+        win_jackpot: 'ชนะ 1M $JC!',
+        description: 'ตอบคำถาม 15 ข้อเพื่อไต่บันไดรางวัล ใช้ตัวช่วยอย่างชาญฉลาด!',
+        verify_to_play: 'ยืนยันเพื่อเล่น',
+        start_run: 'เริ่มเกม',
+        next_play_in: 'เล่นครั้งต่อไปใน',
+        plays_today: 'เล่นวันนี้',
+        from_referrals: 'จากการเชิญ',
+        invite_friend: 'ชวนเพื่อน = +1 รอบเล่น',
+        share: 'แชร์',
+        copied: 'คัดลอกลิงก์เชิญแล้ว!',
+        questions: 'คำถาม',
+        questions_desc: 'ตอบคำถามความรู้ทั่วไป 15 ข้อที่ยากขึ้นเรื่อยๆ คำตอบที่ถูกต้องจะพาคุณขึ้นบันไดรางวัล ตอบถูกทุกข้อเพื่อรับแจ็คพอต!',
+        lifelines: 'ตัวช่วย',
+        lifelines_desc: 'คุณมี 3 ตัวช่วยต่อรอบ: 50/50 ลบคำตอบผิด 2 ข้อ, คำใบ้ให้เบาะแส และ Chain Scan แสดงคำตอบของชุมชน',
+        safe_havens: 'จุดปลอดภัย',
+        safe_havens_desc: 'คำถามที่ 5 และ 10 เป็นจุดปลอดภัย ถ้าตอบผิดหลังจากถึงจุดปลอดภัย คุณจะเก็บรางวัลจากระดับนั้นแทนที่จะเสียทั้งหมด!',
+      },
+
+      // Game
+      game: {
+        question_of: 'คำถาม {{current}} จาก {{total}}',
+        time_up: 'หมดเวลา!',
+        correct: 'ถูกต้อง!',
+        wrong: 'ผิด!',
+        jackie_says: 'Jackie พูดว่า:',
+        chain_scan_results: 'ผลลัพธ์ Chain Scan',
+        players: 'ผู้เล่น',
+        share_to_save: 'แชร์เพื่อเก็บ',
+        share_to_save_desc: 'แชร์เกมเพื่อเก็บเหรียญของคุณ!',
+        share_now: 'แชร์เลย',
+        skip_share: 'ข้าม',
+        sharing: 'กำลังแชร์...',
+      },
+
+      // Lifelines
+      lifelines: {
+        fifty_fifty: '50/50',
+        hint: 'คำใบ้',
+        chain_scan: 'Chain Scan',
+      },
+
+      // Result
+      result: {
+        game_over: 'จบเกม',
+        congratulations: 'ยินดีด้วย!',
+        you_won: 'คุณชนะ',
+        you_earned: 'คุณได้รับ',
+        claim_now: 'รับเลย',
+        play_again: 'เล่นอีกครั้ง',
+        go_home: 'กลับหน้าหลัก',
+        share_result: 'แชร์ผลลัพธ์',
+      },
+
+      // Profile
+      profile: {
+        title: 'โปรไฟล์',
+        total_earned: 'รายได้รวม',
+        current_streak: 'สตรีคปัจจุบัน',
+        days: 'วัน',
+        total_runs: 'รอบเล่นทั้งหมด',
+        best_streak: 'สตรีคที่ดีที่สุด',
+      },
+
+      // Leaderboard
+      leaderboard: {
+        title: 'กระดานผู้นำ',
+        rank: 'อันดับ',
+        player: 'ผู้เล่น',
+        earnings: 'รายได้',
+        you: 'คุณ',
+        share_rank: 'แชร์อันดับ',
+      },
+
+      // Verification
+      verify: {
+        title: 'ยืนยันด้วย World ID',
+        description: 'พิสูจน์ว่าคุณเป็นมนุษย์ที่ไม่ซ้ำกันเพื่อเริ่มเล่น',
+        verifying: 'กำลังยืนยัน...',
+        verify_button: 'ยืนยันด้วย World ID',
+        verified: 'ยืนยันแล้ว!',
+        welcome: 'ยินดีต้อนรับสู่ Jackie Chain!',
+      },
+
+      // Notifications
+      notifications: {
+        title: 'รับข่าวสาร!',
+        description: 'รับการแจ้งเตือนเกี่ยวกับรางวัลประจำวัน เกมใหม่ และกิจกรรมพิเศษ',
+        enable: 'เปิดการแจ้งเตือน',
+        skip: 'ข้ามไปก่อน',
+        enabled: 'เปิดการแจ้งเตือนแล้ว!',
+        denied: 'ปฏิเสธการแจ้งเตือน',
+      },
+
+      // Pool stats
+      pool: {
+        todays_pool: 'กองรางวัลวันนี้',
+        remaining: 'เหลือ',
+        locked: 'ล็อค',
+      },
+
+      // Navigation
+      nav: {
+        home: 'หน้าหลัก',
+        game: 'เกม',
+        leaderboard: 'ผู้นำ',
+        profile: 'โปรไฟล์',
+      },
+
+      // Trailer
+      trailer: {
+        story: 'เรื่องราว',
+        referral: 'เชิญ',
+      },
+    },
+  },
+  hi: {
+    translation: {
+      // Common
+      app_name: 'Jackie Chain',
+      subtitle: 'करोड़पति',
+      powered_by: 'World ID द्वारा संचालित • World Chain पर पुरस्कार',
+      
+      // Home
+      home: {
+        win_jackpot: '1M $JC जीतें!',
+        description: 'पुरस्कार सीढ़ी चढ़ने के लिए 15 सवालों के जवाब दें। लाइफलाइन का समझदारी से उपयोग करें!',
+        verify_to_play: 'खेलने के लिए सत्यापित करें',
+        start_run: 'गेम शुरू करें',
+        next_play_in: 'अगला खेल में',
+        plays_today: 'आज के खेल',
+        from_referrals: 'रेफरल से',
+        invite_friend: 'दोस्त को आमंत्रित करें = +1 अतिरिक्त खेल',
+        share: 'शेयर करें',
+        copied: 'आमंत्रण लिंक कॉपी हो गया!',
+        questions: 'प्रश्न',
+        questions_desc: 'बढ़ती कठिनाई के 15 ट्रिविया प्रश्नों के उत्तर दें। हर सही उत्तर आपको पुरस्कार सीढ़ी पर ऊपर ले जाता है। जैकपॉट जीतने के लिए सभी सही करें!',
+        lifelines: 'लाइफलाइन',
+        lifelines_desc: 'आपके पास प्रति राउंड 3 लाइफलाइन हैं: 50/50 दो गलत उत्तर हटाता है, हिंट आपको सुराग देता है, और Chain Scan दिखाता है समुदाय ने क्या जवाब दिया।',
+        safe_havens: 'सुरक्षित ठिकाने',
+        safe_havens_desc: 'प्रश्न 5 और 10 सुरक्षित ठिकाने हैं। यदि सुरक्षित ठिकाने तक पहुंचने के बाद गलत जवाब देते हैं, तो सब कुछ खोने की बजाय उस स्तर का पुरस्कार रखते हैं!',
+      },
+
+      // Game
+      game: {
+        question_of: 'प्रश्न {{current}} में से {{total}}',
+        time_up: 'समय समाप्त!',
+        correct: 'सही!',
+        wrong: 'गलत!',
+        jackie_says: 'Jackie कहते हैं:',
+        chain_scan_results: 'Chain Scan परिणाम',
+        players: 'खिलाड़ी',
+        share_to_save: 'बचाने के लिए शेयर करें',
+        share_to_save_desc: 'अपने सिक्के रखने के लिए गेम शेयर करें!',
+        share_now: 'अभी शेयर करें',
+        skip_share: 'छोड़ें',
+        sharing: 'शेयर हो रहा है...',
+      },
+
+      // Lifelines
+      lifelines: {
+        fifty_fifty: '50/50',
+        hint: 'हिंट',
+        chain_scan: 'Chain Scan',
+      },
+
+      // Result
+      result: {
+        game_over: 'गेम ओवर',
+        congratulations: 'बधाई हो!',
+        you_won: 'आपने जीता',
+        you_earned: 'आपने कमाया',
+        claim_now: 'अभी लें',
+        play_again: 'फिर से खेलें',
+        go_home: 'होम जाएं',
+        share_result: 'परिणाम शेयर करें',
+      },
+
+      // Profile
+      profile: {
+        title: 'प्रोफाइल',
+        total_earned: 'कुल कमाई',
+        current_streak: 'वर्तमान स्ट्रीक',
+        days: 'दिन',
+        total_runs: 'कुल राउंड',
+        best_streak: 'सर्वश्रेष्ठ स्ट्रीक',
+      },
+
+      // Leaderboard
+      leaderboard: {
+        title: 'लीडरबोर्ड',
+        rank: 'रैंक',
+        player: 'खिलाड़ी',
+        earnings: 'कमाई',
+        you: 'आप',
+        share_rank: 'मेरी रैंक शेयर करें',
+      },
+
+      // Verification
+      verify: {
+        title: 'World ID से सत्यापित करें',
+        description: 'खेलना शुरू करने के लिए साबित करें कि आप एक अद्वितीय मनुष्य हैं',
+        verifying: 'सत्यापित हो रहा है...',
+        verify_button: 'World ID से सत्यापित करें',
+        verified: 'सत्यापित!',
+        welcome: 'Jackie Chain में आपका स्वागत है!',
+      },
+
+      // Notifications
+      notifications: {
+        title: 'अपडेट रहें!',
+        description: 'दैनिक पुरस्कार, नए गेम और विशेष इवेंट के बारे में सूचनाएं प्राप्त करें।',
+        enable: 'सूचनाएं सक्षम करें',
+        skip: 'अभी छोड़ें',
+        enabled: 'सूचनाएं सक्षम!',
+        denied: 'सूचनाएं अस्वीकृत',
+      },
+
+      // Pool stats
+      pool: {
+        todays_pool: 'आज का पूल',
+        remaining: 'शेष',
+        locked: 'लॉक',
+      },
+
+      // Navigation
+      nav: {
+        home: 'होम',
+        game: 'गेम',
+        leaderboard: 'लीडर',
+        profile: 'प्रोफाइल',
+      },
+
+      // Trailer
+      trailer: {
+        story: 'कहानी',
+        referral: 'आमंत्रित',
+      },
+    },
+  },
+  id: {
+    translation: {
+      // Common
+      app_name: 'Jackie Chain',
+      subtitle: 'Jutawan',
+      powered_by: 'Didukung oleh World ID • Hadiah di World Chain',
+      
+      // Home
+      home: {
+        win_jackpot: 'Menangkan 1M $JC!',
+        description: 'Jawab 15 pertanyaan untuk naik tangga hadiah. Gunakan lifeline dengan bijak!',
+        verify_to_play: 'Verifikasi untuk Main',
+        start_run: 'Mulai Permainan',
+        next_play_in: 'Main berikutnya dalam',
+        plays_today: 'Main Hari Ini',
+        from_referrals: 'dari referral',
+        invite_friend: 'Undang teman = +1 main ekstra',
+        share: 'Bagikan',
+        copied: 'Link undangan disalin!',
+        questions: 'Pertanyaan',
+        questions_desc: 'Jawab 15 pertanyaan trivia dengan tingkat kesulitan meningkat. Setiap jawaban benar membawa Anda naik tangga hadiah. Jawab semua dengan benar untuk memenangkan jackpot!',
+        lifelines: 'Lifeline',
+        lifelines_desc: 'Anda punya 3 lifeline per ronde: 50/50 menghapus dua jawaban salah, Petunjuk memberi isyarat, dan Chain Scan menunjukkan jawaban komunitas.',
+        safe_havens: 'Zona Aman',
+        safe_havens_desc: 'Pertanyaan 5 dan 10 adalah zona aman. Jika salah setelah mencapai zona aman, Anda menyimpan hadiah dari level itu alih-alih kehilangan semuanya!',
+      },
+
+      // Game
+      game: {
+        question_of: 'Pertanyaan {{current}} dari {{total}}',
+        time_up: 'Waktu habis!',
+        correct: 'Benar!',
+        wrong: 'Salah!',
+        jackie_says: 'Jackie berkata:',
+        chain_scan_results: 'Hasil Chain Scan',
+        players: 'pemain',
+        share_to_save: 'Bagikan untuk Simpan',
+        share_to_save_desc: 'Bagikan game untuk menyimpan koin Anda!',
+        share_now: 'Bagikan Sekarang',
+        skip_share: 'Lewati',
+        sharing: 'Membagikan...',
+      },
+
+      // Lifelines
+      lifelines: {
+        fifty_fifty: '50/50',
+        hint: 'Petunjuk',
+        chain_scan: 'Chain Scan',
+      },
+
+      // Result
+      result: {
+        game_over: 'Game Selesai',
+        congratulations: 'Selamat!',
+        you_won: 'Anda Menang',
+        you_earned: 'Anda Mendapat',
+        claim_now: 'Klaim Sekarang',
+        play_again: 'Main Lagi',
+        go_home: 'Ke Beranda',
+        share_result: 'Bagikan Hasil',
+      },
+
+      // Profile
+      profile: {
+        title: 'Profil',
+        total_earned: 'Total Diperoleh',
+        current_streak: 'Streak Saat Ini',
+        days: 'hari',
+        total_runs: 'Total Ronde',
+        best_streak: 'Streak Terbaik',
+      },
+
+      // Leaderboard
+      leaderboard: {
+        title: 'Papan Peringkat',
+        rank: 'Peringkat',
+        player: 'Pemain',
+        earnings: 'Penghasilan',
+        you: 'Anda',
+        share_rank: 'Bagikan peringkat saya',
+      },
+
+      // Verification
+      verify: {
+        title: 'Verifikasi dengan World ID',
+        description: 'Buktikan Anda manusia unik untuk mulai bermain',
+        verifying: 'Memverifikasi...',
+        verify_button: 'Verifikasi dengan World ID',
+        verified: 'Terverifikasi!',
+        welcome: 'Selamat datang di Jackie Chain!',
+      },
+
+      // Notifications
+      notifications: {
+        title: 'Tetap Update!',
+        description: 'Dapatkan notifikasi tentang hadiah harian, game baru, dan event spesial.',
+        enable: 'Aktifkan Notifikasi',
+        skip: 'Lewati dulu',
+        enabled: 'Notifikasi diaktifkan!',
+        denied: 'Notifikasi ditolak',
+      },
+
+      // Pool stats
+      pool: {
+        todays_pool: 'Pool Hari Ini',
+        remaining: 'Tersisa',
+        locked: 'Terkunci',
+      },
+
+      // Navigation
+      nav: {
+        home: 'Beranda',
+        game: 'Game',
+        leaderboard: 'Peringkat',
+        profile: 'Profil',
+      },
+
+      // Trailer
+      trailer: {
+        story: 'Cerita',
+        referral: 'Undang',
+      },
+    },
+  },
 };
 
 i18n
@@ -257,11 +652,11 @@ i18n
 export default i18n;
 
 // Helper to save language preference
-export const setLanguage = (lang: 'en' | 'es') => {
+export const setLanguage = (lang: Language) => {
   localStorage.setItem('jc_language', lang);
   i18n.changeLanguage(lang);
 };
 
-export const getCurrentLanguage = (): 'en' | 'es' => {
-  return (localStorage.getItem('jc_language') as 'en' | 'es') || 'en';
+export const getCurrentLanguage = (): Language => {
+  return (localStorage.getItem('jc_language') as Language) || 'en';
 };

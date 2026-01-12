@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Run, QuestionWithHiddenChoices, AnswerStats } from '@/lib/types';
+import type { Language } from '@/lib/i18n';
 
 export interface CreateRunParams {
   userId: string;
@@ -334,7 +335,7 @@ export async function incrementAttemptsUsed(
  * Fetch today's questions from the database
  * Returns 15 questions ordered by difficulty for today's game
  */
-export async function fetchTodayQuestions(language: 'en' | 'es' = 'en'): Promise<{
+export async function fetchTodayQuestions(language: Language = 'en'): Promise<{
   questions: QuestionWithHiddenChoices[];
   correctAnswers: Record<string, 'A' | 'B' | 'C' | 'D'>;
   error: string | null;
@@ -358,23 +359,27 @@ export async function fetchTodayQuestions(language: 'en' | 'es' = 'en'): Promise
     return { questions: [], correctAnswers: {}, error: 'No questions available for today' };
   }
 
+  // Helper to get translated field with English fallback
+  const getTranslated = (row: Record<string, unknown>, field: string, lang: Language): string => {
+    if (lang === 'en') return row[field] as string;
+    const translatedField = `${field}_${lang}`;
+    return (row[translatedField] as string | null) || (row[field] as string);
+  };
+
   // Transform database questions to game format with language support
   const questions: QuestionWithHiddenChoices[] = data.map((q) => {
-    // Use Spanish translations if available and language is Spanish
-    const useSpanish = language === 'es';
-    
     return {
       id: q.id,
-      question: (useSpanish && q.question_es) ? q.question_es : q.question,
+      question: getTranslated(q, 'question', language),
       choices: {
-        A: (useSpanish && q.choice_a_es) ? q.choice_a_es : q.choice_a,
-        B: (useSpanish && q.choice_b_es) ? q.choice_b_es : q.choice_b,
-        C: (useSpanish && q.choice_c_es) ? q.choice_c_es : q.choice_c,
-        D: (useSpanish && q.choice_d_es) ? q.choice_d_es : q.choice_d,
+        A: getTranslated(q, 'choice_a', language),
+        B: getTranslated(q, 'choice_b', language),
+        C: getTranslated(q, 'choice_c', language),
+        D: getTranslated(q, 'choice_d', language),
       },
       difficulty: q.difficulty,
       category: q.category,
-      hint: (useSpanish && q.hint_es) ? q.hint_es : q.hint,
+      hint: getTranslated(q, 'hint', language),
     };
   });
 
