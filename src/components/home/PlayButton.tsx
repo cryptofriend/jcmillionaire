@@ -79,7 +79,7 @@ export const PlayButton: React.FC<PlayButtonProps> = ({ onOpenShareModal }) => {
   // Can play - show expandable play button
   if (canPlay) {
     return (
-      <div className="w-full">
+      <div className="w-full space-y-3">
         <motion.div
           className="bg-card rounded-xl border border-border shadow-soft overflow-hidden"
           initial={false}
@@ -188,6 +188,18 @@ export const PlayButton: React.FC<PlayButtonProps> = ({ onOpenShareModal }) => {
             )}
           </AnimatePresence>
         </motion.div>
+
+        {/* Play Now Button - Outside dropdown */}
+        <Button
+          variant="gold"
+          size="lg"
+          className="w-full animate-pulse-gold"
+          onClick={handleStartRun}
+        >
+          <Play className="w-5 h-5" />
+          {t('home.play_now')}
+          <ChevronRight className="w-4 h-4" />
+        </Button>
       </div>
     );
   }
