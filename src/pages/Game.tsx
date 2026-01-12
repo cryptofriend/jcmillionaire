@@ -10,9 +10,12 @@ import { AnswerBanner } from '@/components/game/AnswerBanner';
 import { useGame } from '@/contexts/GameContext';
 import { LIFELINES, LifelineType, QUESTION_TIME_LIMIT_SECONDS, formatJC } from '@/lib/constants';
 import { QuestionWithHiddenChoices, AnswerStats, Run } from '@/lib/types';
-import { X, AlertTriangle, Trophy, Rocket, HandCoins, Loader2 } from 'lucide-react';
+import { X, AlertTriangle, Trophy, Rocket, HandCoins, Loader2, Share2 } from 'lucide-react';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { cn } from '@/lib/utils';
+import { shareViaWorldApp, shareViaNative, getGameDeeplink } from '@/lib/worldShare';
+import { isInWorldApp } from '@/lib/minikit';
+import { toast } from 'sonner';
 import {
   createRun,
   recordAnswer,
@@ -107,6 +110,9 @@ const Game: React.FC = () => {
   const [showAnswerBanner, setShowAnswerBanner] = useState(false);
   const [bannerCorrect, setBannerCorrect] = useState(false);
   const [currentQuestionStats, setCurrentQuestionStats] = useState<AnswerStats | null>(null);
+  const [showShareToSaveDialog, setShowShareToSaveDialog] = useState(false);
+  const [shareToSaveAmount, setShareToSaveAmount] = useState(0);
+  const [isSharing, setIsSharing] = useState(false);
 
   // Load questions from database on mount
   useEffect(() => {
@@ -293,26 +299,40 @@ const Game: React.FC = () => {
       if (!correct) {
         const safeHavens = prizeLadder.filter(p => p.isSafeHaven && p.questionNumber < currentQuestionIndex + 1);
         const safeHavenAmount = safeHavens.length > 0 ? safeHavens[safeHavens.length - 1].prizeAmount : 0;
-        setEarnedAmount(safeHavenAmount);
-
-        // Pause to show wrong/correct answer highlighting before game over
-        setTimeout(async () => {
-          setIsCompletingRun(true);
-
-          // Complete run in database BEFORE showing game over
-          if (currentRun) {
-            await completeRun({
-              runId: currentRun.id,
-              reachedQ: currentQuestionIndex + 1,
-              earnedTier: safeHavens.length,
-              earnedAmount: safeHavenAmount,
-              status: 'completed',
-            });
-          }
+        
+        // Calculate what they could save by sharing (previous question's prize)
+        const previousQuestionPrize = currentQuestionIndex > 0 
+          ? prizeLadder[currentQuestionIndex - 1]?.prizeAmount || 0 
+          : 0;
+        
+        // Only show share-to-save if they would save more than the safe haven
+        if (previousQuestionPrize > safeHavenAmount && previousQuestionPrize > 0) {
+          setShareToSaveAmount(previousQuestionPrize);
+          setEarnedAmount(safeHavenAmount); // Default to safe haven if they skip
           
-          setIsCompletingRun(false);
-          setIsGameOver(true);
-        }, 2000); // 2 second pause to show correct/wrong answers
+          // Show share dialog after 2 second pause
+          setTimeout(() => {
+            setShowShareToSaveDialog(true);
+          }, 2000);
+        } else {
+          // No benefit from sharing, go straight to game over
+          setEarnedAmount(safeHavenAmount);
+          
+          setTimeout(async () => {
+            setIsCompletingRun(true);
+            if (currentRun) {
+              await completeRun({
+                runId: currentRun.id,
+                reachedQ: currentQuestionIndex + 1,
+                earnedTier: safeHavens.length,
+                earnedAmount: safeHavenAmount,
+                status: 'completed',
+              });
+            }
+            setIsCompletingRun(false);
+            setIsGameOver(true);
+          }, 2000);
+        }
       } else {
         // Show claim dialog after EVERY correct answer
         const currentPrize = prizeLadder[currentQuestionIndex]?.prizeAmount || 0;
@@ -470,6 +490,94 @@ const Game: React.FC = () => {
       });
     }
     
+    setIsCompletingRun(false);
+    setIsGameOver(true);
+  };
+
+  // Handle share to save coins
+  const handleShareToSave = async () => {
+    setIsSharing(true);
+    
+    const shareText = `😱 I just lost on question ${currentQuestionIndex + 1}, but saved ${shareToSaveAmount.toLocaleString()} $JC by sharing!\n\nCan you beat my score? 👇`;
+    const gameUrl = getGameDeeplink();
+    
+    let success = false;
+    
+    if (isInWorldApp()) {
+      const result = await shareViaWorldApp({
+        title: 'Jackie Chain: Millionaire',
+        text: shareText,
+        url: gameUrl,
+      });
+      success = result.success;
+    } else {
+      const result = await shareViaNative({
+        title: 'Jackie Chain: Millionaire',
+        text: shareText,
+        url: gameUrl,
+      });
+      success = result.success;
+    }
+    
+    setIsSharing(false);
+    setShowShareToSaveDialog(false);
+    
+    if (success) {
+      toast.success(`Saved ${shareToSaveAmount.toLocaleString()} JC!`);
+      setEarnedAmount(shareToSaveAmount);
+      
+      // Complete run with the saved amount
+      setIsCompletingRun(true);
+      if (currentRun) {
+        await completeRun({
+          runId: currentRun.id,
+          reachedQ: currentQuestionIndex + 1,
+          earnedTier: currentQuestionIndex, // Previous tier
+          earnedAmount: shareToSaveAmount,
+          status: 'completed',
+        });
+      }
+      setIsCompletingRun(false);
+    } else {
+      // Share was cancelled or failed, keep safe haven amount
+      const safeHavens = prizeLadder.filter(p => p.isSafeHaven && p.questionNumber < currentQuestionIndex + 1);
+      const safeHavenAmount = safeHavens.length > 0 ? safeHavens[safeHavens.length - 1].prizeAmount : 0;
+      setEarnedAmount(safeHavenAmount);
+      
+      setIsCompletingRun(true);
+      if (currentRun) {
+        await completeRun({
+          runId: currentRun.id,
+          reachedQ: currentQuestionIndex + 1,
+          earnedTier: safeHavens.length,
+          earnedAmount: safeHavenAmount,
+          status: 'completed',
+        });
+      }
+      setIsCompletingRun(false);
+    }
+    
+    setIsGameOver(true);
+  };
+
+  // Handle skip share (take safe haven)
+  const handleSkipShare = async () => {
+    setShowShareToSaveDialog(false);
+    
+    const safeHavens = prizeLadder.filter(p => p.isSafeHaven && p.questionNumber < currentQuestionIndex + 1);
+    const safeHavenAmount = safeHavens.length > 0 ? safeHavens[safeHavens.length - 1].prizeAmount : 0;
+    setEarnedAmount(safeHavenAmount);
+    
+    setIsCompletingRun(true);
+    if (currentRun) {
+      await completeRun({
+        runId: currentRun.id,
+        reachedQ: currentQuestionIndex + 1,
+        earnedTier: safeHavens.length,
+        earnedAmount: safeHavenAmount,
+        status: 'completed',
+      });
+    }
     setIsCompletingRun(false);
     setIsGameOver(true);
   };
@@ -870,6 +978,79 @@ const Game: React.FC = () => {
             >
               <Rocket className="w-5 h-5" />
               Next Question
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Share to Save Dialog - shown after wrong answer */}
+      <AlertDialog open={showShareToSaveDialog} onOpenChange={setShowShareToSaveDialog}>
+        <AlertDialogContent className="max-w-sm">
+          <AlertDialogHeader>
+            <div className="flex justify-center mb-4">
+              <div className="relative">
+                <JackieIcon size={80} className="opacity-80" />
+                <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-destructive flex items-center justify-center animate-pulse">
+                  <X className="w-5 h-5 text-destructive-foreground" />
+                </div>
+              </div>
+            </div>
+            <AlertDialogTitle className="text-center text-2xl font-display">
+              💔 Wrong Answer!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center space-y-4">
+              <p className="text-muted-foreground">
+                You would fall back to your safe haven...
+              </p>
+              
+              {/* Safe Haven Amount */}
+              <div className="flex items-center justify-center gap-2 py-3 px-4 bg-muted/50 rounded-xl border border-border">
+                <CoinIcon size={24} className="opacity-50" />
+                <span className="text-lg font-display text-muted-foreground line-through">
+                  {formatJC(earnedAmount)} JC
+                </span>
+              </div>
+              
+              <p className="text-primary font-medium">
+                But you can SAVE your coins by sharing! 🎁
+              </p>
+              
+              {/* Share to Save Amount */}
+              <div className="flex items-center justify-center gap-2 py-4 px-6 bg-primary/20 rounded-2xl border-2 border-primary shadow-lg">
+                <CoinIcon size={32} />
+                <span className="text-2xl font-display font-bold text-gradient-gold">
+                  {formatJC(shareToSaveAmount)} JC
+                </span>
+              </div>
+              
+              <p className="text-sm text-muted-foreground">
+                Share the game to keep {formatJC(shareToSaveAmount - earnedAmount)} more JC!
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              variant="gold"
+              size="lg"
+              className="w-full"
+              onClick={handleShareToSave}
+              disabled={isSharing}
+            >
+              {isSharing ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Share2 className="w-5 h-5" />
+              )}
+              Share & Save {formatJC(shareToSaveAmount)} JC
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-muted-foreground"
+              onClick={handleSkipShare}
+              disabled={isSharing}
+            >
+              Skip and take {formatJC(earnedAmount)} JC
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
