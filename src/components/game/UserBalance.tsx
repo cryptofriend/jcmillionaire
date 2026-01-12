@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Coins, Trophy, Crown, TrendingUp, Sparkles } from 'lucide-react';
+import { Trophy, Crown, TrendingUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getUserBalance, formatJC, getUserLeaderboardPosition, LeaderboardPosition } from '@/lib/rewardsService';
 import { useGame } from '@/contexts/GameContext';
@@ -216,18 +216,6 @@ export const UserBalance: React.FC<UserBalanceProps> = ({ className }) => {
                 )}
               </div>
 
-              {/* Elite Badge for Top 10 */}
-              {leaderboardPos.isTopTen && !leaderboardPos.isLeader && (
-                <motion.div
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center gap-1.5 text-xs"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
-                  <span className="text-yellow-400/90 font-medium">Elite tier</span>
-                </motion.div>
-              )}
-
               {/* Next Rank Progress */}
               {!leaderboardPos.isLeader && leaderboardPos.nextRank && (
                 <>
@@ -265,18 +253,6 @@ export const UserBalance: React.FC<UserBalanceProps> = ({ className }) => {
                         transition={{ duration: 1.5, repeat: Infinity }}
                       />
                     )}
-                  </div>
-
-                  {/* Percentage */}
-                  <div className="flex justify-end">
-                    <motion.span
-                      className="text-xs text-muted-foreground tabular-nums"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.5 }}
-                    >
-                      {leaderboardPos.progressPercent}% to next rank
-                    </motion.span>
                   </div>
                 </>
               )}
