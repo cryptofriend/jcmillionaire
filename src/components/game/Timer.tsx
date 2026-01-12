@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Clock } from 'lucide-react';
+import { startHeartbeat } from '@/lib/haptics';
 
 interface TimerProps {
   seconds: number;
@@ -11,6 +12,31 @@ export const Timer: React.FC<TimerProps> = ({ seconds, maxSeconds = 30 }) => {
   const percentage = (seconds / maxSeconds) * 100;
   const isLow = seconds <= 10;
   const isCritical = seconds <= 5;
+  const heartbeatCleanupRef = useRef<(() => void) | null>(null);
+
+  // Start/stop heartbeat vibration based on timer state
+  useEffect(() => {
+    if (isCritical && seconds > 0) {
+      // Fast heartbeat when critical (under 5 seconds)
+      heartbeatCleanupRef.current = startHeartbeat(600);
+    } else if (isLow && seconds > 0) {
+      // Slower heartbeat when low (under 10 seconds)
+      heartbeatCleanupRef.current = startHeartbeat(1000);
+    } else {
+      // Stop heartbeat
+      if (heartbeatCleanupRef.current) {
+        heartbeatCleanupRef.current();
+        heartbeatCleanupRef.current = null;
+      }
+    }
+
+    return () => {
+      if (heartbeatCleanupRef.current) {
+        heartbeatCleanupRef.current();
+        heartbeatCleanupRef.current = null;
+      }
+    };
+  }, [isLow, isCritical, seconds]);
 
   return (
     <div className="flex items-center gap-2">
