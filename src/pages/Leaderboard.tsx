@@ -294,7 +294,7 @@ const Leaderboard: React.FC = () => {
     }
   };
 
-  const handleSendDM = (username: string, rank: number) => {
+  const handleSendDM = async (username: string, rank: number) => {
     if (!username) {
       toast.error('Cannot message this player - no username available');
       return;
@@ -306,10 +306,21 @@ const Leaderboard: React.FC = () => {
     }
 
     const message = `Hey! I saw you're ranked #${rank} on Jackie Chain: Millionaire 🎮 Nice work!`;
-    const chatUrl = getWorldChatDeeplinkUrl({ username, message });
     
-    // Open World Chat deeplink
-    window.location.href = chatUrl;
+    // Use MiniKit chat command to send DM directly
+    try {
+      const { finalPayload } = await MiniKit.commandsAsync.chat({
+        message,
+        to: [username],
+      });
+      
+      if (finalPayload.status !== 'success') {
+        toast.error('Failed to open World Chat');
+      }
+    } catch (error) {
+      console.error('Failed to open World Chat:', error);
+      toast.error('Failed to open World Chat');
+    }
   };
 
   const handleCopyLogs = () => {
