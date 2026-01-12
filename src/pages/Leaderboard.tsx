@@ -385,7 +385,7 @@ const Leaderboard: React.FC = () => {
         </Button>
         <div className="flex items-center gap-2 flex-1">
           <Trophy className="w-6 h-6 text-primary" />
-          <h1 className="text-xl font-display font-bold">Leaderboard</h1>
+          <h1 className="text-xl font-display font-bold">{t('leaderboard.title')}</h1>
         </div>
         {isAdmin && (
           <Button
@@ -410,7 +410,7 @@ const Leaderboard: React.FC = () => {
           <div className="text-center space-y-3">
             <div className="flex items-center justify-center gap-2">
               <CoinIcon size={24} />
-              <h2 className="text-lg font-display font-bold text-foreground">$JC Airdrop in</h2>
+              <h2 className="text-lg font-display font-bold text-foreground">{t('leaderboard.airdropIn')}</h2>
             </div>
             
             {/* Countdown Timer */}
@@ -419,33 +419,33 @@ const Leaderboard: React.FC = () => {
                 <span className="text-2xl font-display font-bold text-primary">
                   {String(countdown.days).padStart(2, '0')}
                 </span>
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">days</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('leaderboard.days')}</span>
               </div>
               <span className="text-2xl font-bold text-muted-foreground">:</span>
               <div className="flex flex-col items-center px-3 py-2 bg-background/50 rounded-lg min-w-[50px] backdrop-blur-sm">
                 <span className="text-2xl font-display font-bold text-primary">
                   {String(countdown.hours).padStart(2, '0')}
                 </span>
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">hrs</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('leaderboard.hrs')}</span>
               </div>
               <span className="text-2xl font-bold text-muted-foreground">:</span>
               <div className="flex flex-col items-center px-3 py-2 bg-background/50 rounded-lg min-w-[50px] backdrop-blur-sm">
                 <span className="text-2xl font-display font-bold text-primary">
                   {String(countdown.minutes).padStart(2, '0')}
                 </span>
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">min</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('leaderboard.min')}</span>
               </div>
               <span className="text-2xl font-bold text-muted-foreground">:</span>
               <div className="flex flex-col items-center px-3 py-2 bg-background/50 rounded-lg min-w-[50px] backdrop-blur-sm">
                 <span className="text-2xl font-display font-bold text-primary">
                   {String(countdown.seconds).padStart(2, '0')}
                 </span>
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">sec</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('leaderboard.sec')}</span>
               </div>
             </div>
             
             <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-              airdrop distribution will be based on your leaderboard position
+              {t('leaderboard.airdropDescription')}
             </p>
           </div>
         </div>
@@ -460,7 +460,7 @@ const Leaderboard: React.FC = () => {
                 {getRankIcon(userRank)}
               </div>
               <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Your Rank</p>
+                <p className="text-sm text-muted-foreground">{t('leaderboard.yourRank')}</p>
                 <div className="flex items-center gap-2">
                   <p className="text-2xl font-display font-bold">#{userRank}</p>
                   {getRankChangeIndicator(userRankChange)}
@@ -472,12 +472,12 @@ const Leaderboard: React.FC = () => {
               <div className="flex items-center gap-1.5 text-sm">
                 <Users className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium">{userStats.invited}</span>
-                <span className="text-muted-foreground">invited</span>
+                <span className="text-muted-foreground">{t('leaderboard.invited')}</span>
               </div>
               <div className="flex items-center gap-1.5 text-sm">
                 <Gamepad2 className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium">{userStats.games}</span>
-                <span className="text-muted-foreground">games</span>
+                <span className="text-muted-foreground">{t('leaderboard.games')}</span>
               </div>
               <div className="flex items-center gap-1.5 text-sm">
                 <CoinIcon size={16} />
@@ -520,7 +520,7 @@ const Leaderboard: React.FC = () => {
               }}
             >
               <Share2 className="w-4 h-4 mr-2" />
-              Share my rank
+              {t('leaderboard.shareMyRank')}
             </Button>
           </div>
         </div>
@@ -535,8 +535,8 @@ const Leaderboard: React.FC = () => {
         ) : entries.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <JackieIcon size={80} className="opacity-50 mb-4" />
-            <p className="text-muted-foreground">No claims yet!</p>
-            <p className="text-sm text-muted-foreground">Be the first to claim rewards.</p>
+            <p className="text-muted-foreground">{t('leaderboard.noClaims')}</p>
+            <p className="text-sm text-muted-foreground">{t('leaderboard.beFirst')}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -644,14 +644,14 @@ const Leaderboard: React.FC = () => {
         <div className="flex justify-center gap-6 text-center">
           <div>
             <p className="text-2xl font-display font-bold text-primary">{entries.length}</p>
-            <p className="text-xs text-muted-foreground">Players</p>
+            <p className="text-xs text-muted-foreground">{t('leaderboard.players')}</p>
           </div>
           <div className="w-px bg-border" />
           <div>
             <p className="text-2xl font-display font-bold text-gradient-gold">
               {entries.reduce((sum, e) => sum + e.total_claimed, 0).toLocaleString()}
             </p>
-            <p className="text-xs text-muted-foreground">Total Claimed</p>
+            <p className="text-xs text-muted-foreground">{t('leaderboard.totalClaimed')}</p>
           </div>
         </div>
       </footer>
