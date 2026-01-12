@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { WorldIdBadge } from '@/components/icons/WorldIdIcon';
+import { RatingDialog } from '@/components/profile/RatingDialog';
 import { AttemptsDisplay } from '@/components/game/AttemptsDisplay';
 import { ShareModal } from '@/components/referral/ShareModal';
 import { useGame } from '@/contexts/GameContext';
@@ -230,6 +231,7 @@ const Profile: React.FC = () => {
 
   const [codeCopied, setCodeCopied] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isRatingDialogOpen, setIsRatingDialogOpen] = useState(false);
 
   const handleLogout = () => {
     clearStoredUser();
@@ -333,7 +335,7 @@ const Profile: React.FC = () => {
             <p className="text-lg font-bold">
               {userProfile.username || 'Player'}
             </p>
-            <WorldIdBadge className="mt-1" />
+            <WorldIdBadge className="mt-1" onRateClick={() => setIsRatingDialogOpen(true)} />
             {userStats.currentStreak > 0 && (
               <div className="flex items-center gap-1 mt-2">
                 <Flame className="w-4 h-4 text-accent" />
@@ -509,6 +511,12 @@ const Profile: React.FC = () => {
           {user?.id && <ReferralDashboard userId={user.id} />}
         </TabsContent>
       </Tabs>
+
+      {/* Rating Dialog */}
+      <RatingDialog 
+        open={isRatingDialogOpen} 
+        onOpenChange={setIsRatingDialogOpen} 
+      />
     </div>
   );
 };
