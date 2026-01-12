@@ -18,7 +18,7 @@ const SHEET_TO_LANG: Record<string, LanguageCode> = {
   'In': 'id',
 };
 
-interface BaseQuestion {
+interface SheetQuestion {
   question: string;
   choice_a: string;
   choice_b: string;
@@ -32,35 +32,7 @@ interface BaseQuestion {
   is_active: boolean;
 }
 
-interface TranslatedQuestion extends BaseQuestion {
-  // Translations for each language (keyed by field_lang)
-  question_es?: string;
-  choice_a_es?: string;
-  choice_b_es?: string;
-  choice_c_es?: string;
-  choice_d_es?: string;
-  hint_es?: string;
-  question_th?: string;
-  choice_a_th?: string;
-  choice_b_th?: string;
-  choice_c_th?: string;
-  choice_d_th?: string;
-  hint_th?: string;
-  question_hi?: string;
-  choice_a_hi?: string;
-  choice_b_hi?: string;
-  choice_c_hi?: string;
-  choice_d_hi?: string;
-  hint_hi?: string;
-  question_id?: string;
-  choice_a_id?: string;
-  choice_b_id?: string;
-  choice_c_id?: string;
-  choice_d_id?: string;
-  hint_id?: string;
-}
-
-async function fetchSheetData(sheetName: string): Promise<BaseQuestion[]> {
+async function fetchSheetData(sheetName: string): Promise<SheetQuestion[]> {
   const apiKey = Deno.env.get('GOOGLE_SHEETS_API_KEY');
   const sheetId = Deno.env.get('GOOGLE_SHEETS_ID');
   
@@ -68,7 +40,6 @@ async function fetchSheetData(sheetName: string): Promise<BaseQuestion[]> {
     throw new Error('Missing GOOGLE_SHEETS_API_KEY or GOOGLE_SHEETS_ID');
   }
 
-  // Fetch data from the specific sheet by name
   const encodedSheetName = encodeURIComponent(sheetName);
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodedSheetName}!A:K?key=${apiKey}`;
   
@@ -89,32 +60,28 @@ async function fetchSheetData(sheetName: string): Promise<BaseQuestion[]> {
     return [];
   }
 
-  // First row is headers
   const headers = rows[0].map((h: string) => h.toLowerCase().trim().replace(/\s+/g, '_'));
   console.log(`Headers found in ${sheetName}:`, headers);
   
-  const questions: BaseQuestion[] = [];
+  const questions: SheetQuestion[] = [];
   
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
-    if (!row || row.length === 0 || !row[0]) continue; // Skip empty rows
+    if (!row || row.length === 0 || !row[0]) continue;
     
     const rowObj: Record<string, string> = {};
     headers.forEach((header: string, idx: number) => {
       rowObj[header] = row[idx] || '';
     });
 
-    // Validate required fields
     if (!rowObj.question || !rowObj.correct_choice) {
       console.log(`Skipping row ${i + 1} in ${sheetName}: missing required fields`);
       continue;
     }
 
-    // Parse difficulty (default to 1 if not provided or invalid)
     let difficulty = parseInt(rowObj.difficulty) || 1;
-    difficulty = Math.max(1, Math.min(5, difficulty));
+    difficulty = Math.max(1, Math.min(15, difficulty));
 
-    // Parse active_dates date (default to today if not provided)
     let activeDates = rowObj.active_dates;
     if (!activeDates || !/^\d{4}-\d{2}-\d{2}$/.test(activeDates)) {
       const dateMatch = activeDates?.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
@@ -125,7 +92,6 @@ async function fetchSheetData(sheetName: string): Promise<BaseQuestion[]> {
       }
     }
 
-    // Parse is_active (default to true, handle checkmark ✔)
     const isActiveRaw = rowObj.is_active?.toLowerCase().trim();
     const isActive = isActiveRaw !== 'false' && isActiveRaw !== '0' && isActiveRaw !== 'no';
 
@@ -159,25 +125,19 @@ function generateTextHash(question: string, choices: string[]): string {
   return Math.abs(hash).toString(16);
 }
 
-// Create a unique key for matching questions across sheets
-// Uses active_dates + difficulty + row position as a composite key
-function createQuestionKey(q: BaseQuestion, index: number): string {
-  return `${q.active_dates}|${q.difficulty}|${index}`;
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('Starting question sync from Google Sheets (multi-language)...');
+    console.log('Starting question sync from Google Sheets (multi-language with matching)...');
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch questions from all language sheets
+    // Fetch questions from all language sheets in parallel
     const sheetDataPromises = LANGUAGE_SHEETS.map(async (sheetName) => {
       try {
         const questions = await fetchSheetData(sheetName);
@@ -190,7 +150,7 @@ serve(async (req) => {
 
     const allSheetData = await Promise.all(sheetDataPromises);
     
-    // Use English sheet as the base
+    // Get English sheet as base
     const enData = allSheetData.find(s => s.sheetName === 'En');
     if (!enData || enData.questions.length === 0) {
       return new Response(JSON.stringify({ 
@@ -203,155 +163,226 @@ serve(async (req) => {
       });
     }
 
-    const baseQuestions = enData.questions;
-    console.log(`Using ${baseQuestions.length} English questions as base`);
-
-    // Create maps for other language sheets indexed by position
-    const translationMaps: Record<LanguageCode, Map<number, BaseQuestion>> = {
-      en: new Map(),
-      es: new Map(),
-      th: new Map(),
-      hi: new Map(),
-      id: new Map(),
-    };
-
+    // Build translation maps indexed by (active_dates, difficulty, row_index)
+    const translationsByKey: Record<string, Record<LanguageCode, SheetQuestion>> = {};
+    
     allSheetData.forEach(({ sheetName, questions }) => {
       const langCode = SHEET_TO_LANG[sheetName];
-      if (langCode && langCode !== 'en') {
-        questions.forEach((q, idx) => {
-          translationMaps[langCode].set(idx, q);
-        });
-      }
+      questions.forEach((q, idx) => {
+        // Key by date + difficulty + index within that date/difficulty group
+        const key = `${q.active_dates}|${q.difficulty}|${idx}`;
+        if (!translationsByKey[key]) {
+          translationsByKey[key] = {} as Record<LanguageCode, SheetQuestion>;
+        }
+        translationsByKey[key][langCode] = q;
+      });
     });
 
-    // Merge base questions with translations
-    const mergedQuestions: TranslatedQuestion[] = baseQuestions.map((baseQ, idx) => {
-      const merged: TranslatedQuestion = { ...baseQ };
-      
-      // Add Spanish translations
-      const esQ = translationMaps.es.get(idx);
-      if (esQ) {
-        merged.question_es = esQ.question;
-        merged.choice_a_es = esQ.choice_a;
-        merged.choice_b_es = esQ.choice_b;
-        merged.choice_c_es = esQ.choice_c;
-        merged.choice_d_es = esQ.choice_d;
-        merged.hint_es = esQ.hint;
-      }
-      
-      // Add Thai translations
-      const thQ = translationMaps.th.get(idx);
-      if (thQ) {
-        merged.question_th = thQ.question;
-        merged.choice_a_th = thQ.choice_a;
-        merged.choice_b_th = thQ.choice_b;
-        merged.choice_c_th = thQ.choice_c;
-        merged.choice_d_th = thQ.choice_d;
-        merged.hint_th = thQ.hint;
-      }
-      
-      // Add Hindi translations
-      const hiQ = translationMaps.hi.get(idx);
-      if (hiQ) {
-        merged.question_hi = hiQ.question;
-        merged.choice_a_hi = hiQ.choice_a;
-        merged.choice_b_hi = hiQ.choice_b;
-        merged.choice_c_hi = hiQ.choice_c;
-        merged.choice_d_hi = hiQ.choice_d;
-        merged.hint_hi = hiQ.hint;
-      }
-      
-      // Add Indonesian translations
-      const idQ = translationMaps.id.get(idx);
-      if (idQ) {
-        merged.question_id = idQ.question;
-        merged.choice_a_id = idQ.choice_a;
-        merged.choice_b_id = idQ.choice_b;
-        merged.choice_c_id = idQ.choice_c;
-        merged.choice_d_id = idQ.choice_d;
-        merged.hint_id = idQ.hint;
-      }
-      
-      return merged;
-    });
-
-    console.log(`Merged ${mergedQuestions.length} questions with translations`);
-
-    // Prepare for upsert
-    const questionsToUpsert = mergedQuestions.map(q => ({
-      question: q.question,
-      choice_a: q.choice_a,
-      choice_b: q.choice_b,
-      choice_c: q.choice_c,
-      choice_d: q.choice_d,
-      correct_choice: q.correct_choice,
-      hint: q.hint,
-      category: q.category,
-      difficulty: q.difficulty,
-      active_dates: q.active_dates,
-      is_active: q.is_active,
-      text_hash: generateTextHash(q.question, [q.choice_a, q.choice_b, q.choice_c, q.choice_d]),
-      // Spanish
-      question_es: q.question_es || null,
-      choice_a_es: q.choice_a_es || null,
-      choice_b_es: q.choice_b_es || null,
-      choice_c_es: q.choice_c_es || null,
-      choice_d_es: q.choice_d_es || null,
-      hint_es: q.hint_es || null,
-      // Thai
-      question_th: q.question_th || null,
-      choice_a_th: q.choice_a_th || null,
-      choice_b_th: q.choice_b_th || null,
-      choice_c_th: q.choice_c_th || null,
-      choice_d_th: q.choice_d_th || null,
-      hint_th: q.hint_th || null,
-      // Hindi
-      question_hi: q.question_hi || null,
-      choice_a_hi: q.choice_a_hi || null,
-      choice_b_hi: q.choice_b_hi || null,
-      choice_c_hi: q.choice_c_hi || null,
-      choice_d_hi: q.choice_d_hi || null,
-      hint_hi: q.hint_hi || null,
-      // Indonesian
-      question_id: q.question_id || null,
-      choice_a_id: q.choice_a_id || null,
-      choice_b_id: q.choice_b_id || null,
-      choice_c_id: q.choice_c_id || null,
-      choice_d_id: q.choice_d_id || null,
-      hint_id: q.hint_id || null,
-    }));
-
-    // Upsert based on text_hash
-    const { data, error } = await supabase
+    // Fetch existing questions from database
+    const { data: existingQuestions, error: fetchError } = await supabase
       .from('questions')
-      .upsert(questionsToUpsert, { 
-        onConflict: 'text_hash',
-        ignoreDuplicates: false 
-      })
-      .select();
+      .select('id, active_dates, difficulty, question, text_hash')
+      .order('active_dates', { ascending: true })
+      .order('difficulty', { ascending: true });
 
-    if (error) {
-      console.error('Error upserting questions:', error);
-      throw error;
+    if (fetchError) {
+      console.error('Error fetching existing questions:', fetchError);
+      throw fetchError;
     }
 
-    const syncedCount = data?.length || questionsToUpsert.length;
+    // Group existing questions by date + difficulty
+    const existingByDateDifficulty: Record<string, Array<{ id: string; question: string; text_hash: string }>> = {};
+    (existingQuestions || []).forEach(q => {
+      const key = `${q.active_dates}|${q.difficulty}`;
+      if (!existingByDateDifficulty[key]) {
+        existingByDateDifficulty[key] = [];
+      }
+      existingByDateDifficulty[key].push({ id: q.id, question: q.question, text_hash: q.text_hash });
+    });
+
+    let updatedCount = 0;
+    let insertedCount = 0;
+    const translationSummary = { en: 0, es: 0, th: 0, hi: 0, id: 0 };
+
+    // Process English questions and match with existing DB questions
+    for (let idx = 0; idx < enData.questions.length; idx++) {
+      const enQ = enData.questions[idx];
+      const dateKey = `${enQ.active_dates}|${enQ.difficulty}`;
+      const fullKey = `${enQ.active_dates}|${enQ.difficulty}|${idx}`;
+      
+      // Get translations for this question
+      const translations = translationsByKey[fullKey] || {};
+      const esQ = translations.es;
+      const thQ = translations.th;
+      const hiQ = translations.hi;
+      const idQ = translations.id;
+
+      // Count translations
+      translationSummary.en++;
+      if (esQ) translationSummary.es++;
+      if (thQ) translationSummary.th++;
+      if (hiQ) translationSummary.hi++;
+      if (idQ) translationSummary.id++;
+
+      // Find matching existing question by date + difficulty + position
+      const existingForDate = existingByDateDifficulty[dateKey] || [];
+      
+      // Match by position within the same date/difficulty group
+      // Or by similar question text if positions don't align
+      let matchedQuestion: { id: string; question: string; text_hash: string } | null = null;
+      
+      // First try: exact position match within date/difficulty
+      if (existingForDate[idx]) {
+        matchedQuestion = existingForDate[idx];
+      } else {
+        // Second try: find by similar question text (fuzzy match)
+        const normalizedEnQ = enQ.question.toLowerCase().replace(/[^a-z0-9]/g, '');
+        for (const existing of existingForDate) {
+          const normalizedExisting = existing.question.toLowerCase().replace(/[^a-z0-9]/g, '');
+          // Check for significant overlap (at least 60% similarity)
+          const shorter = Math.min(normalizedEnQ.length, normalizedExisting.length);
+          const longer = Math.max(normalizedEnQ.length, normalizedExisting.length);
+          if (shorter > 0 && shorter / longer > 0.6) {
+            // Check if one contains significant portion of the other
+            if (normalizedEnQ.includes(normalizedExisting.slice(0, 20)) || 
+                normalizedExisting.includes(normalizedEnQ.slice(0, 20))) {
+              matchedQuestion = existing;
+              break;
+            }
+          }
+        }
+      }
+
+      if (matchedQuestion) {
+        // Update existing question with translations
+        const updateData: Record<string, unknown> = {};
+        
+        // Update base English content if different
+        updateData.question = enQ.question;
+        updateData.choice_a = enQ.choice_a;
+        updateData.choice_b = enQ.choice_b;
+        updateData.choice_c = enQ.choice_c;
+        updateData.choice_d = enQ.choice_d;
+        updateData.hint = enQ.hint;
+        updateData.correct_choice = enQ.correct_choice;
+        updateData.category = enQ.category;
+        updateData.is_active = enQ.is_active;
+        
+        // Add Spanish translations
+        if (esQ) {
+          updateData.question_es = esQ.question;
+          updateData.choice_a_es = esQ.choice_a;
+          updateData.choice_b_es = esQ.choice_b;
+          updateData.choice_c_es = esQ.choice_c;
+          updateData.choice_d_es = esQ.choice_d;
+          updateData.hint_es = esQ.hint;
+        }
+        
+        // Add Thai translations
+        if (thQ) {
+          updateData.question_th = thQ.question;
+          updateData.choice_a_th = thQ.choice_a;
+          updateData.choice_b_th = thQ.choice_b;
+          updateData.choice_c_th = thQ.choice_c;
+          updateData.choice_d_th = thQ.choice_d;
+          updateData.hint_th = thQ.hint;
+        }
+        
+        // Add Hindi translations
+        if (hiQ) {
+          updateData.question_hi = hiQ.question;
+          updateData.choice_a_hi = hiQ.choice_a;
+          updateData.choice_b_hi = hiQ.choice_b;
+          updateData.choice_c_hi = hiQ.choice_c;
+          updateData.choice_d_hi = hiQ.choice_d;
+          updateData.hint_hi = hiQ.hint;
+        }
+        
+        // Add Indonesian translations
+        if (idQ) {
+          updateData.question_id = idQ.question;
+          updateData.choice_a_id = idQ.choice_a;
+          updateData.choice_b_id = idQ.choice_b;
+          updateData.choice_c_id = idQ.choice_c;
+          updateData.choice_d_id = idQ.choice_d;
+          updateData.hint_id = idQ.hint;
+        }
+
+        const { error: updateError } = await supabase
+          .from('questions')
+          .update(updateData)
+          .eq('id', matchedQuestion.id);
+
+        if (updateError) {
+          console.error(`Error updating question ${matchedQuestion.id}:`, updateError);
+        } else {
+          updatedCount++;
+        }
+      } else {
+        // Insert new question with all translations
+        const insertData = {
+          question: enQ.question,
+          choice_a: enQ.choice_a,
+          choice_b: enQ.choice_b,
+          choice_c: enQ.choice_c,
+          choice_d: enQ.choice_d,
+          correct_choice: enQ.correct_choice,
+          hint: enQ.hint,
+          category: enQ.category,
+          difficulty: enQ.difficulty,
+          active_dates: enQ.active_dates,
+          is_active: enQ.is_active,
+          text_hash: generateTextHash(enQ.question, [enQ.choice_a, enQ.choice_b, enQ.choice_c, enQ.choice_d]),
+          // Spanish
+          question_es: esQ?.question || null,
+          choice_a_es: esQ?.choice_a || null,
+          choice_b_es: esQ?.choice_b || null,
+          choice_c_es: esQ?.choice_c || null,
+          choice_d_es: esQ?.choice_d || null,
+          hint_es: esQ?.hint || null,
+          // Thai
+          question_th: thQ?.question || null,
+          choice_a_th: thQ?.choice_a || null,
+          choice_b_th: thQ?.choice_b || null,
+          choice_c_th: thQ?.choice_c || null,
+          choice_d_th: thQ?.choice_d || null,
+          hint_th: thQ?.hint || null,
+          // Hindi
+          question_hi: hiQ?.question || null,
+          choice_a_hi: hiQ?.choice_a || null,
+          choice_b_hi: hiQ?.choice_b || null,
+          choice_c_hi: hiQ?.choice_c || null,
+          choice_d_hi: hiQ?.choice_d || null,
+          hint_hi: hiQ?.hint || null,
+          // Indonesian
+          question_id: idQ?.question || null,
+          choice_a_id: idQ?.choice_a || null,
+          choice_b_id: idQ?.choice_b || null,
+          choice_c_id: idQ?.choice_c || null,
+          choice_d_id: idQ?.choice_d || null,
+          hint_id: idQ?.hint || null,
+        };
+
+        const { error: insertError } = await supabase
+          .from('questions')
+          .insert(insertData);
+
+        if (insertError) {
+          console.error(`Error inserting question:`, insertError);
+        } else {
+          insertedCount++;
+        }
+      }
+    }
     
-    // Summary of translations found
-    const translationSummary = {
-      en: baseQuestions.length,
-      es: translationMaps.es.size,
-      th: translationMaps.th.size,
-      hi: translationMaps.hi.size,
-      id: translationMaps.id.size,
-    };
-    
-    console.log(`Successfully synced ${syncedCount} questions with translations:`, translationSummary);
+    console.log(`Sync complete: ${updatedCount} updated, ${insertedCount} inserted`);
+    console.log('Translation summary:', translationSummary);
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: `Synced ${syncedCount} questions from Google Sheets`,
-      synced: syncedCount,
+      message: `Synced questions: ${updatedCount} updated, ${insertedCount} inserted`,
+      updated: updatedCount,
+      inserted: insertedCount,
       translations: translationSummary
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
