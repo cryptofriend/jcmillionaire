@@ -17,6 +17,7 @@ import { format } from 'date-fns';
 import { getCurrentUserInfo } from '@/lib/minikit';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { ReferralDashboard } from '@/components/referral/ReferralDashboard';
+import { EarningsChart } from '@/components/profile/EarningsChart';
 import { clearStoredUser } from '@/lib/userService';
 
 interface RunHistoryItem {
@@ -372,7 +373,10 @@ const Profile: React.FC = () => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="stats" className="flex-1 px-4 py-4 space-y-4">
+        <TabsContent value="stats" className="flex-1 px-4 py-4 space-y-4 overflow-y-auto hide-scrollbar">
+          {/* Earnings Chart */}
+          <EarningsChart runHistory={runHistory} />
+
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-card rounded-xl p-4 border border-border shadow-soft">
               <p className="text-3xl font-display font-bold text-primary">{userStats.totalRuns}</p>
