@@ -164,6 +164,7 @@ export const resources = {
 
       // Trailer
       trailer: {
+        watch_trailer: 'Watch the Trailer!',
         story: 'Story',
         referral: 'Invite',
       },
@@ -317,6 +318,7 @@ export const resources = {
 
       // Trailer
       trailer: {
+        watch_trailer: '¡Mira el Trailer!',
         story: 'Historia',
         referral: 'Invitar',
       },
@@ -470,6 +472,7 @@ export const resources = {
 
       // Trailer
       trailer: {
+        watch_trailer: 'ดูตัวอย่าง!',
         story: 'เรื่องราว',
         referral: 'เชิญ',
       },
@@ -623,6 +626,7 @@ export const resources = {
 
       // Trailer
       trailer: {
+        watch_trailer: 'ट्रेलर देखें!',
         story: 'कहानी',
         referral: 'आमंत्रित',
       },
@@ -776,6 +780,7 @@ export const resources = {
 
       // Trailer
       trailer: {
+        watch_trailer: 'Tonton Trailer!',
         story: 'Cerita',
         referral: 'Undang',
       },

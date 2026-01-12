@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -11,6 +12,7 @@ interface TrailerCardProps {
 const YOUTUBE_VIDEO_ID = 'GVCSKeS-GfI';
 
 export const TrailerCard: React.FC<TrailerCardProps> = ({ onDismiss, activeTab, onTabChange }) => {
+  const { t } = useTranslation();
   const [isPlaying, setIsPlaying] = useState(false);
 
   const thumbnailUrl = `https://img.youtube.com/vi/${YOUTUBE_VIDEO_ID}/maxresdefault.jpg`;
@@ -20,7 +22,7 @@ export const TrailerCard: React.FC<TrailerCardProps> = ({ onDismiss, activeTab, 
       {/* Header */}
       <div className="text-center">
         <h3 className="font-display font-bold text-lg text-foreground">
-          🎬 Watch the Trailer!
+          🎬 {t('trailer.watch_trailer')}
         </h3>
       </div>
 
@@ -72,7 +74,7 @@ export const TrailerCard: React.FC<TrailerCardProps> = ({ onDismiss, activeTab, 
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            Story
+            {t('trailer.story')}
           </button>
           <button
             onClick={() => {
@@ -86,7 +88,7 @@ export const TrailerCard: React.FC<TrailerCardProps> = ({ onDismiss, activeTab, 
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            Referral
+            {t('trailer.referral')}
           </button>
         </div>
       </div>
