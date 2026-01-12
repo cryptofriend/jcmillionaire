@@ -299,6 +299,41 @@ const Leaderboard: React.FC = () => {
     return getWorldChatDeeplinkUrl({ username, message });
   };
 
+  const handleSendDM = async (username: string, rank: number) => {
+    if (!username) {
+      toast.error('Cannot message this player - no username available');
+      return;
+    }
+
+    if (!isInWorldApp()) {
+      toast.error('World Chat is only available in World App');
+      return;
+    }
+
+    const message = `Hey! I saw you're ranked #${rank} on Jackie Chain: Millionaire 🎮 Nice work!`;
+
+    // 1) Prefer native Chat command (more reliable than deeplinks inside the mini app)
+    try {
+      const { finalPayload } = await MiniKit.commandsAsync.chat({
+        message,
+        to: [username],
+      });
+
+      if (finalPayload?.status === 'success') return;
+    } catch (error) {
+      console.warn('[Leaderboard] MiniKit chat failed, falling back to deeplink', error);
+    }
+
+    // 2) Fallback to World Chat deeplink
+    const url = getWorldChatDeeplinkUrl({ username, message });
+    try {
+      window.location.assign(url);
+    } catch {
+      // last resort
+      window.open(url, '_blank');
+    }
+  };
+
   const handleCopyLogs = () => {
     const debugInfo = {
       timestamp: new Date().toISOString(),
@@ -543,22 +578,23 @@ const Leaderboard: React.FC = () => {
 
                   {/* DM Button - only show for other users with usernames (World App only) */}
                   {!isCurrentUser && entry.username && isInWorldApp() && (
-                    <Button asChild variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                      <a
-                        href={getDmUrl(entry.username, entry.rank)}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          console.log('[Leaderboard] DM click', {
-                            username: entry.username,
-                            rank: entry.rank,
-                            url: getDmUrl(entry.username, entry.rank),
-                          });
-                        }}
-                        title={`Message ${entry.username}`}
-                      >
-                        <MessageCircle className="w-4 h-4 text-primary" />
-                        <span className="sr-only">Message {entry.username}</span>
-                      </a>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log('[Leaderboard] DM click', {
+                          username: entry.username,
+                          rank: entry.rank,
+                          url: getDmUrl(entry.username!, entry.rank),
+                        });
+                        void handleSendDM(entry.username!, entry.rank);
+                      }}
+                      title={`Message ${entry.username}`}
+                    >
+                      <MessageCircle className="w-4 h-4 text-primary" />
+                      <span className="sr-only">Message {entry.username}</span>
                     </Button>
                   )}
                 </div>
