@@ -8,7 +8,6 @@ import { MiniKitProvider } from "@/components/MiniKitProvider";
 import BottomNav from "@/components/BottomNav";
 import LoadingScreen from "@/components/LoadingScreen";
 import { ReferralTracker } from "@/components/referral/ReferralTracker";
-import FloatingCoin from "@/components/FloatingCoin";
 import Home from "./pages/Home";
 import Verify from "./pages/Verify";
 import Game from "./pages/Game";
@@ -46,7 +45,6 @@ const AppContent = () => {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <BottomNav />
-      <FloatingCoin />
     </>
   );
 };

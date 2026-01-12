@@ -1,4 +1,4 @@
-import React, { useEffect, ReactNode } from 'react';
+import { useEffect, ReactNode } from 'react';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { APP_ID } from '@/lib/constants';
 
@@ -6,7 +6,7 @@ import { APP_ID } from '@/lib/constants';
  * MiniKitProvider - Initializes MiniKit SDK for World App integration
  * This must wrap the app to enable wallet auth and other MiniKit features
  */
-export function MiniKitProvider({ children }: { children: ReactNode }): React.ReactElement {
+export const MiniKitProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Install MiniKit with app_id so World ID popup shows "Jackie Chain"
     MiniKit.install(APP_ID);
@@ -14,4 +14,4 @@ export function MiniKitProvider({ children }: { children: ReactNode }): React.Re
   }, []);
 
   return <>{children}</>;
-}
+};
