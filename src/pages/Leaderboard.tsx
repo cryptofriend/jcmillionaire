@@ -306,16 +306,19 @@ const Leaderboard: React.FC = () => {
     }
 
     const message = `Hey! I saw you're ranked #${rank} on Jackie Chain: Millionaire 🎮 Nice work!`;
+    const chatUrl = getWorldChatDeeplinkUrl({ username, message });
     
-    // Use MiniKit chat command to send DM directly
+    // Use MiniKit share command to open the World Chat deeplink
+    // This properly opens World Chat with the recipient pre-filled
     try {
-      const { finalPayload } = await MiniKit.commandsAsync.chat({
-        message,
-        to: [username],
+      const { finalPayload } = await MiniKit.commandsAsync.share({
+        title: `Message ${username}`,
+        text: message,
+        url: chatUrl,
       });
       
       if (finalPayload.status !== 'success') {
-        toast.error('Failed to open World Chat');
+        console.log('Share dialog closed or failed');
       }
     } catch (error) {
       console.error('Failed to open World Chat:', error);
