@@ -50,6 +50,7 @@ const Leaderboard: React.FC = () => {
   const [userStats, setUserStats] = useState<{ invited: number; games: number }>({ invited: 0, games: 0 });
   const [userRankChange, setUserRankChange] = useState<number | null>(null);
   const [countdown, setCountdown] = useState(getTimeUntilAirdrop());
+  const [visibleCount, setVisibleCount] = useState(50);
 
   // Countdown timer
   useEffect(() => {
@@ -516,43 +517,6 @@ const Leaderboard: React.FC = () => {
                 <span className="text-muted-foreground">JC</span>
               </div>
             </div>
-            {/* Share Rank Button */}
-            <Button
-              variant="secondary"
-              size="sm"
-              className="w-full mt-2"
-              onClick={async () => {
-                const shareText = `🏆 I'm ranked #${userRank} on Jackie Chain: Millionaire with ${userBalance.toLocaleString()} $JC tokens!\n\nThink you can beat me? 👇`;
-                const gameUrl = getGameDeeplink('/leaderboard');
-                
-                if (isInWorldApp()) {
-                  const result = await shareViaWorldApp({
-                    title: 'Jackie Chain: Millionaire',
-                    text: shareText,
-                    url: gameUrl,
-                  });
-                  if (result.success) {
-                    toast.success('Shared successfully!');
-                    return;
-                  }
-                }
-                
-                // Fallback to native share
-                const result = await shareViaNative({
-                  title: 'Jackie Chain: Millionaire',
-                  text: shareText,
-                  url: gameUrl,
-                });
-                if (result.success) {
-                  toast.success('Shared successfully!');
-                } else if (result.error !== 'Share cancelled') {
-                  toast.error('Could not share');
-                }
-              }}
-            >
-              <Share2 className="w-4 h-4 mr-2" />
-              {t('leaderboard.shareMyRank')}
-            </Button>
           </div>
         </div>
       )}
@@ -571,7 +535,7 @@ const Leaderboard: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-2">
-            {entries.map((entry) => {
+            {entries.slice(0, visibleCount).map((entry) => {
               const isCurrentUser = state.user?.id === entry.user_id;
               
               return (
@@ -666,6 +630,17 @@ const Leaderboard: React.FC = () => {
                 </div>
               );
             })}
+            
+            {/* Load More Button */}
+            {visibleCount < entries.length && (
+              <Button
+                variant="outline"
+                className="w-full mt-4"
+                onClick={() => setVisibleCount(prev => Math.min(prev + 50, entries.length))}
+              >
+                Load More ({entries.length - visibleCount} remaining)
+              </Button>
+            )}
           </div>
         )}
       </main>
