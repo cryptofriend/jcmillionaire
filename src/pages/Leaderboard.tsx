@@ -84,12 +84,13 @@ const Leaderboard: React.FC = () => {
       // Fetch user profiles for these users
       const userIds = balances.map(b => b.user_id);
       
-      // Get yesterday's date
+      // Get today and yesterday's dates
+      const today = new Date().toISOString().split('T')[0];
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayStr = yesterday.toISOString().split('T')[0];
       
-      const [usersResult, referralsResult, runsResult, snapshotsResult] = await Promise.all([
+      const [usersResult, referralsResult, runsResult, todaySnapshotsResult, yesterdaySnapshotsResult] = await Promise.all([
         supabase
           .from('users')
           .select('id, username, profile_picture_url')
@@ -103,6 +104,13 @@ const Leaderboard: React.FC = () => {
           .from('runs')
           .select('user_id')
           .in('user_id', userIds),
+        // Get today's snapshots (for users who joined today)
+        supabase
+          .from('leaderboard_snapshots')
+          .select('user_id, rank')
+          .eq('day_id', today)
+          .in('user_id', userIds),
+        // Get yesterday's snapshots (for rank change comparison)
         supabase
           .from('leaderboard_snapshots')
           .select('user_id, rank')
@@ -129,9 +137,14 @@ const Leaderboard: React.FC = () => {
         runCounts.set(r.user_id, (runCounts.get(r.user_id) || 0) + 1);
       });
 
-      // Map yesterday's ranks
+      // Map today's and yesterday's ranks
+      const todayRanks = new Map<string, number>();
+      todaySnapshotsResult.data?.forEach(s => {
+        todayRanks.set(s.user_id, s.rank);
+      });
+      
       const yesterdayRanks = new Map<string, number>();
-      snapshotsResult.data?.forEach(s => {
+      yesterdaySnapshotsResult.data?.forEach(s => {
         yesterdayRanks.set(s.user_id, s.rank);
       });
 
@@ -139,8 +152,19 @@ const Leaderboard: React.FC = () => {
         const userProfile = userMap.get(entry.user_id);
         const currentRank = index + 1;
         const yesterdayRank = yesterdayRanks.get(entry.user_id);
-        // Rank change: positive means moved up (lower rank number is better)
-        const rankChange = yesterdayRank !== undefined ? yesterdayRank - currentRank : null;
+        const todaySnapshotRank = todayRanks.get(entry.user_id);
+        
+        // Rank change logic:
+        // 1. If we have yesterday's rank, compare against it
+        // 2. If no yesterday rank but we have today's snapshot, compare against today's snapshot rank
+        // 3. Otherwise, show as NEW
+        let rankChange: number | null = null;
+        if (yesterdayRank !== undefined) {
+          rankChange = yesterdayRank - currentRank;
+        } else if (todaySnapshotRank !== undefined) {
+          // Compare current live rank to today's snapshot (shows intraday movement)
+          rankChange = todaySnapshotRank - currentRank;
+        }
         
         return {
           ...entry,
@@ -187,10 +211,11 @@ const Leaderboard: React.FC = () => {
               .eq('user_id', state.user.id),
             supabase
               .from('leaderboard_snapshots')
-              .select('rank')
-              .eq('day_id', yesterdayStr)
+              .select('rank, day_id')
               .eq('user_id', state.user.id)
-              .maybeSingle()
+              .in('day_id', [yesterdayStr, today])
+              .order('day_id', { ascending: false })
+              .limit(2)
           ]);
 
           if (userBalanceResult.data) {
@@ -204,8 +229,14 @@ const Leaderboard: React.FC = () => {
             const currentRank = (count || 0) + 1;
             setUserRank(currentRank);
             
-            if (userSnapshotResult.data) {
-              setUserRankChange(userSnapshotResult.data.rank - currentRank);
+            // Find best snapshot to compare against (prefer yesterday, fallback to today)
+            const snapshots = userSnapshotResult.data || [];
+            const yesterdaySnapshot = snapshots.find(s => s.day_id === yesterdayStr);
+            const todaySnapshot = snapshots.find(s => s.day_id === today);
+            const referenceSnapshot = yesterdaySnapshot || todaySnapshot;
+            
+            if (referenceSnapshot) {
+              setUserRankChange(referenceSnapshot.rank - currentRank);
             }
           }
           
