@@ -125,12 +125,6 @@ export const resources = {
         beFirst: 'Be the first to claim rewards.',
         players: 'Players',
         totalClaimed: 'Total Claimed',
-        tooltipNew: 'New player on the leaderboard!',
-        tooltipUp: 'Moved up {{count}} position since last snapshot',
-        tooltipUp_plural: 'Moved up {{count}} positions since last snapshot',
-        tooltipDown: 'Dropped {{count}} position since last snapshot',
-        tooltipDown_plural: 'Dropped {{count}} positions since last snapshot',
-        tooltipSame: 'Rank unchanged since last snapshot',
       },
 
       // Verification

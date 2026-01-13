@@ -6,13 +6,12 @@ import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { formatJC } from '@/lib/rewardsService';
 import { supabase } from '@/integrations/supabase/client';
 import { useGame } from '@/contexts/GameContext';
-import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket, Users, Gamepad2, TrendingUp, TrendingDown, Minus, MessageCircle, ClipboardCopy, Share2, Info } from 'lucide-react';
+import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket, Users, Gamepad2, TrendingUp, TrendingDown, Minus, MessageCircle, ClipboardCopy, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { getWorldChatDeeplinkUrl, shareViaWorldApp, shareViaNative, getGameDeeplink } from '@/lib/worldShare';
 import { isInWorldApp } from '@/lib/minikit';
 import { toast } from 'sonner';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Airdrop date - April 3, 2026 at 9pm Vietnam time (UTC+7) = 14:00 UTC
 const AIRDROP_DATE = new Date('2026-03-31T14:00:00Z');
@@ -288,54 +287,30 @@ const Leaderboard: React.FC = () => {
     }
   };
 
-  const getRankChangeIndicator = (rankChange: number | null, showTooltip: boolean = false) => {
-    const getContent = () => {
-      if (rankChange === null) {
-        return <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted">NEW</span>;
-      }
-      if (rankChange > 0) {
-        return (
-          <span className="flex items-center gap-0.5 text-xs text-success">
-            <TrendingUp className="w-3 h-3" />
-            {rankChange}
-          </span>
-        );
-      }
-      if (rankChange < 0) {
-        return (
-          <span className="flex items-center gap-0.5 text-xs text-destructive">
-            <TrendingDown className="w-3 h-3" />
-            {Math.abs(rankChange)}
-          </span>
-        );
-      }
+  const getRankChangeIndicator = (rankChange: number | null) => {
+    if (rankChange === null) {
+      return <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted">NEW</span>;
+    }
+    if (rankChange > 0) {
       return (
-        <span className="flex items-center text-xs text-muted-foreground">
-          <Minus className="w-3 h-3" />
+        <span className="flex items-center gap-0.5 text-xs text-success">
+          <TrendingUp className="w-3 h-3" />
+          {rankChange}
         </span>
       );
-    };
-
-    const getTooltipText = () => {
-      if (rankChange === null) return t('leaderboard.tooltipNew');
-      if (rankChange > 0) return t('leaderboard.tooltipUp', { count: rankChange });
-      if (rankChange < 0) return t('leaderboard.tooltipDown', { count: Math.abs(rankChange) });
-      return t('leaderboard.tooltipSame');
-    };
-
-    if (!showTooltip) {
-      return getContent();
     }
-
+    if (rankChange < 0) {
+      return (
+        <span className="flex items-center gap-0.5 text-xs text-destructive">
+          <TrendingDown className="w-3 h-3" />
+          {Math.abs(rankChange)}
+        </span>
+      );
+    }
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="cursor-help">{getContent()}</span>
-        </TooltipTrigger>
-        <TooltipContent side="left" className="text-xs max-w-[200px]">
-          {getTooltipText()}
-        </TooltipContent>
-      </Tooltip>
+      <span className="flex items-center text-xs text-muted-foreground">
+        <Minus className="w-3 h-3" />
+      </span>
     );
   };
 
@@ -429,7 +404,6 @@ const Leaderboard: React.FC = () => {
   };
 
   return (
-    <TooltipProvider>
     <div className="min-h-screen gradient-hero flex flex-col">
       {/* Header */}
       <header className="flex items-center gap-3 px-4 py-3 border-b border-border/50">
@@ -520,7 +494,7 @@ const Leaderboard: React.FC = () => {
                 <p className="text-sm text-muted-foreground">{t('leaderboard.yourRank')}</p>
                 <div className="flex items-center gap-2">
                   <p className="text-2xl font-display font-bold">#{userRank}</p>
-                  {getRankChangeIndicator(userRankChange, true)}
+                  {getRankChangeIndicator(userRankChange)}
                 </div>
               </div>
             </div>
@@ -612,7 +586,7 @@ const Leaderboard: React.FC = () => {
                   {/* Rank */}
                   <div className="flex flex-col items-center justify-center w-10">
                     {getRankIcon(entry.rank)}
-                    {getRankChangeIndicator(entry.rank_change, true)}
+                    {getRankChangeIndicator(entry.rank_change)}
                   </div>
 
                   {/* User Avatar */}
@@ -713,7 +687,6 @@ const Leaderboard: React.FC = () => {
         </div>
       </footer>
     </div>
-    </TooltipProvider>
   );
 };
 
