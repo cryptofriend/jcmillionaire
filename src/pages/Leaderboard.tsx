@@ -62,12 +62,12 @@ const Leaderboard: React.FC = () => {
     const fetchLeaderboard = async () => {
       setLoading(true);
       
-      // Fetch top 50 users by total_claimed with user profile info
+      // Fetch all users by total_claimed with user profile info
       const { data: balances, error: balanceError } = await supabase
         .from('user_balances')
         .select('user_id, total_claimed')
         .order('total_claimed', { ascending: false })
-        .limit(50);
+        .limit(1000);
 
       if (balanceError) {
         console.error('Error fetching leaderboard:', balanceError);
