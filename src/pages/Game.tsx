@@ -524,7 +524,6 @@ const Game: React.FC = () => {
     
     if (success) {
       toast.success(`Saved ${shareToSaveAmount.toLocaleString()} JC!`);
-      setEarnedAmount(shareToSaveAmount);
       
       // Complete run with the saved amount
       setIsCompletingRun(true);
@@ -538,26 +537,24 @@ const Game: React.FC = () => {
         });
       }
       setIsCompletingRun(false);
-    } else {
-      // Share was cancelled or failed, keep safe haven amount
-      const safeHavens = prizeLadder.filter(p => p.isSafeHaven && p.questionNumber < currentQuestionIndex + 1);
-      const safeHavenAmount = safeHavens.length > 0 ? safeHavens[safeHavens.length - 1].prizeAmount : 0;
-      setEarnedAmount(safeHavenAmount);
       
-      setIsCompletingRun(true);
-      if (currentRun) {
-        await completeRun({
-          runId: currentRun.id,
-          reachedQ: currentQuestionIndex + 1,
-          earnedTier: safeHavens.length,
-          earnedAmount: safeHavenAmount,
-          status: 'completed',
-        });
-      }
-      setIsCompletingRun(false);
+      // Navigate directly to Result page with auto-claim for the saved amount
+      navigate('/result', { 
+        state: { 
+          earnedAmount: shareToSaveAmount, 
+          reachedQuestion: currentQuestionIndex + 1,
+          isWinner: false,
+          runId: currentRun?.id,
+          autoClaim: true, // Auto-claim the saved prize
+        } 
+      });
+      return; // Exit early, don't set game over
     }
     
-    setIsGameOver(true);
+    // Share was cancelled or failed - stay on dialog, don't navigate
+    setIsSharing(false);
+    toast.error('Share cancelled. Try again or skip.');
+    return; // Stay on the dialog
   };
 
   // Handle skip share (take safe haven)
