@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useGame } from '@/contexts/GameContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { RefreshCw, ArrowLeft, BarChart3, Users, TrendingUp, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { RefreshCw, ArrowLeft, BarChart3, Users, TrendingUp, CheckCircle, XCircle, AlertTriangle, Share2, UserCheck, MousePointerClick } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +29,14 @@ interface ReferralFailure {
   count: number;
 }
 
+interface ReferralStats {
+  inviter: string;
+  clicked: number;
+  verified: number;
+  completed: number;
+  total: number;
+}
+
 const Analytics: React.FC = () => {
   const navigate = useNavigate();
   const { state, isAdmin } = useGame();
@@ -37,6 +45,8 @@ const Analytics: React.FC = () => {
   const [playerStats, setPlayerStats] = useState<PlayerStats>({ todayPlayers: 0, totalPlayers: 0 });
   const [questionAnalytics, setQuestionAnalytics] = useState<QuestionAnalytics[]>([]);
   const [referralFailures, setReferralFailures] = useState<ReferralFailure[]>([]);
+  const [referralStats, setReferralStats] = useState<ReferralStats[]>([]);
+  const [referralTotals, setReferralTotals] = useState({ clicked: 0, verified: 0, completed: 0 });
   const [isLoading, setIsLoading] = useState(true);
 
   // Redirect non-admins
@@ -143,6 +153,48 @@ const Analytics: React.FC = () => {
             .sort((a, b) => b.count - a.count);
           
           setReferralFailures(aggregated);
+        }
+
+        // Fetch referral stats by inviter
+        const { data: referrals, error: referralsError } = await supabase
+          .from('referrals')
+          .select(`
+            status,
+            inviter_user_id,
+            users!referrals_inviter_user_id_fkey (username)
+          `);
+        
+        if (referralsError) {
+          console.error('Referrals error:', referralsError);
+        } else if (referrals) {
+          // Aggregate by inviter
+          const inviterMap = new Map<string, { inviter: string; clicked: number; verified: number; completed: number }>();
+          let totalClicked = 0, totalVerified = 0, totalCompleted = 0;
+          
+          referrals.forEach((r: any) => {
+            const inviterName = r.users?.username || 'Unknown';
+            const current = inviterMap.get(inviterName) || { inviter: inviterName, clicked: 0, verified: 0, completed: 0 };
+            
+            if (r.status === 'clicked') {
+              current.clicked++;
+              totalClicked++;
+            } else if (r.status === 'verified') {
+              current.verified++;
+              totalVerified++;
+            } else if (r.status === 'first_run_completed') {
+              current.completed++;
+              totalCompleted++;
+            }
+            
+            inviterMap.set(inviterName, current);
+          });
+          
+          const stats: ReferralStats[] = Array.from(inviterMap.values())
+            .map(s => ({ ...s, total: s.clicked + s.verified + s.completed }))
+            .sort((a, b) => b.total - a.total);
+          
+          setReferralStats(stats);
+          setReferralTotals({ clicked: totalClicked, verified: totalVerified, completed: totalCompleted });
         }
       } catch (err) {
         console.error('Analytics fetch error:', err);
@@ -283,6 +335,90 @@ const Analytics: React.FC = () => {
           {!isLoading && questionAnalytics.length > 0 && (
             <p className="text-xs text-muted-foreground text-center">
               Showing {questionAnalytics.length} questions • {questionAnalytics.filter(q => q.totalAnswers > 0).length} with answers
+            </p>
+          )}
+        </section>
+
+        {/* Referral Analytics */}
+        <section className="bg-card rounded-xl border border-border p-5 space-y-4">
+          <h2 className="text-lg font-display font-bold flex items-center gap-2">
+            <Share2 className="w-5 h-5 text-primary" />
+            Referral Performance
+          </h2>
+
+          {/* Summary Stats */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-secondary/50 rounded-lg p-3 text-center">
+              <MousePointerClick className="w-5 h-5 text-warning mx-auto mb-1" />
+              <p className="text-xl font-bold">{referralTotals.clicked}</p>
+              <p className="text-xs text-muted-foreground">Clicked</p>
+            </div>
+            <div className="bg-secondary/50 rounded-lg p-3 text-center">
+              <UserCheck className="w-5 h-5 text-info mx-auto mb-1" />
+              <p className="text-xl font-bold">{referralTotals.verified}</p>
+              <p className="text-xs text-muted-foreground">Verified</p>
+            </div>
+            <div className="bg-secondary/50 rounded-lg p-3 text-center">
+              <CheckCircle className="w-5 h-5 text-success mx-auto mb-1" />
+              <p className="text-xl font-bold">{referralTotals.completed}</p>
+              <p className="text-xs text-muted-foreground">Completed</p>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : referralStats.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              No referrals yet.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Inviter</TableHead>
+                    <TableHead className="text-center">
+                      <MousePointerClick className="w-4 h-4 inline text-warning" />
+                    </TableHead>
+                    <TableHead className="text-center">
+                      <UserCheck className="w-4 h-4 inline text-info" />
+                    </TableHead>
+                    <TableHead className="text-center">
+                      <CheckCircle className="w-4 h-4 inline text-success" />
+                    </TableHead>
+                    <TableHead className="text-center">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {referralStats.map((s) => (
+                    <TableRow key={s.inviter}>
+                      <TableCell className="font-medium">
+                        {s.inviter}
+                      </TableCell>
+                      <TableCell className="text-center text-warning font-medium">
+                        {s.clicked || '—'}
+                      </TableCell>
+                      <TableCell className="text-center text-info font-medium">
+                        {s.verified || '—'}
+                      </TableCell>
+                      <TableCell className="text-center text-success font-medium">
+                        {s.completed || '—'}
+                      </TableCell>
+                      <TableCell className="text-center font-bold">
+                        {s.total}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+          
+          {!isLoading && referralStats.length > 0 && (
+            <p className="text-xs text-muted-foreground text-center">
+              {referralStats.length} inviters • {referralTotals.clicked + referralTotals.verified + referralTotals.completed} total referrals
             </p>
           )}
         </section>
