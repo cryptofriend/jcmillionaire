@@ -178,7 +178,7 @@ serve(async (req) => {
       });
     });
 
-    // Fetch existing questions from database
+    // Fetch existing questions from database indexed by text_hash
     const { data: existingQuestions, error: fetchError } = await supabase
       .from('questions')
       .select('id, active_dates, difficulty, question, text_hash')
@@ -190,25 +190,23 @@ serve(async (req) => {
       throw fetchError;
     }
 
-    // Group existing questions by date + difficulty
-    const existingByDateDifficulty: Record<string, Array<{ id: string; question: string; text_hash: string }>> = {};
+    // Index existing questions by text_hash for quick lookup
+    const existingByTextHash: Record<string, { id: string; question: string; text_hash: string; active_dates: string; difficulty: number }> = {};
     (existingQuestions || []).forEach(q => {
-      const key = `${q.active_dates}|${q.difficulty}`;
-      if (!existingByDateDifficulty[key]) {
-        existingByDateDifficulty[key] = [];
-      }
-      existingByDateDifficulty[key].push({ id: q.id, question: q.question, text_hash: q.text_hash });
+      existingByTextHash[q.text_hash] = { id: q.id, question: q.question, text_hash: q.text_hash, active_dates: q.active_dates, difficulty: q.difficulty };
     });
 
     let updatedCount = 0;
     let insertedCount = 0;
     const translationSummary = { en: 0, es: 0, th: 0, hi: 0, id: 0 };
 
-    // Process English questions and match with existing DB questions
+    // Process English questions and match by text_hash
     for (let idx = 0; idx < enData.questions.length; idx++) {
       const enQ = enData.questions[idx];
-      const dateKey = `${enQ.active_dates}|${enQ.difficulty}`;
       const fullKey = `${enQ.active_dates}|${enQ.difficulty}|${idx}`;
+      
+      // Generate text hash for this question
+      const textHash = generateTextHash(enQ.question, [enQ.choice_a, enQ.choice_b, enQ.choice_c, enQ.choice_d]);
       
       // Get translations for this question
       const translations = translationsByKey[fullKey] || {};
@@ -224,148 +222,71 @@ serve(async (req) => {
       if (hiQ) translationSummary.hi++;
       if (idQ) translationSummary.id++;
 
-      // Find matching existing question by date + difficulty + position
-      const existingForDate = existingByDateDifficulty[dateKey] || [];
-      
-      // Match by position within the same date/difficulty group
-      // Or by similar question text if positions don't align
-      let matchedQuestion: { id: string; question: string; text_hash: string } | null = null;
-      
-      // First try: exact position match within date/difficulty
-      if (existingForDate[idx]) {
-        matchedQuestion = existingForDate[idx];
-      } else {
-        // Second try: find by similar question text (fuzzy match)
-        const normalizedEnQ = enQ.question.toLowerCase().replace(/[^a-z0-9]/g, '');
-        for (const existing of existingForDate) {
-          const normalizedExisting = existing.question.toLowerCase().replace(/[^a-z0-9]/g, '');
-          // Check for significant overlap (at least 60% similarity)
-          const shorter = Math.min(normalizedEnQ.length, normalizedExisting.length);
-          const longer = Math.max(normalizedEnQ.length, normalizedExisting.length);
-          if (shorter > 0 && shorter / longer > 0.6) {
-            // Check if one contains significant portion of the other
-            if (normalizedEnQ.includes(normalizedExisting.slice(0, 20)) || 
-                normalizedExisting.includes(normalizedEnQ.slice(0, 20))) {
-              matchedQuestion = existing;
-              break;
-            }
-          }
-        }
-      }
+      // Check if question already exists by text_hash
+      const matchedQuestion = existingByTextHash[textHash];
+
+      // Build the question data object
+      const questionData = {
+        question: enQ.question,
+        choice_a: enQ.choice_a,
+        choice_b: enQ.choice_b,
+        choice_c: enQ.choice_c,
+        choice_d: enQ.choice_d,
+        correct_choice: enQ.correct_choice,
+        hint: enQ.hint,
+        category: enQ.category,
+        difficulty: enQ.difficulty,
+        active_dates: enQ.active_dates,
+        is_active: enQ.is_active,
+        text_hash: textHash,
+        // Spanish
+        question_es: esQ?.question || null,
+        choice_a_es: esQ?.choice_a || null,
+        choice_b_es: esQ?.choice_b || null,
+        choice_c_es: esQ?.choice_c || null,
+        choice_d_es: esQ?.choice_d || null,
+        hint_es: esQ?.hint || null,
+        // Thai
+        question_th: thQ?.question || null,
+        choice_a_th: thQ?.choice_a || null,
+        choice_b_th: thQ?.choice_b || null,
+        choice_c_th: thQ?.choice_c || null,
+        choice_d_th: thQ?.choice_d || null,
+        hint_th: thQ?.hint || null,
+        // Hindi
+        question_hi: hiQ?.question || null,
+        choice_a_hi: hiQ?.choice_a || null,
+        choice_b_hi: hiQ?.choice_b || null,
+        choice_c_hi: hiQ?.choice_c || null,
+        choice_d_hi: hiQ?.choice_d || null,
+        hint_hi: hiQ?.hint || null,
+        // Indonesian
+        question_id: idQ?.question || null,
+        choice_a_id: idQ?.choice_a || null,
+        choice_b_id: idQ?.choice_b || null,
+        choice_c_id: idQ?.choice_c || null,
+        choice_d_id: idQ?.choice_d || null,
+        hint_id: idQ?.hint || null,
+      };
 
       if (matchedQuestion) {
-        // Update existing question with translations
-        const updateData: Record<string, unknown> = {};
-        
-        // Update base English content if different
-        updateData.question = enQ.question;
-        updateData.choice_a = enQ.choice_a;
-        updateData.choice_b = enQ.choice_b;
-        updateData.choice_c = enQ.choice_c;
-        updateData.choice_d = enQ.choice_d;
-        updateData.hint = enQ.hint;
-        updateData.correct_choice = enQ.correct_choice;
-        updateData.category = enQ.category;
-        updateData.is_active = enQ.is_active;
-        
-        // Add Spanish translations
-        if (esQ) {
-          updateData.question_es = esQ.question;
-          updateData.choice_a_es = esQ.choice_a;
-          updateData.choice_b_es = esQ.choice_b;
-          updateData.choice_c_es = esQ.choice_c;
-          updateData.choice_d_es = esQ.choice_d;
-          updateData.hint_es = esQ.hint;
-        }
-        
-        // Add Thai translations
-        if (thQ) {
-          updateData.question_th = thQ.question;
-          updateData.choice_a_th = thQ.choice_a;
-          updateData.choice_b_th = thQ.choice_b;
-          updateData.choice_c_th = thQ.choice_c;
-          updateData.choice_d_th = thQ.choice_d;
-          updateData.hint_th = thQ.hint;
-        }
-        
-        // Add Hindi translations
-        if (hiQ) {
-          updateData.question_hi = hiQ.question;
-          updateData.choice_a_hi = hiQ.choice_a;
-          updateData.choice_b_hi = hiQ.choice_b;
-          updateData.choice_c_hi = hiQ.choice_c;
-          updateData.choice_d_hi = hiQ.choice_d;
-          updateData.hint_hi = hiQ.hint;
-        }
-        
-        // Add Indonesian translations
-        if (idQ) {
-          updateData.question_id = idQ.question;
-          updateData.choice_a_id = idQ.choice_a;
-          updateData.choice_b_id = idQ.choice_b;
-          updateData.choice_c_id = idQ.choice_c;
-          updateData.choice_d_id = idQ.choice_d;
-          updateData.hint_id = idQ.hint;
-        }
-
+        // Update existing question - update date, difficulty, translations, etc.
         const { error: updateError } = await supabase
           .from('questions')
-          .update(updateData)
+          .update(questionData)
           .eq('id', matchedQuestion.id);
 
         if (updateError) {
           console.error(`Error updating question ${matchedQuestion.id}:`, updateError);
         } else {
           updatedCount++;
+          console.log(`Updated question ${matchedQuestion.id}: date ${matchedQuestion.active_dates} -> ${enQ.active_dates}`);
         }
       } else {
-        // Insert new question with all translations
-        const insertData = {
-          question: enQ.question,
-          choice_a: enQ.choice_a,
-          choice_b: enQ.choice_b,
-          choice_c: enQ.choice_c,
-          choice_d: enQ.choice_d,
-          correct_choice: enQ.correct_choice,
-          hint: enQ.hint,
-          category: enQ.category,
-          difficulty: enQ.difficulty,
-          active_dates: enQ.active_dates,
-          is_active: enQ.is_active,
-          text_hash: generateTextHash(enQ.question, [enQ.choice_a, enQ.choice_b, enQ.choice_c, enQ.choice_d]),
-          // Spanish
-          question_es: esQ?.question || null,
-          choice_a_es: esQ?.choice_a || null,
-          choice_b_es: esQ?.choice_b || null,
-          choice_c_es: esQ?.choice_c || null,
-          choice_d_es: esQ?.choice_d || null,
-          hint_es: esQ?.hint || null,
-          // Thai
-          question_th: thQ?.question || null,
-          choice_a_th: thQ?.choice_a || null,
-          choice_b_th: thQ?.choice_b || null,
-          choice_c_th: thQ?.choice_c || null,
-          choice_d_th: thQ?.choice_d || null,
-          hint_th: thQ?.hint || null,
-          // Hindi
-          question_hi: hiQ?.question || null,
-          choice_a_hi: hiQ?.choice_a || null,
-          choice_b_hi: hiQ?.choice_b || null,
-          choice_c_hi: hiQ?.choice_c || null,
-          choice_d_hi: hiQ?.choice_d || null,
-          hint_hi: hiQ?.hint || null,
-          // Indonesian
-          question_id: idQ?.question || null,
-          choice_a_id: idQ?.choice_a || null,
-          choice_b_id: idQ?.choice_b || null,
-          choice_c_id: idQ?.choice_c || null,
-          choice_d_id: idQ?.choice_d || null,
-          hint_id: idQ?.hint || null,
-        };
-
+        // Insert new question
         const { error: insertError } = await supabase
           .from('questions')
-          .insert(insertData);
+          .insert(questionData);
 
         if (insertError) {
           console.error(`Error inserting question:`, insertError);
