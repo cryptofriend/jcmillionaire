@@ -503,27 +503,33 @@ const Game: React.FC = () => {
     
     let success = false;
     
-    if (isInWorldApp()) {
-      const result = await shareViaWorldApp({
-        title: 'Jackie Chain: Millionaire',
-        text: shareText,
-        url: gameUrl,
-      });
-      success = result.success;
-    } else {
-      const result = await shareViaNative({
-        title: 'Jackie Chain: Millionaire',
-        text: shareText,
-        url: gameUrl,
-      });
-      success = result.success;
+    try {
+      if (isInWorldApp()) {
+        const result = await shareViaWorldApp({
+          title: 'Jackie Chain: Millionaire',
+          text: shareText,
+          url: gameUrl,
+        });
+        success = result.success;
+      } else {
+        const result = await shareViaNative({
+          title: 'Jackie Chain: Millionaire',
+          text: shareText,
+          url: gameUrl,
+        });
+        success = result.success;
+      }
+    } catch (error) {
+      console.error('Share error:', error);
+      success = false;
     }
     
+    // Always reset sharing state first
     setIsSharing(false);
-    setShowShareToSaveDialog(false);
     
     if (success) {
       toast.success(`Saved ${shareToSaveAmount.toLocaleString()} JC!`);
+      setShowShareToSaveDialog(false);
       
       // Complete run with the saved amount
       setIsCompletingRun(true);
@@ -551,10 +557,8 @@ const Game: React.FC = () => {
       return; // Exit early, don't set game over
     }
     
-    // Share was cancelled or failed - stay on dialog, don't navigate
-    setIsSharing(false);
+    // Share was cancelled or failed - stay on dialog
     toast.error('Share cancelled. Try again or skip.');
-    return; // Stay on the dialog
   };
 
   // Handle skip share (take safe haven)

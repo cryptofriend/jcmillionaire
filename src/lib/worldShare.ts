@@ -61,18 +61,25 @@ export async function shareViaWorldApp(options: {
   }
 
   try {
-    const { finalPayload } = await MiniKit.commandsAsync.share({
+    // Add timeout to prevent infinite hanging if share dialog is dismissed unexpectedly
+    const sharePromise = MiniKit.commandsAsync.share({
       title: options.title,
       text: options.text,
       url: options.url,
     });
+    
+    const timeoutPromise = new Promise<{ finalPayload: { status: string } }>((_, reject) => {
+      setTimeout(() => reject(new Error('Share timed out')), 60000); // 60 second timeout
+    });
+
+    const { finalPayload } = await Promise.race([sharePromise, timeoutPromise]);
 
     if (finalPayload.status === 'success') {
       return { success: true };
     } else {
       return { 
         success: false, 
-        error: (finalPayload as any).error_code || 'Share failed' 
+        error: (finalPayload as any).error_code || 'Share cancelled' 
       };
     }
   } catch (error) {
