@@ -8,3 +8,7 @@ verify_jwt = false
 
 [functions.sync-questions]
 verify_jwt = false
+
+[functions.snapshot-leaderboard]
+verify_jwt = false
+schedule = "0 0 * * *"
