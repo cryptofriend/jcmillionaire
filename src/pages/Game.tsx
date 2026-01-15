@@ -312,12 +312,14 @@ const Game: React.FC = () => {
         }, 2000);
       } else {
         // Show claim dialog after EVERY correct answer
-        const currentPrize = prizeLadder[currentQuestionIndex]?.prizeAmount || 0;
+        // If question index exceeds prize ladder, use the max prize (last tier)
+        const maxPrize = prizeLadder.length > 0 ? prizeLadder[prizeLadder.length - 1].prizeAmount : 0;
+        const currentPrize = prizeLadder[currentQuestionIndex]?.prizeAmount ?? maxPrize;
         setEarnedAmount(currentPrize);
         
         // Check if won all questions (last question)
         if (currentQuestionIndex >= questions.length - 1) {
-          const finalAmount = prizeLadder[currentQuestionIndex]?.prizeAmount || 0;
+          const finalAmount = prizeLadder[currentQuestionIndex]?.prizeAmount ?? maxPrize;
           setEarnedAmount(finalAmount);
           setIsCompletingRun(true);
 
