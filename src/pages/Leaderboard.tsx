@@ -52,23 +52,33 @@ const Leaderboard: React.FC = () => {
   const [countdown, setCountdown] = useState(getTimeUntilAirdrop());
   const [visibleCount, setVisibleCount] = useState(50);
 
-  // Countdown timer
+  // Countdown timer - use requestAnimationFrame for better INP
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCountdown(getTimeUntilAirdrop());
-    }, 1000);
-    return () => clearInterval(interval);
+    let animationFrameId: number;
+    let lastUpdate = 0;
+    
+    const updateCountdown = (timestamp: number) => {
+      // Only update once per second to reduce CPU usage
+      if (timestamp - lastUpdate >= 1000) {
+        setCountdown(getTimeUntilAirdrop());
+        lastUpdate = timestamp;
+      }
+      animationFrameId = requestAnimationFrame(updateCountdown);
+    };
+    
+    animationFrameId = requestAnimationFrame(updateCountdown);
+    return () => cancelAnimationFrame(animationFrameId);
   }, []);
   useEffect(() => {
     const fetchLeaderboard = async () => {
       setLoading(true);
       
-      // Fetch all users by total_claimed with user profile info
+      // Fetch top users by total_claimed - limit to 100 for better performance
       const { data: balances, error: balanceError } = await supabase
         .from('user_balances')
         .select('user_id, total_claimed')
         .order('total_claimed', { ascending: false })
-        .limit(1000);
+        .limit(100);
 
       if (balanceError) {
         console.error('Error fetching leaderboard:', balanceError);
