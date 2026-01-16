@@ -41,10 +41,14 @@ export const TrailerCard: React.FC<TrailerCardProps> = ({ onDismiss, activeTab, 
             onClick={() => setIsPlaying(true)}
             className="absolute inset-0 w-full h-full group cursor-pointer"
           >
-            {/* Thumbnail */}
+            {/* Thumbnail - with explicit dimensions to prevent CLS */}
             <img
               src={thumbnailUrl}
               alt="Trailer thumbnail"
+              width={360}
+              height={640}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover"
               onError={(e) => {
                 // Fallback to hqdefault if maxres not available

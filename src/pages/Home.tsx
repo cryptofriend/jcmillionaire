@@ -75,11 +75,21 @@ const Home: React.FC = () => {
 
   const referralCode = user ? generateReferralCode(user.id) : '';
 
+  // Use requestAnimationFrame for smoother countdown (better INP)
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown(getTimeUntilMidnight());
-    }, 1000);
-    return () => clearInterval(timer);
+    let animationFrameId: number;
+    let lastUpdate = 0;
+    
+    const updateCountdown = (timestamp: number) => {
+      if (timestamp - lastUpdate >= 1000) {
+        setCountdown(getTimeUntilMidnight());
+        lastUpdate = timestamp;
+      }
+      animationFrameId = requestAnimationFrame(updateCountdown);
+    };
+    
+    animationFrameId = requestAnimationFrame(updateCountdown);
+    return () => cancelAnimationFrame(animationFrameId);
   }, []);
 
   const canPlay = isVerified && (attempts?.remaining || 0) > 0;

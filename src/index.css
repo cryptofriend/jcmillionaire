@@ -1,4 +1,19 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Fredoka:wght@400;500;600;700&display=swap');
+/* Fonts loaded via preload in index.html for better LCP */
+/* Fallback font-face declarations for offline/faster rendering */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: local('Nunito');
+}
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: swap;
+  src: local('Fredoka');
+}
 
 @tailwind base;
 @tailwind components;
