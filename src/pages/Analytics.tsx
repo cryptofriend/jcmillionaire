@@ -298,11 +298,11 @@ const Analytics: React.FC = () => {
                       <TableCell className="text-center">
                         <span className={cn(
                           'px-2 py-1 text-xs rounded-full font-medium',
-                          q.difficulty <= 2 ? 'bg-success/20 text-success' :
+                          q.difficulty === 1 ? 'bg-success/20 text-success' :
                           q.difficulty <= 3 ? 'bg-warning/20 text-warning' :
                           'bg-destructive/20 text-destructive'
                         )}>
-                          {q.difficulty}
+                          {q.difficulty === 1 ? 'Funny' : q.difficulty <= 3 ? 'Medium' : 'Hard'}
                         </span>
                       </TableCell>
                       <TableCell className="text-center text-success font-medium">

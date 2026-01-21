@@ -576,7 +576,7 @@ const Admin: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{q.question}</p>
                     <div className="flex gap-2 text-xs text-muted-foreground">
-                      <span>Difficulty: {q.difficulty}</span>
+                      <span>Difficulty: {q.difficulty === 1 ? 'Funny' : q.difficulty <= 3 ? 'Medium' : 'Hard'}</span>
                       <span>•</span>
                       <span>{q.category}</span>
                       <span>•</span>
