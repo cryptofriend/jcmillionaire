@@ -5,6 +5,7 @@ import { Users, CheckCircle, Clock, MousePointer, Loader2, RefreshCw } from 'luc
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PendingNudges } from './PendingNudges';
 
 interface ReferralItem {
   id: string;
@@ -17,6 +18,7 @@ interface ReferralItem {
 
 interface ReferralDashboardProps {
   userId: string;
+  inviteCode: string;
 }
 
 const statusConfig = {
@@ -46,7 +48,7 @@ const statusConfig = {
   },
 };
 
-export const ReferralDashboard: React.FC<ReferralDashboardProps> = ({ userId }) => {
+export const ReferralDashboard: React.FC<ReferralDashboardProps> = ({ userId, inviteCode }) => {
   const [referrals, setReferrals] = useState<ReferralItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -140,6 +142,12 @@ export const ReferralDashboard: React.FC<ReferralDashboardProps> = ({ userId }) 
 
   return (
     <div className="space-y-4">
+      {/* Pending Nudges - Show first if there are pending referrals */}
+      <PendingNudges 
+        referrals={referrals.filter(r => r.status === 'clicked' || r.status === 'verified')} 
+        inviteCode={inviteCode} 
+      />
+
       {/* Stats Overview */}
       <div className="grid grid-cols-3 gap-2">
         <div className="bg-muted/50 rounded-lg p-3 text-center">
