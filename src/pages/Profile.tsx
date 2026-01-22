@@ -502,7 +502,7 @@ const Profile: React.FC = () => {
           />
 
           {/* Real-time Referral Dashboard */}
-          {user?.id && <ReferralDashboard userId={user.id} />}
+          {user?.id && <ReferralDashboard userId={user.id} inviteCode={inviteCode} />}
         </TabsContent>
       </Tabs>
     </div>
