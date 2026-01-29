@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import * as ed from 'https://esm.sh/@noble/ed25519@2.0.0';
-import { decode as decodeBase58 } from 'https://esm.sh/bs58@5.0.0';
+import bs58 from 'https://esm.sh/bs58@5.0.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -57,8 +57,8 @@ Deno.serve(async (req) => {
 
     // Decode and verify signature
     try {
-      const publicKeyBytes = decodeBase58(publicKey);
-      const signatureBytes = decodeBase58(signature);
+      const publicKeyBytes = bs58.decode(publicKey);
+      const signatureBytes = bs58.decode(signature);
       const messageBytes = new TextEncoder().encode(message);
 
       const isValid = await ed.verify(signatureBytes, messageBytes, publicKeyBytes);
