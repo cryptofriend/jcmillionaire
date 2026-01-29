@@ -2,11 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
 import { PhantomIcon } from '@/components/icons/PhantomIcon';
 import { WorldIdIcon } from '@/components/icons/WorldIdIcon';
-import { formatJC } from '@/lib/rewardsService';
 import { supabase } from '@/integrations/supabase/client';
 import { useGame } from '@/contexts/GameContext';
 import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket, Users, Gamepad2, TrendingUp, TrendingDown, Minus, MessageCircle, ClipboardCopy } from 'lucide-react';
@@ -44,27 +42,19 @@ interface LeaderboardEntry {
   solana_address?: string;
 }
 
-type LeaderboardTab = 'world_id' | 'solana';
-
 const Leaderboard: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { state, isAdmin } = useGame();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
-  const [solanaEntries, setSolanaEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [solanaLoading, setSolanaLoading] = useState(true);
+  const [totalPlayers, setTotalPlayers] = useState(0);
   const [userRank, setUserRank] = useState<number | null>(null);
   const [userBalance, setUserBalance] = useState<number>(0);
   const [userStats, setUserStats] = useState<{ invited: number; games: number }>({ invited: 0, games: 0 });
   const [userRankChange, setUserRankChange] = useState<number | null>(null);
   const [countdown, setCountdown] = useState(getTimeUntilAirdrop());
   const [visibleCount, setVisibleCount] = useState(50);
-  const [solanaVisibleCount, setSolanaVisibleCount] = useState(50);
-  const [activeTab, setActiveTab] = useState<LeaderboardTab>('world_id');
-
-  // Determine user's wallet type
-  const userWalletType = localStorage.getItem('jc_wallet_type') || 'world_id';
 
   // Countdown timer
   useEffect(() => {
@@ -83,16 +73,15 @@ const Leaderboard: React.FC = () => {
     return () => cancelAnimationFrame(animationFrameId);
   }, []);
 
-  // Fetch World ID leaderboard
+  // Fetch unified leaderboard
   useEffect(() => {
     const fetchLeaderboard = async () => {
       setLoading(true);
       
-      // Fetch users with wallet_type = 'world_id' (or null for legacy users)
+      // Fetch all users
       const { data: users, error: usersError } = await supabase
         .from('users')
-        .select('id, username, profile_picture_url, wallet_type')
-        .or('wallet_type.eq.world_id,wallet_type.is.null');
+        .select('id, username, profile_picture_url, wallet_type, solana_address');
 
       if (usersError) {
         console.error('Error fetching users:', usersError);
@@ -100,21 +89,23 @@ const Leaderboard: React.FC = () => {
         return;
       }
 
-      const worldIdUserIds = users?.map(u => u.id) || [];
+      // Set total player count
+      setTotalPlayers(users?.length || 0);
+
+      const allUserIds = users?.map(u => u.id) || [];
       
-      if (worldIdUserIds.length === 0) {
+      if (allUserIds.length === 0) {
         setEntries([]);
         setLoading(false);
         return;
       }
 
-      // Fetch balances for World ID users
+      // Fetch all balances ordered by total_claimed
       const { data: balances, error: balanceError } = await supabase
         .from('user_balances')
         .select('user_id, total_claimed')
-        .in('user_id', worldIdUserIds)
         .order('total_claimed', { ascending: false })
-        .limit(100);
+        .limit(200);
 
       if (balanceError) {
         console.error('Error fetching leaderboard:', balanceError);
@@ -195,13 +186,14 @@ const Leaderboard: React.FC = () => {
           games_played: runCounts.get(entry.user_id) || 0,
           rank_change: rankChange,
           wallet_type: userProfile?.wallet_type || 'world_id',
+          solana_address: userProfile?.solana_address || undefined,
         };
       });
 
       setEntries(rankedEntries);
 
       // Find current user's rank
-      if (state.user?.id && userWalletType === 'world_id') {
+      if (state.user?.id) {
         const userEntry = rankedEntries.find(e => e.user_id === state.user?.id);
         if (userEntry) {
           setUserRank(userEntry.rank);
@@ -215,106 +207,7 @@ const Leaderboard: React.FC = () => {
     };
 
     fetchLeaderboard();
-  }, [state.user?.id, userWalletType]);
-
-  // Fetch Solana leaderboard
-  useEffect(() => {
-    const fetchSolanaLeaderboard = async () => {
-      setSolanaLoading(true);
-      
-      // Fetch users with wallet_type = 'solana'
-      const { data: users, error: usersError } = await supabase
-        .from('users')
-        .select('id, username, profile_picture_url, wallet_type, solana_address')
-        .eq('wallet_type', 'solana');
-
-      if (usersError) {
-        console.error('Error fetching Solana users:', usersError);
-        setSolanaLoading(false);
-        return;
-      }
-
-      const solanaUserIds = users?.map(u => u.id) || [];
-      
-      if (solanaUserIds.length === 0) {
-        setSolanaEntries([]);
-        setSolanaLoading(false);
-        return;
-      }
-
-      // Fetch balances for Solana users
-      const { data: balances, error: balanceError } = await supabase
-        .from('user_balances')
-        .select('user_id, total_claimed')
-        .in('user_id', solanaUserIds)
-        .order('total_claimed', { ascending: false })
-        .limit(100);
-
-      if (balanceError) {
-        console.error('Error fetching Solana leaderboard:', balanceError);
-        setSolanaLoading(false);
-        return;
-      }
-
-      const userMap = new Map(users?.map(u => [u.id, u]) || []);
-      const userIds = balances?.map(b => b.user_id) || [];
-
-      // Get additional data
-      const [referralsResult, runsResult] = await Promise.all([
-        supabase
-          .from('referrals')
-          .select('inviter_user_id')
-          .in('inviter_user_id', userIds)
-          .eq('status', 'first_run_completed'),
-        supabase
-          .from('runs')
-          .select('user_id')
-          .in('user_id', userIds),
-      ]);
-
-      const referralCounts = new Map<string, number>();
-      referralsResult.data?.forEach(r => {
-        referralCounts.set(r.inviter_user_id, (referralCounts.get(r.inviter_user_id) || 0) + 1);
-      });
-      
-      const runCounts = new Map<string, number>();
-      runsResult.data?.forEach(r => {
-        runCounts.set(r.user_id, (runCounts.get(r.user_id) || 0) + 1);
-      });
-
-      const rankedEntries = (balances || []).map((entry, index) => {
-        const userProfile = userMap.get(entry.user_id);
-        return {
-          ...entry,
-          rank: index + 1,
-          username: userProfile?.username || undefined,
-          profile_picture_url: userProfile?.profile_picture_url || undefined,
-          invited_count: referralCounts.get(entry.user_id) || 0,
-          games_played: runCounts.get(entry.user_id) || 0,
-          rank_change: null,
-          wallet_type: 'solana',
-          solana_address: userProfile?.solana_address || undefined,
-        };
-      });
-
-      setSolanaEntries(rankedEntries);
-
-      // Find current user's rank if they're a Solana user
-      if (state.user?.id && userWalletType === 'solana') {
-        const userEntry = rankedEntries.find(e => e.user_id === state.user?.id);
-        if (userEntry) {
-          setUserRank(userEntry.rank);
-          setUserBalance(userEntry.total_claimed);
-          setUserStats({ invited: userEntry.invited_count, games: userEntry.games_played });
-          setUserRankChange(null);
-        }
-      }
-
-      setSolanaLoading(false);
-    };
-
-    fetchSolanaLeaderboard();
-  }, [state.user?.id, userWalletType]);
+  }, [state.user?.id]);
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -395,9 +288,9 @@ const Leaderboard: React.FC = () => {
   const handleCopyLogs = () => {
     const debugInfo = {
       timestamp: new Date().toISOString(),
-      user: { id: state.user?.id, walletType: userWalletType },
-      worldIdEntries: entries.length,
-      solanaEntries: solanaEntries.length,
+      user: { id: state.user?.id },
+      entries: entries.length,
+      totalPlayers,
       userRank,
     };
     navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2))
@@ -409,139 +302,11 @@ const Leaderboard: React.FC = () => {
     return `${address.slice(0, 4)}...${address.slice(-4)}`;
   };
 
-  const renderLeaderboardList = (
-    entriesList: LeaderboardEntry[],
-    isLoading: boolean,
-    visible: number,
-    setVisible: React.Dispatch<React.SetStateAction<number>>,
-    isSolana: boolean = false
-  ) => {
-    if (isLoading) {
-      return (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      );
+  const getWalletIcon = (walletType?: string) => {
+    if (walletType === 'solana') {
+      return <PhantomIcon size={14} />;
     }
-
-    if (entriesList.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          {isSolana ? (
-            <PhantomIcon size={80} className="opacity-50 mb-4" />
-          ) : (
-            <JackieIcon size={80} className="opacity-50 mb-4" />
-          )}
-          <p className="text-muted-foreground">
-            {isSolana ? 'No Solana players yet' : t('leaderboard.noClaims')}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {isSolana ? 'Be the first Phantom user!' : t('leaderboard.beFirst')}
-          </p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-2">
-        {entriesList.slice(0, visible).map((entry) => {
-          const isCurrentUser = state.user?.id === entry.user_id;
-          
-          return (
-            <div
-              key={entry.user_id}
-              className={cn(
-                'flex items-center gap-3 p-3 rounded-xl border transition-all',
-                getRankStyle(entry.rank),
-                isCurrentUser && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
-              )}
-            >
-              {/* Rank */}
-              <div className="flex flex-col items-center justify-center w-10">
-                {getRankIcon(entry.rank)}
-                {!isSolana && getRankChangeIndicator(entry.rank_change)}
-              </div>
-
-              {/* User Avatar */}
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center overflow-hidden">
-                {entry.profile_picture_url ? (
-                  <img 
-                    src={entry.profile_picture_url} 
-                    alt={entry.username || 'User'} 
-                    className="w-full h-full object-cover"
-                  />
-                ) : isSolana ? (
-                  <PhantomIcon size={24} />
-                ) : (
-                  <span className="text-sm font-bold text-primary">
-                    {entry.username ? entry.username.charAt(0).toUpperCase() : `#${entry.rank}`}
-                  </span>
-                )}
-              </div>
-
-              {/* User Info */}
-              <div className="flex-1 min-w-0">
-                <p className={cn(
-                  'font-medium truncate',
-                  isCurrentUser && 'text-primary'
-                )}>
-                  {isCurrentUser ? 'You' : (
-                    entry.username || 
-                    (isSolana && entry.solana_address ? shortenAddress(entry.solana_address) : `Player ${entry.rank}`)
-                  )}
-                </p>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Users className="w-3 h-3" />
-                    {entry.invited_count}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Gamepad2 className="w-3 h-3" />
-                    {entry.games_played}
-                  </span>
-                </div>
-              </div>
-
-              {/* Balance */}
-              <div className="flex items-center gap-2">
-                <CoinIcon size={20} />
-                <span className={cn(
-                  'font-display font-bold',
-                  entry.rank <= 3 ? 'text-lg' : 'text-base'
-                )}>
-                  {entry.total_claimed.toLocaleString()}
-                </span>
-              </div>
-
-              {/* DM Button - only for World ID users */}
-              {!isCurrentUser && entry.username && !isSolana && isInWorldApp() && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void handleSendDM(entry.username!, entry.rank);
-                  }}
-                >
-                  <MessageCircle className="w-4 h-4 text-primary" />
-                </Button>
-              )}
-            </div>
-          );
-        })}
-        
-        {visible < entriesList.length && (
-          <Button
-            variant="outline"
-            className="w-full mt-4"
-            onClick={() => setVisible(prev => Math.min(prev + 50, entriesList.length))}
-          >
-            Load More ({entriesList.length - visible} remaining)
-          </Button>
-        )}
-      </div>
-    );
+    return <WorldIdIcon size={14} />;
   };
 
   return (
@@ -554,6 +319,9 @@ const Leaderboard: React.FC = () => {
         <div className="flex items-center gap-2 flex-1">
           <Trophy className="w-6 h-6 text-primary" />
           <h1 className="text-xl font-display font-bold">{t('leaderboard.title')}</h1>
+          <span className="text-sm text-muted-foreground">
+            ({totalPlayers.toLocaleString()} {t('leaderboard.players')})
+          </span>
         </div>
         {isAdmin && (
           <Button variant="ghost" size="icon" onClick={handleCopyLogs} title="Copy debug logs">
@@ -621,18 +389,10 @@ const Leaderboard: React.FC = () => {
                 {getRankIcon(userRank)}
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-muted-foreground">{t('leaderboard.yourRank')}</p>
-                  {userWalletType === 'solana' && (
-                    <PhantomIcon size={16} />
-                  )}
-                  {userWalletType === 'world_id' && (
-                    <WorldIdIcon size={16} />
-                  )}
-                </div>
+                <p className="text-sm text-muted-foreground">{t('leaderboard.yourRank')}</p>
                 <div className="flex items-center gap-2">
                   <p className="text-2xl font-display font-bold">#{userRank}</p>
-                  {userWalletType === 'world_id' && getRankChangeIndicator(userRankChange)}
+                  {getRankChangeIndicator(userRankChange)}
                 </div>
               </div>
             </div>
@@ -657,28 +417,133 @@ const Leaderboard: React.FC = () => {
         </div>
       )}
 
-      {/* Tabs for World ID / Solana */}
+      {/* TOP PLAYERS Header */}
       <div className="px-4 pb-2">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as LeaderboardTab)} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="world_id" className="flex items-center gap-2">
-              <WorldIdIcon size={18} />
-              <span>World ID</span>
-              <span className="text-xs text-muted-foreground">({entries.length})</span>
-            </TabsTrigger>
-            <TabsTrigger value="solana" className="flex items-center gap-2">
-              <PhantomIcon size={18} />
-              <span>Solana</span>
-              <span className="text-xs text-muted-foreground">({solanaEntries.length})</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex items-center gap-2">
+          <Trophy className="w-5 h-5 text-primary" />
+          <h2 className="font-display font-bold text-foreground">TOP PLAYERS</h2>
+          <span className="text-sm text-muted-foreground">
+            ({totalPlayers.toLocaleString()})
+          </span>
+        </div>
       </div>
 
       {/* Leaderboard List */}
       <main className="flex-1 px-4 pb-6">
-        {activeTab === 'world_id' && renderLeaderboardList(entries, loading, visibleCount, setVisibleCount, false)}
-        {activeTab === 'solana' && renderLeaderboardList(solanaEntries, solanaLoading, solanaVisibleCount, setSolanaVisibleCount, true)}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : entries.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <JackieIcon size={80} className="opacity-50 mb-4" />
+            <p className="text-muted-foreground">{t('leaderboard.noClaims')}</p>
+            <p className="text-sm text-muted-foreground">{t('leaderboard.beFirst')}</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {entries.slice(0, visibleCount).map((entry) => {
+              const isCurrentUser = state.user?.id === entry.user_id;
+              const isSolana = entry.wallet_type === 'solana';
+              
+              return (
+                <div
+                  key={entry.user_id}
+                  className={cn(
+                    'flex items-center gap-3 p-3 rounded-xl border transition-all',
+                    getRankStyle(entry.rank),
+                    isCurrentUser && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                  )}
+                >
+                  {/* Rank */}
+                  <div className="flex flex-col items-center justify-center w-10">
+                    {getRankIcon(entry.rank)}
+                    {getRankChangeIndicator(entry.rank_change)}
+                  </div>
+
+                  {/* User Avatar */}
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center overflow-hidden">
+                    {entry.profile_picture_url ? (
+                      <img 
+                        src={entry.profile_picture_url} 
+                        alt={entry.username || 'User'} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : isSolana ? (
+                      <PhantomIcon size={24} />
+                    ) : (
+                      <span className="text-sm font-bold text-primary">
+                        {entry.username ? entry.username.charAt(0).toUpperCase() : `#${entry.rank}`}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* User Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className={cn(
+                        'font-medium truncate',
+                        isCurrentUser && 'text-primary'
+                      )}>
+                        {isCurrentUser ? 'You' : (
+                          entry.username || 
+                          (isSolana && entry.solana_address ? shortenAddress(entry.solana_address) : `Player ${entry.rank}`)
+                        )}
+                      </p>
+                      {getWalletIcon(entry.wallet_type)}
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        {entry.invited_count}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Gamepad2 className="w-3 h-3" />
+                        {entry.games_played}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Balance */}
+                  <div className="flex items-center gap-2">
+                    <CoinIcon size={20} />
+                    <span className={cn(
+                      'font-display font-bold',
+                      entry.rank <= 3 ? 'text-lg' : 'text-base'
+                    )}>
+                      {entry.total_claimed.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {/* DM Button - only for World ID users */}
+                  {!isCurrentUser && entry.username && !isSolana && isInWorldApp() && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleSendDM(entry.username!, entry.rank);
+                      }}
+                    >
+                      <MessageCircle className="w-4 h-4 text-primary" />
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+            
+            {visibleCount < entries.length && (
+              <Button
+                variant="outline"
+                className="w-full mt-4"
+                onClick={() => setVisibleCount(prev => Math.min(prev + 50, entries.length))}
+              >
+                Load More ({entries.length - visibleCount} remaining)
+              </Button>
+            )}
+          </div>
+        )}
       </main>
 
       {/* Footer Stats */}
@@ -686,17 +551,14 @@ const Leaderboard: React.FC = () => {
         <div className="flex justify-center gap-6 text-center">
           <div>
             <p className="text-2xl font-display font-bold text-primary">
-              {activeTab === 'world_id' ? entries.length : solanaEntries.length}
+              {entries.length}
             </p>
             <p className="text-xs text-muted-foreground">{t('leaderboard.players')}</p>
           </div>
           <div className="w-px bg-border" />
           <div>
             <p className="text-2xl font-display font-bold text-gradient-gold">
-              {(activeTab === 'world_id' 
-                ? entries.reduce((sum, e) => sum + e.total_claimed, 0) 
-                : solanaEntries.reduce((sum, e) => sum + e.total_claimed, 0)
-              ).toLocaleString()}
+              {entries.reduce((sum, e) => sum + e.total_claimed, 0).toLocaleString()}
             </p>
             <p className="text-xs text-muted-foreground">{t('leaderboard.totalClaimed')}</p>
           </div>

@@ -20,10 +20,18 @@ export const MiniLeaderboard: React.FC = () => {
   const { state } = useGame();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalPlayers, setTotalPlayers] = useState(0);
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
       setLoading(true);
+      
+      // Get total player count
+      const { count } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true });
+      
+      setTotalPlayers(count || 0);
       
       const { data: balances, error: balanceError } = await supabase
         .from('user_balances')
@@ -84,6 +92,7 @@ export const MiniLeaderboard: React.FC = () => {
         <div className="flex items-center gap-2">
           <Trophy className="w-5 h-5 text-primary" />
           <h3 className="font-display font-bold text-foreground">Top Players</h3>
+          <span className="text-xs text-muted-foreground">({totalPlayers.toLocaleString()})</span>
         </div>
         <ChevronRight className="w-4 h-4 text-muted-foreground" />
       </div>
