@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
 import { WorldIdIcon, WorldIdBadge, PoweredByWorldId } from '@/components/icons/WorldIdIcon';
+import { PhantomIcon } from '@/components/icons/PhantomIcon';
 import { NotificationSubscription } from '@/components/NotificationSubscription';
 import { useGame } from '@/contexts/GameContext';
-import { ArrowLeft, CheckCircle, Loader2, AlertCircle, Gift } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Loader2, AlertCircle, Gift, Wallet } from 'lucide-react';
 import { persistUser } from '@/lib/userService';
 import { isInWorldApp, authenticateWithWallet } from '@/lib/minikit';
+import { isPhantomAvailable, authenticateWithPhantom } from '@/lib/phantomWallet';
 import { linkPendingReferralToUser } from '@/hooks/useReferralTracking';
 import { toast } from 'sonner';
 
@@ -15,39 +17,92 @@ const Verify: React.FC = () => {
   const navigate = useNavigate();
   const { dispatch } = useGame();
   const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyingWith, setVerifyingWith] = useState<'world' | 'phantom' | null>(null);
   const verificationLevel: 'device' | 'orb' = 'device';
   const [isSuccess, setIsSuccess] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [inWorldApp, setInWorldApp] = useState(false);
+  const [phantomAvailable, setPhantomAvailable] = useState(false);
   const [isCheckingEnv, setIsCheckingEnv] = useState(true);
 
   // Check if there's a pending referral
   const hasPendingReferral = !!localStorage.getItem('jc_pending_referral');
 
-  // Check if we're in World App on mount
+  // Check environment on mount
   useEffect(() => {
-    // Small delay to allow MiniKit to initialize
     const checkEnv = setTimeout(() => {
       const isInstalled = isInWorldApp();
-      console.log('World App check:', isInstalled);
+      const hasPhantom = isPhantomAvailable();
+      console.log('World App check:', isInstalled, 'Phantom check:', hasPhantom);
       setInWorldApp(isInstalled);
+      setPhantomAvailable(hasPhantom);
       setIsCheckingEnv(false);
     }, 500);
     
     return () => clearTimeout(checkEnv);
   }, []);
 
-  const handleVerify = async () => {
-    // Only allow verification inside World App
+  const handleVerifySuccess = async (user: {
+    id: string;
+    verification_level: string;
+    wallet_address: string;
+    created_at: string;
+    username?: string;
+    profile_picture_url?: string;
+  }, walletType: 'world_id' | 'solana') => {
+    // Store the wallet address for later use
+    localStorage.setItem('jc_wallet_address', user.wallet_address);
+    localStorage.setItem('jc_wallet_type', walletType);
+    
+    // Create the user object matching our type
+    const userObj = {
+      id: user.id,
+      verificationLevel: user.verification_level as 'device' | 'orb',
+      nullifierHash: walletType === 'solana' ? `solana_${user.wallet_address}` : `wallet_${user.wallet_address}`,
+      createdAt: user.created_at,
+      username: user.username,
+      profilePictureUrl: user.profile_picture_url,
+    };
+    
+    // Persist user to localStorage
+    persistUser(userObj);
+    
+    console.log('User verified:', userObj.id, 'wallet type:', walletType);
+    
+    // Link pending referral if exists
+    const wasLinked = await linkPendingReferralToUser(userObj.id);
+    if (wasLinked) {
+      console.log('Referral linked successfully');
+    }
+    
+    dispatch({ type: 'SET_USER', payload: userObj });
+    setIsSuccess(true);
+    
+    // Check if user already has notifications enabled or skipped
+    const notificationsEnabled = localStorage.getItem('jc_notifications_enabled');
+    const notificationsSkipped = localStorage.getItem('jc_notifications_skipped');
+    
+    if (!notificationsEnabled && !notificationsSkipped) {
+      setTimeout(() => {
+        setShowNotificationPrompt(true);
+      }, 1500);
+    } else {
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
+    }
+  };
+
+  const handleVerifyWorld = async () => {
     if (!inWorldApp) {
       toast.error('Please open this app in World App to verify');
       return;
     }
 
     setIsVerifying(true);
+    setVerifyingWith('world');
     
     try {
-      // Use MiniKit wallet auth in World App
       console.log('Authenticating with World App wallet...');
       const result = await authenticateWithWallet(verificationLevel);
       
@@ -55,53 +110,52 @@ const Verify: React.FC = () => {
         throw new Error(result.error || 'Wallet authentication failed');
       }
       
-      // Store the wallet address for later use
-      localStorage.setItem('jc_wallet_address', result.user.wallet_address);
-      
-      // Create the user object matching our type
-      const user = {
+      await handleVerifySuccess({
         id: result.user.id,
-        verificationLevel: result.user.verification_level as 'device' | 'orb',
-        nullifierHash: `wallet_${result.user.wallet_address}`,
-        createdAt: result.user.created_at,
+        verification_level: result.user.verification_level,
+        wallet_address: result.user.wallet_address,
+        created_at: result.user.created_at,
         username: result.user.username,
-        profilePictureUrl: result.user.profile_picture_url,
-      };
-      
-      // Persist user to localStorage
-      persistUser(user);
-      
-      console.log('User verified:', user.id);
-      
-      // Link pending referral if exists
-      const wasLinked = await linkPendingReferralToUser(user.id);
-      if (wasLinked) {
-        console.log('Referral linked successfully');
-      }
-      
-      dispatch({ type: 'SET_USER', payload: user });
-      setIsSuccess(true);
-      
-      // Check if user already has notifications enabled or skipped
-      const notificationsEnabled = localStorage.getItem('jc_notifications_enabled');
-      const notificationsSkipped = localStorage.getItem('jc_notifications_skipped');
-      
-      if (!notificationsEnabled && !notificationsSkipped) {
-        // Show notification prompt after a brief delay
-        setTimeout(() => {
-          setShowNotificationPrompt(true);
-        }, 1500);
-      } else {
-        // Navigate to home after short delay
-        setTimeout(() => {
-          navigate('/');
-        }, 1500);
-      }
+        profile_picture_url: result.user.profile_picture_url,
+      }, 'world_id');
       
     } catch (error) {
       console.error('Verification failed:', error);
       toast.error(error instanceof Error ? error.message : 'Verification failed');
       setIsVerifying(false);
+      setVerifyingWith(null);
+    }
+  };
+
+  const handleVerifyPhantom = async () => {
+    if (!phantomAvailable) {
+      toast.error('Phantom wallet not found. Please install Phantom.');
+      return;
+    }
+
+    setIsVerifying(true);
+    setVerifyingWith('phantom');
+    
+    try {
+      console.log('Authenticating with Phantom wallet...');
+      const result = await authenticateWithPhantom();
+      
+      if (!result.success || !result.user) {
+        throw new Error(result.error || 'Phantom authentication failed');
+      }
+      
+      await handleVerifySuccess({
+        id: result.user.id,
+        verification_level: result.user.verification_level,
+        wallet_address: result.user.wallet_address,
+        created_at: result.user.created_at,
+      }, 'solana');
+      
+    } catch (error) {
+      console.error('Phantom verification failed:', error);
+      toast.error(error instanceof Error ? error.message : 'Phantom verification failed');
+      setIsVerifying(false);
+      setVerifyingWith(null);
     }
   };
 
@@ -131,7 +185,13 @@ const Verify: React.FC = () => {
               </div>
             </div>
             <h2 className="text-2xl font-display font-bold text-foreground">Verified!</h2>
-            <WorldIdBadge />
+            {verifyingWith === 'world' && <WorldIdBadge />}
+            {verifyingWith === 'phantom' && (
+              <div className="flex items-center justify-center gap-2 px-3 py-1.5 bg-[#AB9FF2]/20 rounded-full">
+                <PhantomIcon size={20} />
+                <span className="text-sm font-medium text-[#AB9FF2]">Phantom Wallet</span>
+              </div>
+            )}
             <p className="text-muted-foreground">Welcome to Jackie Chain: Millionaire</p>
           </div>
         )}
@@ -154,46 +214,28 @@ const Verify: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 pb-8 gap-8">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 pb-8 gap-6">
         {/* Hero */}
         <div className="text-center space-y-4 animate-fade-in">
           <JackieIcon size={80} className="mx-auto animate-float" />
           <h1 className="text-2xl font-display font-bold text-foreground">
-            Login with World ID
+            Choose Your Wallet
           </h1>
           <p className="text-muted-foreground max-w-xs mx-auto">
-            Prove you're human to play and earn $JC tokens. One account per person.
+            Login to play and earn $JC tokens. One account per wallet.
           </p>
         </div>
 
         {/* Environment Check */}
-        {isCheckingEnv ? (
+        {isCheckingEnv && (
           <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 rounded-lg animate-pulse">
             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Checking environment...</span>
+            <span className="text-sm text-muted-foreground">Checking wallets...</span>
           </div>
-        ) : !inWorldApp ? (
-          <div className="flex flex-col items-center gap-3 px-4 py-4 bg-destructive/10 border border-destructive/30 rounded-lg animate-slide-up max-w-sm">
-            <AlertCircle className="w-8 h-8 text-destructive" />
-            <p className="text-sm text-center text-foreground">
-              <span className="font-bold">World App Required</span>
-            </p>
-            <p className="text-xs text-center text-muted-foreground">
-              This app must be opened inside World App to verify your identity and play.
-            </p>
-            <a 
-              href="https://world.org/download"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-primary underline hover:no-underline"
-            >
-              Download World App →
-            </a>
-          </div>
-        ) : null}
+        )}
 
         {/* Pending Referral Indicator */}
-        {hasPendingReferral && inWorldApp && (
+        {hasPendingReferral && (inWorldApp || phantomAvailable) && (
           <div className="flex items-center gap-2 px-4 py-3 bg-success/10 border border-success/30 rounded-lg text-sm animate-slide-up">
             <Gift className="w-5 h-5 text-success" />
             <span className="text-foreground">
@@ -202,16 +244,17 @@ const Verify: React.FC = () => {
           </div>
         )}
 
-        {/* Verify Button */}
-        <div className="w-full max-w-sm animate-slide-up stagger-2">
+        {/* Login Options */}
+        <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-2">
+          {/* World ID Button */}
           <Button
             variant="gold"
             size="xl"
             className="w-full"
-            onClick={handleVerify}
+            onClick={handleVerifyWorld}
             disabled={isVerifying || isCheckingEnv || !inWorldApp}
           >
-            {isVerifying ? (
+            {isVerifying && verifyingWith === 'world' ? (
               <>
                 <Loader2 className="w-6 h-6 animate-spin" />
                 Verifying...
@@ -223,16 +266,91 @@ const Verify: React.FC = () => {
               </>
             )}
           </Button>
+          
+          {!inWorldApp && !isCheckingEnv && (
+            <p className="text-xs text-muted-foreground text-center">
+              World ID requires World App
+            </p>
+          )}
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 py-2">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          {/* Phantom Button */}
+          <Button
+            variant="outline"
+            size="xl"
+            className="w-full border-[#AB9FF2]/50 hover:bg-[#AB9FF2]/10 hover:border-[#AB9FF2]"
+            onClick={handleVerifyPhantom}
+            disabled={isVerifying || isCheckingEnv || !phantomAvailable}
+          >
+            {isVerifying && verifyingWith === 'phantom' ? (
+              <>
+                <Loader2 className="w-6 h-6 animate-spin" />
+                Connecting...
+              </>
+            ) : (
+              <>
+                <PhantomIcon size={24} />
+                Login with Phantom
+              </>
+            )}
+          </Button>
+          
+          {!phantomAvailable && !isCheckingEnv && (
+            <a 
+              href="https://phantom.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-xs text-center text-[#AB9FF2] hover:underline"
+            >
+              Install Phantom Wallet →
+            </a>
+          )}
         </div>
+
+        {/* No wallet available warning */}
+        {!isCheckingEnv && !inWorldApp && !phantomAvailable && (
+          <div className="flex flex-col items-center gap-3 px-4 py-4 bg-destructive/10 border border-destructive/30 rounded-lg animate-slide-up max-w-sm">
+            <AlertCircle className="w-8 h-8 text-destructive" />
+            <p className="text-sm text-center text-foreground">
+              <span className="font-bold">No Wallet Detected</span>
+            </p>
+            <p className="text-xs text-center text-muted-foreground">
+              Please install World App or Phantom Wallet to play.
+            </p>
+            <div className="flex gap-3 text-sm">
+              <a 
+                href="https://world.org/download"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline hover:no-underline"
+              >
+                World App →
+              </a>
+              <a 
+                href="https://phantom.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#AB9FF2] underline hover:no-underline"
+              >
+                Phantom →
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Info */}
         <div className="w-full max-w-sm space-y-3 text-center animate-slide-up stagger-3">
-          <PoweredByWorldId className="justify-center" />
+          <div className="flex items-center justify-center gap-4">
+            <PoweredByWorldId className="justify-center" />
+          </div>
           <p className="text-xs text-muted-foreground">
-            By verifying, you confirm you are a unique human.
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Your privacy is protected by zero-knowledge proofs.
+            Your privacy is protected. One account per unique identity.
           </p>
         </div>
       </main>

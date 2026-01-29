@@ -633,9 +633,11 @@ export type Database = {
           nullifier_hash: string
           profile_picture_url: string | null
           referral_code: string | null
+          solana_address: string | null
           updated_at: string
           username: string | null
           verification_level: Database["public"]["Enums"]["verification_level"]
+          wallet_type: string
         }
         Insert: {
           created_at?: string
@@ -643,9 +645,11 @@ export type Database = {
           nullifier_hash: string
           profile_picture_url?: string | null
           referral_code?: string | null
+          solana_address?: string | null
           updated_at?: string
           username?: string | null
           verification_level?: Database["public"]["Enums"]["verification_level"]
+          wallet_type?: string
         }
         Update: {
           created_at?: string
@@ -653,9 +657,11 @@ export type Database = {
           nullifier_hash?: string
           profile_picture_url?: string | null
           referral_code?: string | null
+          solana_address?: string | null
           updated_at?: string
           username?: string | null
           verification_level?: Database["public"]["Enums"]["verification_level"]
+          wallet_type?: string
         }
         Relationships: []
       }

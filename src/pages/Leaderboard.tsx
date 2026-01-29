@@ -2,14 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
+import { PhantomIcon } from '@/components/icons/PhantomIcon';
+import { WorldIdIcon } from '@/components/icons/WorldIdIcon';
 import { formatJC } from '@/lib/rewardsService';
 import { supabase } from '@/integrations/supabase/client';
 import { useGame } from '@/contexts/GameContext';
-import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket, Users, Gamepad2, TrendingUp, TrendingDown, Minus, MessageCircle, ClipboardCopy, Share2 } from 'lucide-react';
+import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket, Users, Gamepad2, TrendingUp, TrendingDown, Minus, MessageCircle, ClipboardCopy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MiniKit } from '@worldcoin/minikit-js';
-import { getWorldChatDeeplinkUrl, shareViaWorldApp, shareViaNative, getGameDeeplink } from '@/lib/worldShare';
+import { getWorldChatDeeplinkUrl } from '@/lib/worldShare';
 import { isInWorldApp } from '@/lib/minikit';
 import { toast } from 'sonner';
 
@@ -36,29 +39,39 @@ interface LeaderboardEntry {
   profile_picture_url?: string;
   invited_count: number;
   games_played: number;
-  rank_change: number | null; // positive = moved up, negative = moved down, null = new
+  rank_change: number | null;
+  wallet_type?: string;
+  solana_address?: string;
 }
+
+type LeaderboardTab = 'world_id' | 'solana';
 
 const Leaderboard: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { state, isAdmin } = useGame();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [solanaEntries, setSolanaEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [solanaLoading, setSolanaLoading] = useState(true);
   const [userRank, setUserRank] = useState<number | null>(null);
   const [userBalance, setUserBalance] = useState<number>(0);
   const [userStats, setUserStats] = useState<{ invited: number; games: number }>({ invited: 0, games: 0 });
   const [userRankChange, setUserRankChange] = useState<number | null>(null);
   const [countdown, setCountdown] = useState(getTimeUntilAirdrop());
   const [visibleCount, setVisibleCount] = useState(50);
+  const [solanaVisibleCount, setSolanaVisibleCount] = useState(50);
+  const [activeTab, setActiveTab] = useState<LeaderboardTab>('world_id');
 
-  // Countdown timer - use requestAnimationFrame for better INP
+  // Determine user's wallet type
+  const userWalletType = localStorage.getItem('jc_wallet_type') || 'world_id';
+
+  // Countdown timer
   useEffect(() => {
     let animationFrameId: number;
     let lastUpdate = 0;
     
     const updateCountdown = (timestamp: number) => {
-      // Only update once per second to reduce CPU usage
       if (timestamp - lastUpdate >= 1000) {
         setCountdown(getTimeUntilAirdrop());
         lastUpdate = timestamp;
@@ -69,14 +82,37 @@ const Leaderboard: React.FC = () => {
     animationFrameId = requestAnimationFrame(updateCountdown);
     return () => cancelAnimationFrame(animationFrameId);
   }, []);
+
+  // Fetch World ID leaderboard
   useEffect(() => {
     const fetchLeaderboard = async () => {
       setLoading(true);
       
-      // Fetch top users by total_claimed - limit to 100 for better performance
+      // Fetch users with wallet_type = 'world_id' (or null for legacy users)
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, username, profile_picture_url, wallet_type')
+        .or('wallet_type.eq.world_id,wallet_type.is.null');
+
+      if (usersError) {
+        console.error('Error fetching users:', usersError);
+        setLoading(false);
+        return;
+      }
+
+      const worldIdUserIds = users?.map(u => u.id) || [];
+      
+      if (worldIdUserIds.length === 0) {
+        setEntries([]);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch balances for World ID users
       const { data: balances, error: balanceError } = await supabase
         .from('user_balances')
         .select('user_id, total_claimed')
+        .in('user_id', worldIdUserIds)
         .order('total_claimed', { ascending: false })
         .limit(100);
 
@@ -92,13 +128,11 @@ const Leaderboard: React.FC = () => {
         return;
       }
 
-      // Fetch user profiles for these users
+      const userMap = new Map(users?.map(u => [u.id, u]) || []);
       const userIds = balances.map(b => b.user_id);
-      
-      // Get today's date
+
+      // Get additional data
       const today = new Date().toISOString().split('T')[0];
-      
-      // First, find the most recent snapshot date before today
       const { data: lastSnapshotData } = await supabase
         .from('leaderboard_snapshots')
         .select('day_id')
@@ -107,12 +141,8 @@ const Leaderboard: React.FC = () => {
         .limit(1);
       
       const lastSnapshotDate = lastSnapshotData?.[0]?.day_id || null;
-      
-      const [usersResult, referralsResult, runsResult, todaySnapshotsResult, previousSnapshotsResult] = await Promise.all([
-        supabase
-          .from('users')
-          .select('id, username, profile_picture_url')
-          .in('id', userIds),
+
+      const [referralsResult, runsResult, previousSnapshotsResult] = await Promise.all([
         supabase
           .from('referrals')
           .select('inviter_user_id')
@@ -122,13 +152,6 @@ const Leaderboard: React.FC = () => {
           .from('runs')
           .select('user_id')
           .in('user_id', userIds),
-        // Get today's snapshots (for users who joined today)
-        supabase
-          .from('leaderboard_snapshots')
-          .select('user_id, rank')
-          .eq('day_id', today)
-          .in('user_id', userIds),
-        // Get previous snapshots (for rank change comparison) - uses most recent snapshot before today
         lastSnapshotDate 
           ? supabase
               .from('leaderboard_snapshots')
@@ -138,31 +161,16 @@ const Leaderboard: React.FC = () => {
           : Promise.resolve({ data: [], error: null })
       ]);
 
-      if (usersResult.error) {
-        console.error('Error fetching user profiles:', usersResult.error);
-      }
-
-      // Create maps for quick lookup
-      const userMap = new Map(usersResult.data?.map(u => [u.id, u]) || []);
-      
-      // Count referrals per user
       const referralCounts = new Map<string, number>();
       referralsResult.data?.forEach(r => {
         referralCounts.set(r.inviter_user_id, (referralCounts.get(r.inviter_user_id) || 0) + 1);
       });
       
-      // Count runs per user
       const runCounts = new Map<string, number>();
       runsResult.data?.forEach(r => {
         runCounts.set(r.user_id, (runCounts.get(r.user_id) || 0) + 1);
       });
 
-      // Map today's and previous snapshot ranks
-      const todayRanks = new Map<string, number>();
-      todaySnapshotsResult.data?.forEach(s => {
-        todayRanks.set(s.user_id, s.rank);
-      });
-      
       const previousRanks = new Map<string, number>();
       previousSnapshotsResult.data?.forEach(s => {
         previousRanks.set(s.user_id, s.rank);
@@ -172,18 +180,10 @@ const Leaderboard: React.FC = () => {
         const userProfile = userMap.get(entry.user_id);
         const currentRank = index + 1;
         const previousRank = previousRanks.get(entry.user_id);
-        const todaySnapshotRank = todayRanks.get(entry.user_id);
         
-        // Rank change logic:
-        // 1. If we have a previous snapshot rank, compare against it
-        // 2. If no previous rank but we have today's snapshot, compare against today's snapshot rank
-        // 3. Otherwise, show as NEW
         let rankChange: number | null = null;
         if (previousRank !== undefined) {
           rankChange = previousRank - currentRank;
-        } else if (todaySnapshotRank !== undefined) {
-          // Compare current live rank to today's snapshot (shows intraday movement)
-          rankChange = todaySnapshotRank - currentRank;
         }
         
         return {
@@ -194,101 +194,127 @@ const Leaderboard: React.FC = () => {
           invited_count: referralCounts.get(entry.user_id) || 0,
           games_played: runCounts.get(entry.user_id) || 0,
           rank_change: rankChange,
+          wallet_type: userProfile?.wallet_type || 'world_id',
         };
       });
 
       setEntries(rankedEntries);
 
-      // Try to fetch missing usernames via MiniKit for users without usernames
-      if (MiniKit.isInstalled()) {
-        fetchMissingUsernames(rankedEntries, userMap);
-      }
-
-      // Find current user's rank if they're verified
-      if (state.user?.id) {
+      // Find current user's rank
+      if (state.user?.id && userWalletType === 'world_id') {
         const userEntry = rankedEntries.find(e => e.user_id === state.user?.id);
         if (userEntry) {
           setUserRank(userEntry.rank);
           setUserBalance(userEntry.total_claimed);
           setUserStats({ invited: userEntry.invited_count, games: userEntry.games_played });
           setUserRankChange(userEntry.rank_change);
-        } else {
-          // User not in top 50, fetch their data separately
-          const [userBalanceResult, userReferralsResult, userRunsResult, userSnapshotResult] = await Promise.all([
-            supabase
-              .from('user_balances')
-              .select('total_claimed')
-              .eq('user_id', state.user.id)
-              .maybeSingle(),
-            supabase
-              .from('referrals')
-              .select('id')
-              .eq('inviter_user_id', state.user.id)
-              .eq('status', 'first_run_completed'),
-            supabase
-              .from('runs')
-              .select('id')
-              .eq('user_id', state.user.id),
-            supabase
-              .from('leaderboard_snapshots')
-              .select('rank, day_id')
-              .eq('user_id', state.user.id)
-              .lt('day_id', today)
-              .order('day_id', { ascending: false })
-              .limit(1)
-          ]);
-
-          if (userBalanceResult.data) {
-            setUserBalance(userBalanceResult.data.total_claimed);
-            // Count how many users have more than this user
-            const { count } = await supabase
-              .from('user_balances')
-              .select('*', { count: 'exact', head: true })
-              .gt('total_claimed', userBalanceResult.data.total_claimed);
-            
-            const currentRank = (count || 0) + 1;
-            setUserRank(currentRank);
-            
-            // Use the most recent previous snapshot for comparison
-            const snapshots = userSnapshotResult.data || [];
-            if (snapshots.length > 0) {
-              setUserRankChange(snapshots[0].rank - currentRank);
-            }
-          }
-          
-          setUserStats({
-            invited: userReferralsResult.data?.length || 0,
-            games: userRunsResult.data?.length || 0
-          });
         }
       }
 
       setLoading(false);
     };
 
-    // Fetch usernames via MiniKit for users that don't have them stored
-    const fetchMissingUsernames = async (
-      rankedEntries: LeaderboardEntry[],
-      userMap: Map<string, { id: string; username?: string | null; profile_picture_url?: string | null }>
-    ) => {
-      // Get entries without usernames (limit to first 10 to avoid too many API calls)
-      const entriesWithoutUsername = rankedEntries
-        .filter(e => !e.username)
-        .slice(0, 10);
+    fetchLeaderboard();
+  }, [state.user?.id, userWalletType]);
 
-      if (entriesWithoutUsername.length === 0) return;
+  // Fetch Solana leaderboard
+  useEffect(() => {
+    const fetchSolanaLeaderboard = async () => {
+      setSolanaLoading(true);
+      
+      // Fetch users with wallet_type = 'solana'
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, username, profile_picture_url, wallet_type, solana_address')
+        .eq('wallet_type', 'solana');
 
-      // We need wallet addresses to look up usernames
-      // First get wallet addresses from users table (if stored) or we can't look them up
-      // For now, let's just display what we have from the database
+      if (usersError) {
+        console.error('Error fetching Solana users:', usersError);
+        setSolanaLoading(false);
+        return;
+      }
 
-      // The MiniKit.getUserByAddress requires a wallet address, not user ID
-      // Since we don't store wallet addresses publicly, we'll need to rely on
-      // the usernames stored during verification
+      const solanaUserIds = users?.map(u => u.id) || [];
+      
+      if (solanaUserIds.length === 0) {
+        setSolanaEntries([]);
+        setSolanaLoading(false);
+        return;
+      }
+
+      // Fetch balances for Solana users
+      const { data: balances, error: balanceError } = await supabase
+        .from('user_balances')
+        .select('user_id, total_claimed')
+        .in('user_id', solanaUserIds)
+        .order('total_claimed', { ascending: false })
+        .limit(100);
+
+      if (balanceError) {
+        console.error('Error fetching Solana leaderboard:', balanceError);
+        setSolanaLoading(false);
+        return;
+      }
+
+      const userMap = new Map(users?.map(u => [u.id, u]) || []);
+      const userIds = balances?.map(b => b.user_id) || [];
+
+      // Get additional data
+      const [referralsResult, runsResult] = await Promise.all([
+        supabase
+          .from('referrals')
+          .select('inviter_user_id')
+          .in('inviter_user_id', userIds)
+          .eq('status', 'first_run_completed'),
+        supabase
+          .from('runs')
+          .select('user_id')
+          .in('user_id', userIds),
+      ]);
+
+      const referralCounts = new Map<string, number>();
+      referralsResult.data?.forEach(r => {
+        referralCounts.set(r.inviter_user_id, (referralCounts.get(r.inviter_user_id) || 0) + 1);
+      });
+      
+      const runCounts = new Map<string, number>();
+      runsResult.data?.forEach(r => {
+        runCounts.set(r.user_id, (runCounts.get(r.user_id) || 0) + 1);
+      });
+
+      const rankedEntries = (balances || []).map((entry, index) => {
+        const userProfile = userMap.get(entry.user_id);
+        return {
+          ...entry,
+          rank: index + 1,
+          username: userProfile?.username || undefined,
+          profile_picture_url: userProfile?.profile_picture_url || undefined,
+          invited_count: referralCounts.get(entry.user_id) || 0,
+          games_played: runCounts.get(entry.user_id) || 0,
+          rank_change: null,
+          wallet_type: 'solana',
+          solana_address: userProfile?.solana_address || undefined,
+        };
+      });
+
+      setSolanaEntries(rankedEntries);
+
+      // Find current user's rank if they're a Solana user
+      if (state.user?.id && userWalletType === 'solana') {
+        const userEntry = rankedEntries.find(e => e.user_id === state.user?.id);
+        if (userEntry) {
+          setUserRank(userEntry.rank);
+          setUserBalance(userEntry.total_claimed);
+          setUserStats({ invited: userEntry.invited_count, games: userEntry.games_played });
+          setUserRankChange(null);
+        }
+      }
+
+      setSolanaLoading(false);
     };
 
-    fetchLeaderboard();
-  }, [state.user?.id]);
+    fetchSolanaLeaderboard();
+  }, [state.user?.id, userWalletType]);
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -343,42 +369,25 @@ const Leaderboard: React.FC = () => {
     }
   };
 
-  const getDmUrl = (username: string, rank: number) => {
-    const message = `Hey! I saw you're ranked #${rank} on Jackie Chain: Millionaire 🎮 Nice work!`;
-    return getWorldChatDeeplinkUrl({ username, message });
-  };
-
   const handleSendDM = async (username: string, rank: number) => {
-    if (!username) {
-      toast.error('Cannot message this player - no username available');
-      return;
-    }
-
-    if (!isInWorldApp()) {
-      toast.error('World Chat is only available in World App');
-      return;
-    }
+    if (!username || !isInWorldApp()) return;
 
     const message = `Hey! I saw you're ranked #${rank} on Jackie Chain: Millionaire 🎮 Nice work!`;
 
-    // 1) Prefer native Chat command (more reliable than deeplinks inside the mini app)
     try {
       const { finalPayload } = await MiniKit.commandsAsync.chat({
         message,
         to: [username],
       });
-
       if (finalPayload?.status === 'success') return;
     } catch (error) {
-      console.warn('[Leaderboard] MiniKit chat failed, falling back to deeplink', error);
+      console.warn('[Leaderboard] MiniKit chat failed', error);
     }
 
-    // 2) Fallback to World Chat deeplink
     const url = getWorldChatDeeplinkUrl({ username, message });
     try {
       window.location.assign(url);
     } catch {
-      // last resort
       window.open(url, '_blank');
     }
   };
@@ -386,48 +395,160 @@ const Leaderboard: React.FC = () => {
   const handleCopyLogs = () => {
     const debugInfo = {
       timestamp: new Date().toISOString(),
-      user: {
-        id: state.user?.id,
-        username: state.user?.username,
-        verificationLevel: state.user?.verificationLevel,
-      },
-      gameState: {
-        isVerified: state.isVerified,
-        currentQuestion: state.currentQuestion?.id,
-        attempts: state.attempts,
-      },
-      leaderboard: {
-        totalEntries: entries.length,
-        userRank,
-        userBalance,
-        userStats,
-        top10: entries.slice(0, 10).map(e => ({
-          rank: e.rank,
-          username: e.username,
-          total_claimed: e.total_claimed,
-          games_played: e.games_played,
-        })),
-      },
-      environment: {
-        inWorldApp: isInWorldApp(),
-        userAgent: navigator.userAgent,
-      },
+      user: { id: state.user?.id, walletType: userWalletType },
+      worldIdEntries: entries.length,
+      solanaEntries: solanaEntries.length,
+      userRank,
     };
-
     navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2))
-      .then(() => toast.success('Debug logs copied to clipboard!'))
-      .catch(() => toast.error('Failed to copy logs'));
+      .then(() => toast.success('Debug logs copied!'));
+  };
+
+  const shortenAddress = (address: string) => {
+    if (!address) return '';
+    return `${address.slice(0, 4)}...${address.slice(-4)}`;
+  };
+
+  const renderLeaderboardList = (
+    entriesList: LeaderboardEntry[],
+    isLoading: boolean,
+    visible: number,
+    setVisible: React.Dispatch<React.SetStateAction<number>>,
+    isSolana: boolean = false
+  ) => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      );
+    }
+
+    if (entriesList.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          {isSolana ? (
+            <PhantomIcon size={80} className="opacity-50 mb-4" />
+          ) : (
+            <JackieIcon size={80} className="opacity-50 mb-4" />
+          )}
+          <p className="text-muted-foreground">
+            {isSolana ? 'No Solana players yet' : t('leaderboard.noClaims')}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {isSolana ? 'Be the first Phantom user!' : t('leaderboard.beFirst')}
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        {entriesList.slice(0, visible).map((entry) => {
+          const isCurrentUser = state.user?.id === entry.user_id;
+          
+          return (
+            <div
+              key={entry.user_id}
+              className={cn(
+                'flex items-center gap-3 p-3 rounded-xl border transition-all',
+                getRankStyle(entry.rank),
+                isCurrentUser && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+              )}
+            >
+              {/* Rank */}
+              <div className="flex flex-col items-center justify-center w-10">
+                {getRankIcon(entry.rank)}
+                {!isSolana && getRankChangeIndicator(entry.rank_change)}
+              </div>
+
+              {/* User Avatar */}
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center overflow-hidden">
+                {entry.profile_picture_url ? (
+                  <img 
+                    src={entry.profile_picture_url} 
+                    alt={entry.username || 'User'} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : isSolana ? (
+                  <PhantomIcon size={24} />
+                ) : (
+                  <span className="text-sm font-bold text-primary">
+                    {entry.username ? entry.username.charAt(0).toUpperCase() : `#${entry.rank}`}
+                  </span>
+                )}
+              </div>
+
+              {/* User Info */}
+              <div className="flex-1 min-w-0">
+                <p className={cn(
+                  'font-medium truncate',
+                  isCurrentUser && 'text-primary'
+                )}>
+                  {isCurrentUser ? 'You' : (
+                    entry.username || 
+                    (isSolana && entry.solana_address ? shortenAddress(entry.solana_address) : `Player ${entry.rank}`)
+                  )}
+                </p>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    {entry.invited_count}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Gamepad2 className="w-3 h-3" />
+                    {entry.games_played}
+                  </span>
+                </div>
+              </div>
+
+              {/* Balance */}
+              <div className="flex items-center gap-2">
+                <CoinIcon size={20} />
+                <span className={cn(
+                  'font-display font-bold',
+                  entry.rank <= 3 ? 'text-lg' : 'text-base'
+                )}>
+                  {entry.total_claimed.toLocaleString()}
+                </span>
+              </div>
+
+              {/* DM Button - only for World ID users */}
+              {!isCurrentUser && entry.username && !isSolana && isInWorldApp() && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleSendDM(entry.username!, entry.rank);
+                  }}
+                >
+                  <MessageCircle className="w-4 h-4 text-primary" />
+                </Button>
+              )}
+            </div>
+          );
+        })}
+        
+        {visible < entriesList.length && (
+          <Button
+            variant="outline"
+            className="w-full mt-4"
+            onClick={() => setVisible(prev => Math.min(prev + 50, entriesList.length))}
+          >
+            Load More ({entriesList.length - visible} remaining)
+          </Button>
+        )}
+      </div>
+    );
   };
 
   return (
     <div className="min-h-screen gradient-hero flex flex-col">
       {/* Header */}
       <header className="flex items-center gap-3 px-4 py-3 border-b border-border/50">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate(-1)}
-        >
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex items-center gap-2 flex-1">
@@ -435,21 +556,15 @@ const Leaderboard: React.FC = () => {
           <h1 className="text-xl font-display font-bold">{t('leaderboard.title')}</h1>
         </div>
         {isAdmin && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleCopyLogs}
-            title="Copy debug logs"
-          >
+          <Button variant="ghost" size="icon" onClick={handleCopyLogs} title="Copy debug logs">
             <ClipboardCopy className="w-5 h-5 text-muted-foreground" />
           </Button>
         )}
       </header>
 
-      {/* Airdrop Countdown Hero */}
+      {/* Airdrop Countdown */}
       <div className="px-4 py-5">
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent border border-primary/30 p-5">
-          {/* Decorative elements */}
           <div className="absolute top-2 right-2 opacity-20">
             <Rocket className="w-12 h-12 text-primary animate-float" />
           </div>
@@ -460,7 +575,6 @@ const Leaderboard: React.FC = () => {
               <h2 className="text-lg font-display font-bold text-foreground">{t('leaderboard.airdropIn')}</h2>
             </div>
             
-            {/* Countdown Timer */}
             <div className="flex items-center justify-center gap-2">
               <div className="flex flex-col items-center px-3 py-2 bg-background/50 rounded-lg min-w-[60px] backdrop-blur-sm">
                 <span className="text-2xl font-display font-bold text-primary">
@@ -498,7 +612,7 @@ const Leaderboard: React.FC = () => {
         </div>
       </div>
 
-      {/* User's Rank Card (if verified) */}
+      {/* User's Rank Card */}
       {state.isVerified && userRank !== null && (
         <div className="px-4 py-4">
           <div className="p-4 bg-primary/10 rounded-xl border border-primary/30 space-y-3">
@@ -507,14 +621,21 @@ const Leaderboard: React.FC = () => {
                 {getRankIcon(userRank)}
               </div>
               <div className="flex-1">
-                <p className="text-sm text-muted-foreground">{t('leaderboard.yourRank')}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-muted-foreground">{t('leaderboard.yourRank')}</p>
+                  {userWalletType === 'solana' && (
+                    <PhantomIcon size={16} />
+                  )}
+                  {userWalletType === 'world_id' && (
+                    <WorldIdIcon size={16} />
+                  )}
+                </div>
                 <div className="flex items-center gap-2">
                   <p className="text-2xl font-display font-bold">#{userRank}</p>
-                  {getRankChangeIndicator(userRankChange)}
+                  {userWalletType === 'world_id' && getRankChangeIndicator(userRankChange)}
                 </div>
               </div>
             </div>
-            {/* Additional Stats */}
             <div className="flex justify-around pt-2 border-t border-primary/20">
               <div className="flex items-center gap-1.5 text-sm">
                 <Users className="w-4 h-4 text-muted-foreground" />
@@ -536,141 +657,46 @@ const Leaderboard: React.FC = () => {
         </div>
       )}
 
+      {/* Tabs for World ID / Solana */}
+      <div className="px-4 pb-2">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as LeaderboardTab)} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="world_id" className="flex items-center gap-2">
+              <WorldIdIcon size={18} />
+              <span>World ID</span>
+              <span className="text-xs text-muted-foreground">({entries.length})</span>
+            </TabsTrigger>
+            <TabsTrigger value="solana" className="flex items-center gap-2">
+              <PhantomIcon size={18} />
+              <span>Solana</span>
+              <span className="text-xs text-muted-foreground">({solanaEntries.length})</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
       {/* Leaderboard List */}
       <main className="flex-1 px-4 pb-6">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        ) : entries.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <JackieIcon size={80} className="opacity-50 mb-4" />
-            <p className="text-muted-foreground">{t('leaderboard.noClaims')}</p>
-            <p className="text-sm text-muted-foreground">{t('leaderboard.beFirst')}</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {entries.slice(0, visibleCount).map((entry) => {
-              const isCurrentUser = state.user?.id === entry.user_id;
-              
-              return (
-                <div
-                  key={entry.user_id}
-                  className={cn(
-                    'flex items-center gap-3 p-3 rounded-xl border transition-all',
-                    getRankStyle(entry.rank),
-                    isCurrentUser && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
-                  )}
-                >
-                  {/* Rank */}
-                  <div className="flex flex-col items-center justify-center w-10">
-                    {getRankIcon(entry.rank)}
-                    {getRankChangeIndicator(entry.rank_change)}
-                  </div>
-
-                  {/* User Avatar */}
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center overflow-hidden">
-                    {entry.profile_picture_url ? (
-                      <img 
-                        src={entry.profile_picture_url} 
-                        alt={entry.username || 'User'} 
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // Fallback if image fails to load
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                        }}
-                      />
-                    ) : null}
-                    <span className={cn(
-                      "text-sm font-bold text-primary",
-                      entry.profile_picture_url && "hidden"
-                    )}>
-                      {entry.username ? entry.username.charAt(0).toUpperCase() : (isCurrentUser ? 'Y' : `#${entry.rank}`)}
-                    </span>
-                  </div>
-
-                  {/* User Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className={cn(
-                      'font-medium truncate',
-                      isCurrentUser && 'text-primary'
-                    )}>
-                      {isCurrentUser ? 'You' : (entry.username || `Player ${entry.rank}`)}
-                    </p>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        {entry.invited_count}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Gamepad2 className="w-3 h-3" />
-                        {entry.games_played}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Balance */}
-                  <div className="flex items-center gap-2">
-                    <CoinIcon size={20} />
-                    <span className={cn(
-                      'font-display font-bold',
-                      entry.rank <= 3 ? 'text-lg' : 'text-base'
-                    )}>
-                      {entry.total_claimed.toLocaleString()}
-                    </span>
-                  </div>
-
-                  {/* DM Button - only show for other users with usernames (World App only) */}
-                  {!isCurrentUser && entry.username && isInWorldApp() && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 shrink-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        console.log('[Leaderboard] DM click', {
-                          username: entry.username,
-                          rank: entry.rank,
-                          url: getDmUrl(entry.username!, entry.rank),
-                        });
-                        void handleSendDM(entry.username!, entry.rank);
-                      }}
-                      title={`Message ${entry.username}`}
-                    >
-                      <MessageCircle className="w-4 h-4 text-primary" />
-                      <span className="sr-only">Message {entry.username}</span>
-                    </Button>
-                  )}
-                </div>
-              );
-            })}
-            
-            {/* Load More Button */}
-            {visibleCount < entries.length && (
-              <Button
-                variant="outline"
-                className="w-full mt-4"
-                onClick={() => setVisibleCount(prev => Math.min(prev + 50, entries.length))}
-              >
-                Load More ({entries.length - visibleCount} remaining)
-              </Button>
-            )}
-          </div>
-        )}
+        {activeTab === 'world_id' && renderLeaderboardList(entries, loading, visibleCount, setVisibleCount, false)}
+        {activeTab === 'solana' && renderLeaderboardList(solanaEntries, solanaLoading, solanaVisibleCount, setSolanaVisibleCount, true)}
       </main>
 
       {/* Footer Stats */}
       <footer className="px-4 py-4 border-t border-border/50">
         <div className="flex justify-center gap-6 text-center">
           <div>
-            <p className="text-2xl font-display font-bold text-primary">{entries.length}</p>
+            <p className="text-2xl font-display font-bold text-primary">
+              {activeTab === 'world_id' ? entries.length : solanaEntries.length}
+            </p>
             <p className="text-xs text-muted-foreground">{t('leaderboard.players')}</p>
           </div>
           <div className="w-px bg-border" />
           <div>
             <p className="text-2xl font-display font-bold text-gradient-gold">
-              {entries.reduce((sum, e) => sum + e.total_claimed, 0).toLocaleString()}
+              {(activeTab === 'world_id' 
+                ? entries.reduce((sum, e) => sum + e.total_claimed, 0) 
+                : solanaEntries.reduce((sum, e) => sum + e.total_claimed, 0)
+              ).toLocaleString()}
             </p>
             <p className="text-xs text-muted-foreground">{t('leaderboard.totalClaimed')}</p>
           </div>

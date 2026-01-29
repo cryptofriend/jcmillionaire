@@ -12,3 +12,6 @@ verify_jwt = false
 [functions.snapshot-leaderboard]
 verify_jwt = false
 schedule = "0 0 * * *"
+
+[functions.verify-phantom]
+verify_jwt = false
