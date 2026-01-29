@@ -1,6 +1,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import * as ed from 'https://esm.sh/@noble/ed25519@2.0.0';
+import { sha512 } from 'https://esm.sh/@noble/hashes@1.3.3/sha512';
 import bs58 from 'https://esm.sh/bs58@5.0.0';
+
+// Configure ed25519 to use sha512
+ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
