@@ -219,10 +219,10 @@ const Verify: React.FC = () => {
         <div className="text-center space-y-4 animate-fade-in">
           <JackieIcon size={80} className="mx-auto animate-float" />
           <h1 className="text-2xl font-display font-bold text-foreground">
-            Choose Your Wallet
+            Login with Solana
           </h1>
           <p className="text-muted-foreground max-w-xs mx-auto">
-            Login to play and earn $JC tokens. One account per wallet.
+            Connect your wallet to play and earn $JC tokens. One account per wallet.
           </p>
         </div>
 
@@ -246,45 +246,11 @@ const Verify: React.FC = () => {
 
         {/* Login Options */}
         <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-2">
-          {/* World ID Button */}
+          {/* Phantom Button - Primary */}
           <Button
             variant="gold"
             size="xl"
-            className="w-full"
-            onClick={handleVerifyWorld}
-            disabled={isVerifying || isCheckingEnv || !inWorldApp}
-          >
-            {isVerifying && verifyingWith === 'world' ? (
-              <>
-                <Loader2 className="w-6 h-6 animate-spin" />
-                Verifying...
-              </>
-            ) : (
-              <>
-                <WorldIdIcon size={24} />
-                Login with World ID
-              </>
-            )}
-          </Button>
-          
-          {!inWorldApp && !isCheckingEnv && (
-            <p className="text-xs text-muted-foreground text-center">
-              World ID requires World App
-            </p>
-          )}
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 py-2">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-muted-foreground">or</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-
-          {/* Phantom Button */}
-          <Button
-            variant="outline"
-            size="xl"
-            className="w-full border-[#AB9FF2]/50 hover:bg-[#AB9FF2]/10 hover:border-[#AB9FF2]"
+            className="w-full bg-gradient-to-r from-[#AB9FF2] to-[#7B6FC4] hover:from-[#9B8FE2] hover:to-[#6B5FB4] text-white border-0"
             onClick={handleVerifyPhantom}
             disabled={isVerifying || isCheckingEnv || !phantomAvailable}
           >
@@ -310,6 +276,40 @@ const Verify: React.FC = () => {
             >
               Install Phantom Wallet →
             </a>
+          )}
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 py-2">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          {/* World ID Button - Secondary */}
+          <Button
+            variant="outline"
+            size="xl"
+            className="w-full"
+            onClick={handleVerifyWorld}
+            disabled={isVerifying || isCheckingEnv || !inWorldApp}
+          >
+            {isVerifying && verifyingWith === 'world' ? (
+              <>
+                <Loader2 className="w-6 h-6 animate-spin" />
+                Verifying...
+              </>
+            ) : (
+              <>
+                <WorldIdIcon size={24} />
+                Login with World ID
+              </>
+            )}
+          </Button>
+          
+          {!inWorldApp && !isCheckingEnv && (
+            <p className="text-xs text-muted-foreground text-center">
+              World ID requires World App
+            </p>
           )}
         </div>
 
@@ -347,10 +347,13 @@ const Verify: React.FC = () => {
         {/* Info */}
         <div className="w-full max-w-sm space-y-3 text-center animate-slide-up stagger-3">
           <div className="flex items-center justify-center gap-4">
-            <PoweredByWorldId className="justify-center" />
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <PhantomIcon size={18} className="opacity-70" />
+              <span className="text-xs">Powered by Solana</span>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            Your privacy is protected. One account per unique identity.
+            Your privacy is protected. One account per wallet.
           </p>
         </div>
       </main>
