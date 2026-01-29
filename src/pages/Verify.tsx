@@ -5,6 +5,7 @@ import { JackieIcon } from '@/components/icons/JackieIcon';
 import { WorldIdIcon, WorldIdBadge, PoweredByWorldId } from '@/components/icons/WorldIdIcon';
 import { PhantomIcon } from '@/components/icons/PhantomIcon';
 import { NotificationSubscription } from '@/components/NotificationSubscription';
+import { UsernamePrompt } from '@/components/UsernamePrompt';
 import { useGame } from '@/contexts/GameContext';
 import { ArrowLeft, CheckCircle, Loader2, AlertCircle, Gift, Wallet } from 'lucide-react';
 import { persistUser } from '@/lib/userService';
@@ -21,6 +22,8 @@ const Verify: React.FC = () => {
   const verificationLevel: 'device' | 'orb' = 'device';
   const [isSuccess, setIsSuccess] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [inWorldApp, setInWorldApp] = useState(false);
   const [phantomAvailable, setPhantomAvailable] = useState(false);
   const [isCheckingEnv, setIsCheckingEnv] = useState(true);
@@ -144,18 +147,73 @@ const Verify: React.FC = () => {
         throw new Error(result.error || 'Phantom authentication failed');
       }
       
-      await handleVerifySuccess({
+      // Store user data for after username prompt
+      const userData = {
         id: result.user.id,
         verification_level: result.user.verification_level,
         wallet_address: result.user.wallet_address,
         created_at: result.user.created_at,
-      }, 'solana');
+      };
+      
+      // Check if user already has a username (returning user)
+      const { data: existingUser } = await (await import('@/integrations/supabase/client')).supabase
+        .from('users')
+        .select('username')
+        .eq('id', result.user.id)
+        .maybeSingle();
+      
+      if (existingUser?.username) {
+        // User already has username, proceed directly
+        await handleVerifySuccess({
+          ...userData,
+          username: existingUser.username,
+        }, 'solana');
+      } else {
+        // New user without username, show prompt
+        setPendingUserId(result.user.id);
+        localStorage.setItem('jc_wallet_address', userData.wallet_address);
+        localStorage.setItem('jc_wallet_type', 'solana');
+        
+        // Store user data temporarily
+        localStorage.setItem('jc_pending_user_data', JSON.stringify(userData));
+        
+        setIsVerifying(false);
+        setVerifyingWith(null);
+        setShowUsernamePrompt(true);
+      }
       
     } catch (error) {
       console.error('Phantom verification failed:', error);
       toast.error(error instanceof Error ? error.message : 'Phantom verification failed');
       setIsVerifying(false);
       setVerifyingWith(null);
+    }
+  };
+
+  const handleUsernameComplete = async (username: string) => {
+    setShowUsernamePrompt(false);
+    
+    const pendingData = localStorage.getItem('jc_pending_user_data');
+    if (pendingData) {
+      const userData = JSON.parse(pendingData);
+      localStorage.removeItem('jc_pending_user_data');
+      
+      await handleVerifySuccess({
+        ...userData,
+        username,
+      }, 'solana');
+    }
+  };
+
+  const handleUsernameSkip = async () => {
+    setShowUsernamePrompt(false);
+    
+    const pendingData = localStorage.getItem('jc_pending_user_data');
+    if (pendingData) {
+      const userData = JSON.parse(pendingData);
+      localStorage.removeItem('jc_pending_user_data');
+      
+      await handleVerifySuccess(userData, 'solana');
     }
   };
 
@@ -166,6 +224,20 @@ const Verify: React.FC = () => {
   const handleNotificationSkip = () => {
     navigate('/');
   };
+
+  // Show username prompt dialog
+  if (showUsernamePrompt && pendingUserId) {
+    return (
+      <div className="min-h-screen gradient-hero flex flex-col items-center justify-center px-4">
+        <UsernamePrompt
+          open={showUsernamePrompt}
+          userId={pendingUserId}
+          onComplete={handleUsernameComplete}
+          onSkip={handleUsernameSkip}
+        />
+      </div>
+    );
+  }
 
   if (isSuccess) {
     return (
