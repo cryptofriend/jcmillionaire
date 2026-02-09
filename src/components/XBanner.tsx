@@ -7,7 +7,7 @@ const XBanner: React.FC = () => {
       href="https://x.com/iamjackiechain"
       target="_blank"
       rel="noopener noreferrer"
-      className="block w-full bg-foreground text-background px-4 py-2 text-center text-sm font-medium hover:opacity-90 transition-opacity"
+      className="sticky top-0 z-50 block w-full bg-foreground text-background px-4 py-2 text-center text-sm font-medium hover:opacity-90 transition-opacity"
     >
       <span className="inline-flex items-center gap-2">
         🤝 Let's be friends on
