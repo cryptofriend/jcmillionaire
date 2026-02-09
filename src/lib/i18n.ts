@@ -22,6 +22,7 @@ export const resources = {
       app_name: 'Jackie Chain',
       subtitle: 'Millionaire',
       powered_by: 'Powered by World ID • Rewards on World Chain',
+      banner_friends: "🤝 Let's be friends on",
       
       // Home
       home: {
@@ -176,6 +177,7 @@ export const resources = {
       app_name: 'Jackie Chain',
       subtitle: 'Millonario',
       powered_by: 'Impulsado por World ID • Recompensas en World Chain',
+      banner_friends: '🤝 Seamos amigos en',
       
       // Home
       home: {
@@ -330,6 +332,7 @@ export const resources = {
       app_name: 'Jackie Chain',
       subtitle: 'มหาเศรษฐี',
       powered_by: 'ขับเคลื่อนโดย World ID • รางวัลบน World Chain',
+      banner_friends: '🤝 มาเป็นเพื่อนกันบน',
       
       // Home
       home: {
@@ -484,6 +487,7 @@ export const resources = {
       app_name: 'Jackie Chain',
       subtitle: 'करोड़पति',
       powered_by: 'World ID द्वारा संचालित • World Chain पर पुरस्कार',
+      banner_friends: '🤝 चलो दोस्त बनें',
       
       // Home
       home: {
@@ -638,6 +642,7 @@ export const resources = {
       app_name: 'Jackie Chain',
       subtitle: 'Jutawan',
       powered_by: 'Didukung oleh World ID • Hadiah di World Chain',
+      banner_friends: '🤝 Ayo berteman di',
       
       // Home
       home: {
