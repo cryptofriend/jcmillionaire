@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { GameProvider, useGame } from "@/contexts/GameContext";
 import { MiniKitProvider } from "@/components/MiniKitProvider";
 import BottomNav from "@/components/BottomNav";
+import XBanner from "@/components/XBanner";
 import LoadingScreen from "@/components/LoadingScreen";
 import { ReferralTracker } from "@/components/referral/ReferralTracker";
 import Home from "./pages/Home";
@@ -29,6 +30,7 @@ const AppContent = () => {
 
   return (
     <>
+      <XBanner />
       {/* Track referral clicks from ?ref= param */}
       <ReferralTracker />
       <Routes>
