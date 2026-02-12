@@ -349,28 +349,6 @@ const Home: React.FC = () => {
 
         <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-2">
           {!isVerified ? (
-            <Button
-              variant="gold"
-              size="xl"
-              className="w-full"
-              onClick={() => navigate('/verify')}
-            >
-              <UserCheck className="w-6 h-6" />
-              {t('home.verify_to_play')}
-              <ChevronRight className="w-5 h-5" />
-            </Button>
-          ) : canPlay ? (
-            <Button
-              variant="gold"
-              size="xl"
-              className="w-full animate-pulse-gold"
-              onClick={handleStartRun}
-            >
-              <Play className="w-6 h-6" />
-              {t('home.start_run')}
-              <ChevronRight className="w-5 h-5" />
-            </Button>
-          ) : (
             <div className="w-full space-y-2">
               {isInWorldApp() ? (
                 <Button
@@ -406,6 +384,27 @@ const Home: React.FC = () => {
                 </Button>
               )}
             </div>
+          ) : canPlay ? (
+            <Button
+              variant="gold"
+              size="xl"
+              className="w-full animate-pulse-gold"
+              onClick={handleStartRun}
+            >
+              <Play className="w-6 h-6" />
+              {t('home.start_run')}
+              <ChevronRight className="w-5 h-5" />
+            </Button>
+          ) : (
+            <Button
+              variant="gold"
+              size="xl"
+              className="w-full opacity-60"
+              disabled
+            >
+              <Zap className="w-6 h-6" />
+              {t('home.no_plays_remaining', 'No Plays Remaining')}
+            </Button>
           )}
         </div>
 
