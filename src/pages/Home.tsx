@@ -11,12 +11,17 @@ import { MiniLeaderboard } from '@/components/game/MiniLeaderboard';
 import { ShareModal } from '@/components/referral/ShareModal';
 import { TrailerCard } from '@/components/home/TrailerCard';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { UsernamePrompt } from '@/components/UsernamePrompt';
 import { useGame } from '@/contexts/GameContext';
-import { Play, ChevronRight, X, Zap, Gift, UserCheck, Share2, Copy } from 'lucide-react';
+import { Play, ChevronRight, X, Zap, Gift, UserCheck, Share2, Copy, Loader2 } from 'lucide-react';
 import { generateReferralCode } from '@/lib/referralService';
 import { getWorldAppLink } from '@/lib/constants';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { isPhantomAvailable, authenticateWithPhantom } from '@/lib/phantomWallet';
+import { persistUser } from '@/lib/userService';
+import { linkPendingReferralToUser } from '@/hooks/useReferralTracking';
+import { supabase } from '@/integrations/supabase/client';
 
 
 interface InfoPopupProps {
@@ -47,10 +52,13 @@ const TRAILER_WATCHED_KEY = 'jc_trailer_watched';
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { state } = useGame();
+  const { state, dispatch } = useGame();
   const { isVerified, attempts, dayState, user } = state;
   const [activePopup, setActivePopup] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isSolanaLogging, setIsSolanaLogging] = useState(false);
+  const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   
   // Check if user has watched trailer before - default to referral if they have
   const hasWatchedTrailer = localStorage.getItem(TRAILER_WATCHED_KEY) === 'true';
@@ -62,8 +70,6 @@ const Home: React.FC = () => {
   };
 
   const referralCode = user ? generateReferralCode(user.id) : '';
-
-
   const canPlay = isVerified && (attempts?.remaining || 0) > 0;
 
   const handleStartRun = () => {
@@ -78,6 +84,100 @@ const Home: React.FC = () => {
 
   const handleOpenShareModal = () => {
     setIsShareModalOpen(true);
+  };
+
+  const handleSolanaLogin = async () => {
+    if (!isPhantomAvailable()) {
+      toast.error('Phantom wallet not found. Please install Phantom.');
+      return;
+    }
+    setIsSolanaLogging(true);
+    try {
+      const result = await authenticateWithPhantom();
+      if (!result.success || !result.user) {
+        throw new Error(result.error || 'Phantom authentication failed');
+      }
+      const userData = {
+        id: result.user.id,
+        verification_level: result.user.verification_level,
+        wallet_address: result.user.wallet_address,
+        created_at: result.user.created_at,
+      };
+      // Check if returning user with username
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('username')
+        .eq('id', result.user.id)
+        .maybeSingle();
+
+      const finishLogin = async (username?: string) => {
+        localStorage.setItem('jc_wallet_address', userData.wallet_address);
+        localStorage.setItem('jc_wallet_type', 'solana');
+        const userObj = {
+          id: userData.id,
+          verificationLevel: userData.verification_level as 'device' | 'orb',
+          nullifierHash: `solana_${userData.wallet_address}`,
+          createdAt: userData.created_at,
+          username,
+        };
+        persistUser(userObj);
+        await linkPendingReferralToUser(userObj.id);
+        dispatch({ type: 'SET_USER', payload: userObj });
+      };
+
+      if (existingUser?.username) {
+        await finishLogin(existingUser.username);
+      } else {
+        setPendingUserId(result.user.id);
+        localStorage.setItem('jc_wallet_address', userData.wallet_address);
+        localStorage.setItem('jc_wallet_type', 'solana');
+        localStorage.setItem('jc_pending_user_data', JSON.stringify(userData));
+        setIsSolanaLogging(false);
+        setShowUsernamePrompt(true);
+      }
+    } catch (error) {
+      console.error('Solana login failed:', error);
+      toast.error(error instanceof Error ? error.message : 'Login failed');
+    } finally {
+      setIsSolanaLogging(false);
+    }
+  };
+
+  const handleUsernameComplete = async (username: string) => {
+    setShowUsernamePrompt(false);
+    const pendingData = localStorage.getItem('jc_pending_user_data');
+    if (pendingData) {
+      const userData = JSON.parse(pendingData);
+      localStorage.removeItem('jc_pending_user_data');
+      const userObj = {
+        id: userData.id,
+        verificationLevel: userData.verification_level as 'device' | 'orb',
+        nullifierHash: `solana_${userData.wallet_address}`,
+        createdAt: userData.created_at,
+        username,
+      };
+      persistUser(userObj);
+      await linkPendingReferralToUser(userObj.id);
+      dispatch({ type: 'SET_USER', payload: userObj });
+    }
+  };
+
+  const handleUsernameSkip = async () => {
+    setShowUsernamePrompt(false);
+    const pendingData = localStorage.getItem('jc_pending_user_data');
+    if (pendingData) {
+      const userData = JSON.parse(pendingData);
+      localStorage.removeItem('jc_pending_user_data');
+      const userObj = {
+        id: userData.id,
+        verificationLevel: userData.verification_level as 'device' | 'orb',
+        nullifierHash: `solana_${userData.wallet_address}`,
+        createdAt: userData.created_at,
+      };
+      persistUser(userObj);
+      await linkPendingReferralToUser(userObj.id);
+      dispatch({ type: 'SET_USER', payload: userObj });
+    }
   };
 
   const infoItems = [
@@ -108,6 +208,15 @@ const Home: React.FC = () => {
         onClose={() => setIsShareModalOpen(false)}
         referralCode={referralCode}
       />
+
+      {showUsernamePrompt && pendingUserId && (
+        <UsernamePrompt
+          open={showUsernamePrompt}
+          userId={pendingUserId}
+          onComplete={handleUsernameComplete}
+          onSkip={handleUsernameSkip}
+        />
+      )}
 
       {activePopup && (
         <InfoPopup
@@ -275,12 +384,22 @@ const Home: React.FC = () => {
               <Button
                 variant="outline"
                 size="xl"
-                className="w-full"
-                onClick={() => navigate('/verify')}
+                className="w-full bg-gradient-to-r from-[#AB9FF2] to-[#7B6FC4] hover:from-[#9B8FE2] hover:to-[#6B5FB4] text-white border-0"
+                onClick={handleSolanaLogin}
+                disabled={isSolanaLogging}
               >
-                <PhantomIcon size={20} />
-                {t('home.login_solana')}
-                <ChevronRight className="w-5 h-5" />
+                {isSolanaLogging ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <PhantomIcon size={20} />
+                    {t('home.login_solana')}
+                    <ChevronRight className="w-5 h-5" />
+                  </>
+                )}
               </Button>
             </div>
           )}
