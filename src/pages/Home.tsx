@@ -258,97 +258,8 @@ const Home: React.FC = () => {
           </p>
         </div>
 
-        <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-1">
-          <UserBalance />
-          
-          {activeTab === 'story' ? (
-            <TrailerCard 
-              onDismiss={handleDismissTrailer} 
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-            />
-          ) : null}
-          
-          <PoolStats dayState={dayState} />
-          
-          {isVerified && attempts && (
-            <div className="px-4 py-3 bg-card rounded-xl border border-border shadow-soft space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Zap className={cn(
-                    'w-5 h-5',
-                    attempts.remaining > 0 ? 'text-primary' : 'text-muted-foreground'
-                  )} />
-                  <span className="text-sm font-medium text-muted-foreground">{t('home.plays_today')}</span>
-                </div>
-                <span className={cn(
-                  'text-lg font-bold',
-                  attempts.remaining > 0 ? 'text-foreground' : 'text-muted-foreground'
-                )}>
-                  {attempts.remaining} / {attempts.cap}
-                </span>
-              </div>
-
-              {attempts.earnedFromReferrals > 0 && (
-                <div className="flex items-center gap-1.5 text-xs text-success">
-                  <Gift className="w-3.5 h-3.5" />
-                  <span className="font-medium">+{attempts.earnedFromReferrals} {t('home.from_referrals')}</span>
-                </div>
-              )}
-
-              <div className="flex gap-1 flex-wrap">
-                {Array.from({ length: Math.min(attempts.cap, 10) }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      'w-2.5 h-2.5 rounded-full transition-colors',
-                      i < attempts.remaining ? 'bg-primary' : 'bg-secondary'
-                    )}
-                  />
-                ))}
-              </div>
-
-              {activeTab === 'referral' && (
-                <div className="border-t border-border pt-3 space-y-3">
-                  <h3 className="text-center font-display font-bold text-lg text-foreground">
-                    {t('home.invite_friend')}
-                  </h3>
-                  
-                  <div className="flex items-center gap-2 bg-secondary/50 rounded-lg p-2">
-                    <span className="flex-1 text-center text-lg font-mono font-bold tracking-widest text-foreground">
-                      {user ? generateReferralCode(user.id) : '--------'}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        const { getReferralDeeplink } = require('@/lib/worldShare');
-                        const link = user ? getReferralDeeplink(generateReferralCode(user.id)) : '';
-                        navigator.clipboard.writeText(link);
-                        toast.success(t('home.copied'));
-                      }}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="gold"
-                      size="sm"
-                      onClick={handleOpenShareModal}
-                      className="gap-1.5"
-                    >
-                      <Share2 className="w-4 h-4" />
-                      {t('home.share')}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-2">
-          {!isVerified ? (
+        {!isVerified && (
+          <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-1">
             <div className="w-full space-y-2">
               {isInWorldApp() ? (
                 <Button
@@ -384,29 +295,126 @@ const Home: React.FC = () => {
                 </Button>
               )}
             </div>
-          ) : canPlay ? (
-            <Button
-              variant="gold"
-              size="xl"
-              className="w-full animate-pulse-gold"
-              onClick={handleStartRun}
-            >
-              <Play className="w-6 h-6" />
-              {t('home.start_run')}
-              <ChevronRight className="w-5 h-5" />
-            </Button>
-          ) : (
-            <Button
-              variant="gold"
-              size="xl"
-              className="w-full opacity-60"
-              disabled
-            >
-              <Zap className="w-6 h-6" />
-              {t('home.no_plays_remaining', 'No Plays Remaining')}
-            </Button>
-          )}
-        </div>
+          </div>
+        )}
+
+        {isVerified && (
+          <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-1">
+            <UserBalance />
+            
+            {activeTab === 'story' ? (
+              <TrailerCard 
+                onDismiss={handleDismissTrailer} 
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+              />
+            ) : null}
+            
+            <PoolStats dayState={dayState} />
+            
+            {attempts && (
+              <div className="px-4 py-3 bg-card rounded-xl border border-border shadow-soft space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Zap className={cn(
+                      'w-5 h-5',
+                      attempts.remaining > 0 ? 'text-primary' : 'text-muted-foreground'
+                    )} />
+                    <span className="text-sm font-medium text-muted-foreground">{t('home.plays_today')}</span>
+                  </div>
+                  <span className={cn(
+                    'text-lg font-bold',
+                    attempts.remaining > 0 ? 'text-foreground' : 'text-muted-foreground'
+                  )}>
+                    {attempts.remaining} / {attempts.cap}
+                  </span>
+                </div>
+
+                {attempts.earnedFromReferrals > 0 && (
+                  <div className="flex items-center gap-1.5 text-xs text-success">
+                    <Gift className="w-3.5 h-3.5" />
+                    <span className="font-medium">+{attempts.earnedFromReferrals} {t('home.from_referrals')}</span>
+                  </div>
+                )}
+
+                <div className="flex gap-1 flex-wrap">
+                  {Array.from({ length: Math.min(attempts.cap, 10) }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        'w-2.5 h-2.5 rounded-full transition-colors',
+                        i < attempts.remaining ? 'bg-primary' : 'bg-secondary'
+                      )}
+                    />
+                  ))}
+                </div>
+
+                {activeTab === 'referral' && (
+                  <div className="border-t border-border pt-3 space-y-3">
+                    <h3 className="text-center font-display font-bold text-lg text-foreground">
+                      {t('home.invite_friend')}
+                    </h3>
+                    
+                    <div className="flex items-center gap-2 bg-secondary/50 rounded-lg p-2">
+                      <span className="flex-1 text-center text-lg font-mono font-bold tracking-widest text-foreground">
+                        {user ? generateReferralCode(user.id) : '--------'}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const { getReferralDeeplink } = require('@/lib/worldShare');
+                          const link = user ? getReferralDeeplink(generateReferralCode(user.id)) : '';
+                          navigator.clipboard.writeText(link);
+                          toast.success(t('home.copied'));
+                        }}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="gold"
+                        size="sm"
+                        onClick={handleOpenShareModal}
+                        className="gap-1.5"
+                      >
+                        <Share2 className="w-4 h-4" />
+                        {t('home.share')}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {isVerified && (
+          <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-2">
+            {canPlay ? (
+              <Button
+                variant="gold"
+                size="xl"
+                className="w-full animate-pulse-gold"
+                onClick={handleStartRun}
+              >
+                <Play className="w-6 h-6" />
+                {t('home.start_run')}
+                <ChevronRight className="w-5 h-5" />
+              </Button>
+            ) : (
+              <Button
+                variant="gold"
+                size="xl"
+                className="w-full opacity-60"
+                disabled
+              >
+                <Zap className="w-6 h-6" />
+                {t('home.no_plays_remaining', 'No Plays Remaining')}
+              </Button>
+            )}
+          </div>
+        )}
 
         {isVerified && (
           <div className="flex gap-4 text-center animate-slide-up stagger-3">
