@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
+import { WorldIdIcon } from '@/components/icons/WorldIdIcon';
+import { PhantomIcon } from '@/components/icons/PhantomIcon';
 import { PoolStats } from '@/components/game/PoolStats';
 import { UserBalance } from '@/components/game/UserBalance';
 import { MiniLeaderboard } from '@/components/game/MiniLeaderboard';
@@ -10,25 +12,12 @@ import { ShareModal } from '@/components/referral/ShareModal';
 import { TrailerCard } from '@/components/home/TrailerCard';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useGame } from '@/contexts/GameContext';
-import { Play, ChevronRight, X, Zap, Gift, UserCheck, Share2, Copy, Clock } from 'lucide-react';
+import { Play, ChevronRight, X, Zap, Gift, UserCheck, Share2, Copy } from 'lucide-react';
 import { generateReferralCode } from '@/lib/referralService';
 import { getWorldAppLink } from '@/lib/constants';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-// Helper to get time until midnight
-const getTimeUntilMidnight = (): string => {
-  const now = new Date();
-  const midnight = new Date(now);
-  midnight.setHours(24, 0, 0, 0);
-  const diff = midnight.getTime() - now.getTime();
-  
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-  
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-};
 
 interface InfoPopupProps {
   title: string;
@@ -61,7 +50,6 @@ const Home: React.FC = () => {
   const { state } = useGame();
   const { isVerified, attempts, dayState, user } = state;
   const [activePopup, setActivePopup] = useState<string | null>(null);
-  const [countdown, setCountdown] = useState(getTimeUntilMidnight());
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   
   // Check if user has watched trailer before - default to referral if they have
@@ -75,22 +63,6 @@ const Home: React.FC = () => {
 
   const referralCode = user ? generateReferralCode(user.id) : '';
 
-  // Use requestAnimationFrame for smoother countdown (better INP)
-  useEffect(() => {
-    let animationFrameId: number;
-    let lastUpdate = 0;
-    
-    const updateCountdown = (timestamp: number) => {
-      if (timestamp - lastUpdate >= 1000) {
-        setCountdown(getTimeUntilMidnight());
-        lastUpdate = timestamp;
-      }
-      animationFrameId = requestAnimationFrame(updateCountdown);
-    };
-    
-    animationFrameId = requestAnimationFrame(updateCountdown);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, []);
 
   const canPlay = isVerified && (attempts?.remaining || 0) > 0;
 
@@ -289,15 +261,28 @@ const Home: React.FC = () => {
               <ChevronRight className="w-5 h-5" />
             </Button>
           ) : (
-            <Button
-              variant="outline"
-              size="xl"
-              className="w-full opacity-60 cursor-not-allowed"
-              disabled
-            >
-              <Clock className="w-5 h-5" />
-              {t('home.next_play_in')} {countdown}
-            </Button>
+            <div className="w-full space-y-2">
+              <Button
+                variant="gold"
+                size="xl"
+                className="w-full"
+                onClick={() => navigate('/verify')}
+              >
+                <WorldIdIcon size={20} />
+                {t('home.login_world_id')}
+                <ChevronRight className="w-5 h-5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="xl"
+                className="w-full"
+                onClick={() => navigate('/verify')}
+              >
+                <PhantomIcon size={20} />
+                {t('home.login_solana')}
+                <ChevronRight className="w-5 h-5" />
+              </Button>
+            </div>
           )}
         </div>
 
