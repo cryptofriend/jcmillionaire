@@ -19,6 +19,7 @@ import { getWorldAppLink } from '@/lib/constants';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { isPhantomAvailable, authenticateWithPhantom } from '@/lib/phantomWallet';
+import { isInWorldApp } from '@/lib/minikit';
 import { persistUser } from '@/lib/userService';
 import { linkPendingReferralToUser } from '@/hooks/useReferralTracking';
 import { supabase } from '@/integrations/supabase/client';
@@ -371,36 +372,39 @@ const Home: React.FC = () => {
             </Button>
           ) : (
             <div className="w-full space-y-2">
-              <Button
-                variant="gold"
-                size="xl"
-                className="w-full"
-                onClick={() => navigate('/verify')}
-              >
-                <WorldIdIcon size={20} />
-                {t('home.login_world_id')}
-                <ChevronRight className="w-5 h-5" />
-              </Button>
-              <Button
-                variant="outline"
-                size="xl"
-                className="w-full bg-gradient-to-r from-[#AB9FF2] to-[#7B6FC4] hover:from-[#9B8FE2] hover:to-[#6B5FB4] text-white border-0"
-                onClick={handleSolanaLogin}
-                disabled={isSolanaLogging}
-              >
-                {isSolanaLogging ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Connecting...
-                  </>
-                ) : (
-                  <>
-                    <PhantomIcon size={20} />
-                    {t('home.login_solana')}
-                    <ChevronRight className="w-5 h-5" />
-                  </>
-                )}
-              </Button>
+              {isInWorldApp() ? (
+                <Button
+                  variant="gold"
+                  size="xl"
+                  className="w-full"
+                  onClick={() => navigate('/verify')}
+                >
+                  <WorldIdIcon size={20} />
+                  {t('home.login_world_id')}
+                  <ChevronRight className="w-5 h-5" />
+                </Button>
+              ) : (
+                <Button
+                  variant="gold"
+                  size="xl"
+                  className="w-full bg-gradient-to-r from-[#AB9FF2] to-[#7B6FC4] hover:from-[#9B8FE2] hover:to-[#6B5FB4] text-white border-0"
+                  onClick={handleSolanaLogin}
+                  disabled={isSolanaLogging}
+                >
+                  {isSolanaLogging ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    <>
+                      <PhantomIcon size={20} />
+                      {t('home.login_solana')}
+                      <ChevronRight className="w-5 h-5" />
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           )}
         </div>
