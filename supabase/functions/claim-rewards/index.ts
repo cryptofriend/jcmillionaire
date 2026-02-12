@@ -13,15 +13,22 @@ serve(async (req) => {
   }
 
   try {
-    const { run_id, user_id } = await req.json();
-
-    console.log('Claim rewards request:', { run_id, user_id });
+    const body = await req.json();
+    const { run_id, user_id } = body;
 
     // Validate required fields
     if (!run_id || !user_id) {
-      console.error('Missing required fields');
       return new Response(
         JSON.stringify({ success: false, error: 'Missing required fields: run_id, user_id' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(run_id) || !uuidRegex.test(user_id)) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid ID format' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -324,9 +331,8 @@ serve(async (req) => {
 
   } catch (error: unknown) {
     console.error('Error in claim-rewards:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
+      JSON.stringify({ success: false, error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
