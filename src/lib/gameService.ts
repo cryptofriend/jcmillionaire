@@ -427,6 +427,7 @@ export async function fetchUserQuestions(userId: string, language: Language = 'e
     difficulty: q.difficulty,
     category: q.category,
     hint: getTranslated(q, 'hint', language),
+    imageUrl: (q as Record<string, unknown>).image_url as string | undefined,
   }));
 
   // Build correct answers map

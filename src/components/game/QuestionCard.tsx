@@ -68,6 +68,18 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         </span>
       </div>
 
+      {/* Question Image */}
+      {question.imageUrl && (
+        <div className="w-full rounded-2xl overflow-hidden shadow-card border border-border">
+          <img
+            src={question.imageUrl}
+            alt="Question illustration"
+            className="w-full h-40 object-cover"
+            loading="eager"
+          />
+        </div>
+      )}
+
       {/* Question Text */}
       <div className="bg-card rounded-2xl p-5 shadow-card border border-border">
         <p className="text-lg font-semibold text-center leading-relaxed">
