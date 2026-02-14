@@ -53,11 +53,12 @@ serve(async (req) => {
       );
     }
 
-    // Verify user was authenticated via World App wallet (not demo mode)
-    if (!user.nullifier_hash || !user.nullifier_hash.startsWith('wallet_')) {
-      console.error('User not properly authenticated via World ID wallet');
+    // Verify user was authenticated via a supported wallet (World ID or Solana)
+    const validPrefixes = ['wallet_', 'solana_'];
+    if (!user.nullifier_hash || !validPrefixes.some(p => user.nullifier_hash.startsWith(p))) {
+      console.error('User not properly authenticated via supported wallet');
       return new Response(
-        JSON.stringify({ success: false, error: 'World ID wallet verification required' }),
+        JSON.stringify({ success: false, error: 'Wallet verification required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
