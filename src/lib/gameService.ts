@@ -332,20 +332,34 @@ export async function incrementAttemptsUsed(
 }
 
 /**
- * Fetch today's questions from the database
- * Returns 15 questions ordered by difficulty for today's game
+ * Fetch questions for a user's session, excluding already-answered questions.
+ * Picks a balanced set: 1 from difficulty 1, up to 4 from difficulty 2-3, up to 10 from difficulty 4-15.
+ * Returns up to 15 questions ordered by difficulty.
  */
-export async function fetchTodayQuestions(language: Language = 'en'): Promise<{
+export async function fetchUserQuestions(userId: string, language: Language = 'en'): Promise<{
   questions: QuestionWithHiddenChoices[];
   correctAnswers: Record<string, 'A' | 'B' | 'C' | 'D'>;
   error: string | null;
 }> {
-  const today = getTodayDayId();
+  // 1. Get IDs of questions this user has already answered
+  const { data: answeredData, error: answeredError } = await supabase
+    .from('answers')
+    .select('question_id, run_id, runs!inner(user_id)')
+    .eq('runs.user_id', userId);
 
+  if (answeredError) {
+    console.error('Error fetching answered questions:', answeredError);
+    // Fall through with empty set so we can still try to load questions
+  }
+
+  const answeredIds = new Set(
+    (answeredData || []).map((a: { question_id: string }) => a.question_id)
+  );
+
+  // 2. Fetch all active questions
   const { data, error } = await supabase
     .from('questions')
     .select('*')
-    .eq('active_dates', today)
     .eq('is_active', true)
     .order('difficulty', { ascending: true });
 
@@ -355,8 +369,42 @@ export async function fetchTodayQuestions(language: Language = 'en'): Promise<{
   }
 
   if (!data || data.length === 0) {
-    console.warn('No questions found for today:', today);
-    return { questions: [], correctAnswers: {}, error: 'No questions available for today' };
+    return { questions: [], correctAnswers: {}, error: 'No questions available' };
+  }
+
+  // 3. Filter out already-answered questions
+  const unseen = data.filter((q) => !answeredIds.has(q.id));
+
+  if (unseen.length === 0) {
+    return { questions: [], correctAnswers: {}, error: 'all_questions_answered' };
+  }
+
+  // 4. Pick balanced set: 1 funny (diff 1), up to 4 medium (diff 2-3), up to 10 hard (diff 4-15)
+  const funny = unseen.filter((q) => q.difficulty === 1);
+  const medium = unseen.filter((q) => q.difficulty >= 2 && q.difficulty <= 3);
+  const hard = unseen.filter((q) => q.difficulty >= 4 && q.difficulty <= 15);
+
+  // Shuffle helper
+  const shuffle = <T,>(arr: T[]): T[] => {
+    const copy = [...arr];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  };
+
+  const selected = [
+    ...shuffle(funny).slice(0, 1),
+    ...shuffle(medium).slice(0, 4),
+    ...shuffle(hard).slice(0, 10),
+  ];
+
+  // Sort by difficulty ascending for gameplay progression
+  selected.sort((a, b) => a.difficulty - b.difficulty);
+
+  if (selected.length === 0) {
+    return { questions: [], correctAnswers: {}, error: 'Not enough questions available' };
   }
 
   // Helper to get translated field with English fallback
@@ -366,31 +414,40 @@ export async function fetchTodayQuestions(language: Language = 'en'): Promise<{
     return (row[translatedField] as string | null) || (row[field] as string);
   };
 
-  // Transform database questions to game format with language support
-  const questions: QuestionWithHiddenChoices[] = data.map((q) => {
-    return {
-      id: q.id,
-      question: getTranslated(q, 'question', language),
-      choices: {
-        A: getTranslated(q, 'choice_a', language),
-        B: getTranslated(q, 'choice_b', language),
-        C: getTranslated(q, 'choice_c', language),
-        D: getTranslated(q, 'choice_d', language),
-      },
-      difficulty: q.difficulty,
-      category: q.category,
-      hint: getTranslated(q, 'hint', language),
-    };
-  });
+  // Transform to game format
+  const questions: QuestionWithHiddenChoices[] = selected.map((q) => ({
+    id: q.id,
+    question: getTranslated(q, 'question', language),
+    choices: {
+      A: getTranslated(q, 'choice_a', language),
+      B: getTranslated(q, 'choice_b', language),
+      C: getTranslated(q, 'choice_c', language),
+      D: getTranslated(q, 'choice_d', language),
+    },
+    difficulty: q.difficulty,
+    category: q.category,
+    hint: getTranslated(q, 'hint', language),
+  }));
 
-  // Build correct answers map (not exposed to client during game)
+  // Build correct answers map
   const correctAnswers: Record<string, 'A' | 'B' | 'C' | 'D'> = {};
-  data.forEach((q) => {
+  selected.forEach((q) => {
     correctAnswers[q.id] = q.correct_choice as 'A' | 'B' | 'C' | 'D';
   });
 
-  console.log(`Loaded ${questions.length} questions for ${today} in ${language}`);
+  console.log(`Loaded ${questions.length} unseen questions for user ${userId} in ${language} (${answeredIds.size} already answered)`);
   return { questions, correctAnswers, error: null };
+}
+
+/**
+ * @deprecated Use fetchUserQuestions instead
+ */
+export async function fetchTodayQuestions(language: Language = 'en'): Promise<{
+  questions: QuestionWithHiddenChoices[];
+  correctAnswers: Record<string, 'A' | 'B' | 'C' | 'D'>;
+  error: string | null;
+}> {
+  return fetchUserQuestions('', language);
 }
 
 /**
