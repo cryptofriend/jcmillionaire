@@ -298,17 +298,20 @@ const Home: React.FC = () => {
           </div>
         )}
 
+        {/* Trailer visible to everyone */}
+        {activeTab === 'story' && (
+          <div className="w-full max-w-sm animate-slide-up stagger-1">
+            <TrailerCard 
+              onDismiss={handleDismissTrailer} 
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+          </div>
+        )}
+
         {isVerified && (
           <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-1">
             <UserBalance />
-            
-            {activeTab === 'story' ? (
-              <TrailerCard 
-                onDismiss={handleDismissTrailer} 
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
-              />
-            ) : null}
             
             <PoolStats dayState={dayState} />
             
