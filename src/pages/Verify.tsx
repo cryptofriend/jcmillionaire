@@ -416,18 +416,6 @@ const Verify: React.FC = () => {
           </div>
         )}
 
-        {/* Info */}
-        <div className="w-full max-w-sm space-y-3 text-center animate-slide-up stagger-3">
-          <div className="flex items-center justify-center gap-4">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <PhantomIcon size={18} className="opacity-70" />
-              <span className="text-xs">Powered by Solana</span>
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Your privacy is protected. One account per wallet.
-          </p>
-        </div>
       </main>
     </div>
   );
