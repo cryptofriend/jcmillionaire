@@ -125,6 +125,87 @@ function generateTextHash(question: string, choices: string[]): string {
   return Math.abs(hash).toString(16);
 }
 
+/**
+ * Generate an AI image for a question using Lovable AI gateway
+ */
+async function generateQuestionImage(
+  question: string,
+  category: string,
+  questionId: string,
+  supabase: ReturnType<typeof createClient>
+): Promise<string | null> {
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+  if (!lovableApiKey) {
+    console.warn('LOVABLE_API_KEY not set, skipping image generation');
+    return null;
+  }
+
+  try {
+    const prompt = `Generate a vibrant, colorful illustration for a trivia quiz question. Category: ${category}. Question theme: "${question.substring(0, 100)}". Style: modern flat illustration, game-show aesthetic, bold colors, no text or letters in the image. Square format.`;
+
+    console.log(`Generating image for question ${questionId}...`);
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-image',
+        messages: [{ role: 'user', content: prompt }],
+        modalities: ['image', 'text'],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`AI gateway error: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+    if (!imageData || !imageData.startsWith('data:image')) {
+      console.error('No valid image in AI response');
+      return null;
+    }
+
+    // Extract base64 data and upload to storage
+    const base64Match = imageData.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (!base64Match) {
+      console.error('Could not parse base64 image data');
+      return null;
+    }
+
+    const ext = base64Match[1] === 'jpeg' ? 'jpg' : base64Match[1];
+    const base64Data = base64Match[2];
+    const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+
+    const filePath = `${questionId}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from('question-images')
+      .upload(filePath, binaryData, {
+        contentType: `image/${base64Match[1]}`,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error(`Storage upload error for ${questionId}:`, uploadError);
+      return null;
+    }
+
+    const { data: publicUrl } = supabase.storage
+      .from('question-images')
+      .getPublicUrl(filePath);
+
+    console.log(`Image generated and uploaded for question ${questionId}`);
+    return publicUrl.publicUrl;
+  } catch (err) {
+    console.error(`Image generation failed for ${questionId}:`, err);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -169,7 +250,6 @@ serve(async (req) => {
     allSheetData.forEach(({ sheetName, questions }) => {
       const langCode = SHEET_TO_LANG[sheetName];
       questions.forEach((q, idx) => {
-        // Key by date + difficulty + index within that date/difficulty group
         const key = `${q.active_dates}|${q.difficulty}|${idx}`;
         if (!translationsByKey[key]) {
           translationsByKey[key] = {} as Record<LanguageCode, SheetQuestion>;
@@ -181,7 +261,7 @@ serve(async (req) => {
     // Fetch existing questions from database indexed by text_hash
     const { data: existingQuestions, error: fetchError } = await supabase
       .from('questions')
-      .select('id, active_dates, difficulty, question, text_hash')
+      .select('id, active_dates, difficulty, question, text_hash, image_url')
       .order('active_dates', { ascending: true })
       .order('difficulty', { ascending: true });
 
@@ -191,13 +271,14 @@ serve(async (req) => {
     }
 
     // Index existing questions by text_hash for quick lookup
-    const existingByTextHash: Record<string, { id: string; question: string; text_hash: string; active_dates: string; difficulty: number }> = {};
+    const existingByTextHash: Record<string, { id: string; question: string; text_hash: string; active_dates: string; difficulty: number; image_url: string | null }> = {};
     (existingQuestions || []).forEach(q => {
-      existingByTextHash[q.text_hash] = { id: q.id, question: q.question, text_hash: q.text_hash, active_dates: q.active_dates, difficulty: q.difficulty };
+      existingByTextHash[q.text_hash] = { id: q.id, question: q.question, text_hash: q.text_hash, active_dates: q.active_dates, difficulty: q.difficulty, image_url: q.image_url };
     });
 
     let updatedCount = 0;
     let insertedCount = 0;
+    let imagesGenerated = 0;
     const translationSummary = { en: 0, es: 0, th: 0, hi: 0, id: 0 };
 
     // Process English questions and match by text_hash
@@ -205,28 +286,31 @@ serve(async (req) => {
       const enQ = enData.questions[idx];
       const fullKey = `${enQ.active_dates}|${enQ.difficulty}|${idx}`;
       
-      // Generate text hash for this question
       const textHash = generateTextHash(enQ.question, [enQ.choice_a, enQ.choice_b, enQ.choice_c, enQ.choice_d]);
       
-      // Get translations for this question
       const translations = translationsByKey[fullKey] || {};
       const esQ = translations.es;
       const thQ = translations.th;
       const hiQ = translations.hi;
       const idQ = translations.id;
 
-      // Count translations
       translationSummary.en++;
       if (esQ) translationSummary.es++;
       if (thQ) translationSummary.th++;
       if (hiQ) translationSummary.hi++;
       if (idQ) translationSummary.id++;
 
-      // Check if question already exists by text_hash
       const matchedQuestion = existingByTextHash[textHash];
 
-      // Build the question data object
-      const questionData = {
+      // Generate image if question doesn't already have one
+      let imageUrl: string | null = matchedQuestion?.image_url || null;
+      if (!imageUrl) {
+        const questionId = matchedQuestion?.id || crypto.randomUUID();
+        imageUrl = await generateQuestionImage(enQ.question, enQ.category, questionId, supabase);
+        if (imageUrl) imagesGenerated++;
+      }
+
+      const questionData: Record<string, unknown> = {
         question: enQ.question,
         choice_a: enQ.choice_a,
         choice_b: enQ.choice_b,
@@ -239,6 +323,7 @@ serve(async (req) => {
         active_dates: enQ.active_dates,
         is_active: enQ.is_active,
         text_hash: textHash,
+        image_url: imageUrl,
         // Spanish
         question_es: esQ?.question || null,
         choice_a_es: esQ?.choice_a || null,
@@ -270,7 +355,6 @@ serve(async (req) => {
       };
 
       if (matchedQuestion) {
-        // Update existing question - update date, difficulty, translations, etc.
         const { error: updateError } = await supabase
           .from('questions')
           .update(questionData)
@@ -280,10 +364,8 @@ serve(async (req) => {
           console.error(`Error updating question ${matchedQuestion.id}:`, updateError);
         } else {
           updatedCount++;
-          console.log(`Updated question ${matchedQuestion.id}: date ${matchedQuestion.active_dates} -> ${enQ.active_dates}`);
         }
       } else {
-        // Insert new question
         const { error: insertError } = await supabase
           .from('questions')
           .insert(questionData);
@@ -296,14 +378,15 @@ serve(async (req) => {
       }
     }
     
-    console.log(`Sync complete: ${updatedCount} updated, ${insertedCount} inserted`);
+    console.log(`Sync complete: ${updatedCount} updated, ${insertedCount} inserted, ${imagesGenerated} images generated`);
     console.log('Translation summary:', translationSummary);
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: `Synced questions: ${updatedCount} updated, ${insertedCount} inserted`,
+      message: `Synced questions: ${updatedCount} updated, ${insertedCount} inserted, ${imagesGenerated} images generated`,
       updated: updatedCount,
       inserted: insertedCount,
+      imagesGenerated,
       translations: translationSummary
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

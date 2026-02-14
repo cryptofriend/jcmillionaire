@@ -299,6 +299,7 @@ export type Database = {
           hint_id: string | null
           hint_th: string | null
           id: string
+          image_url: string | null
           is_active: boolean
           question: string
           question_es: string | null
@@ -339,6 +340,7 @@ export type Database = {
           hint_id?: string | null
           hint_th?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           question: string
           question_es?: string | null
@@ -379,6 +381,7 @@ export type Database = {
           hint_id?: string | null
           hint_th?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           question?: string
           question_es?: string | null
