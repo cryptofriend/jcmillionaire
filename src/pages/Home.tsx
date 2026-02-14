@@ -299,15 +299,13 @@ const Home: React.FC = () => {
         )}
 
         {/* Trailer visible to everyone */}
-        {activeTab === 'story' && (
-          <div className="w-full max-w-sm animate-slide-up stagger-1">
-            <TrailerCard 
-              onDismiss={handleDismissTrailer} 
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-            />
-          </div>
-        )}
+        <div className="w-full max-w-sm animate-slide-up stagger-1">
+          <TrailerCard 
+            onDismiss={handleDismissTrailer} 
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+        </div>
 
         {isVerified && (
           <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-1">
