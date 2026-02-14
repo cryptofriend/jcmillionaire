@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { useGame } from '@/contexts/GameContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { RefreshCw, ArrowLeft, BarChart3, Users, TrendingUp, CheckCircle, XCircle, AlertTriangle, Share2, UserCheck, MousePointerClick } from 'lucide-react';
+import { RefreshCw, ArrowLeft, BarChart3, Users, TrendingUp, CheckCircle, XCircle, AlertTriangle, Share2, UserCheck, MousePointerClick, Coins, GamepadIcon } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface PlayerStats {
   todayPlayers: number;
@@ -37,6 +38,15 @@ interface ReferralStats {
   total: number;
 }
 
+interface UserStats {
+  userId: string;
+  username: string;
+  totalRuns: number;
+  totalAnswered: number;
+  correctAnswers: number;
+  balance: number;
+}
+
 const Analytics: React.FC = () => {
   const navigate = useNavigate();
   const { state, isAdmin } = useGame();
@@ -47,6 +57,7 @@ const Analytics: React.FC = () => {
   const [referralFailures, setReferralFailures] = useState<ReferralFailure[]>([]);
   const [referralStats, setReferralStats] = useState<ReferralStats[]>([]);
   const [referralTotals, setReferralTotals] = useState({ clicked: 0, verified: 0, completed: 0 });
+  const [userStats, setUserStats] = useState<UserStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Redirect non-admins
@@ -195,6 +206,50 @@ const Analytics: React.FC = () => {
           
           setReferralStats(stats);
           setReferralTotals({ clicked: totalClicked, verified: totalVerified, completed: totalCompleted });
+        }
+
+        // Fetch per-user stats
+        const [usersRes, runsRes, allAnswersRes, balancesRes] = await Promise.all([
+          supabase.from('users').select('id, username'),
+          supabase.from('runs').select('user_id'),
+          supabase.from('answers').select('run_id, is_correct, runs!inner(user_id)'),
+          supabase.from('user_balances').select('user_id, total_claimed'),
+        ]);
+
+        if (usersRes.data) {
+          const runCountMap = new Map<string, number>();
+          (runsRes.data || []).forEach((r: any) => {
+            runCountMap.set(r.user_id, (runCountMap.get(r.user_id) || 0) + 1);
+          });
+
+          const answerMap = new Map<string, { total: number; correct: number }>();
+          (allAnswersRes.data || []).forEach((a: any) => {
+            const uid = a.runs?.user_id;
+            if (!uid) return;
+            const cur = answerMap.get(uid) || { total: 0, correct: 0 };
+            cur.total++;
+            if (a.is_correct) cur.correct++;
+            answerMap.set(uid, cur);
+          });
+
+          const balanceMap = new Map<string, number>();
+          (balancesRes.data || []).forEach((b: any) => {
+            balanceMap.set(b.user_id, b.total_claimed);
+          });
+
+          const uStats: UserStats[] = usersRes.data.map((u: any) => {
+            const ans = answerMap.get(u.id) || { total: 0, correct: 0 };
+            return {
+              userId: u.id,
+              username: u.username || 'Anonymous',
+              totalRuns: runCountMap.get(u.id) || 0,
+              totalAnswered: ans.total,
+              correctAnswers: ans.correct,
+              balance: balanceMap.get(u.id) || 0,
+            };
+          }).sort((a: UserStats, b: UserStats) => b.totalRuns - a.totalRuns);
+
+          setUserStats(uStats);
         }
       } catch (err) {
         console.error('Analytics fetch error:', err);
@@ -459,6 +514,82 @@ const Analytics: React.FC = () => {
                 Total: {referralFailures.reduce((sum, f) => sum + f.count, 0)} failed attempts
               </p>
             </div>
+          )}
+        </section>
+
+        {/* Per-User Stats */}
+        <section className="bg-card rounded-xl border border-border p-5 space-y-4">
+          <h2 className="text-lg font-display font-bold flex items-center gap-2">
+            <GamepadIcon className="w-5 h-5 text-primary" />
+            Player Details
+          </h2>
+
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : userStats.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">No players yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Player</TableHead>
+                    <TableHead className="text-center">Runs</TableHead>
+                    <TableHead className="text-center">Answered</TableHead>
+                    <TableHead className="text-center">
+                      <CheckCircle className="w-4 h-4 inline text-success" />
+                    </TableHead>
+                    <TableHead className="text-center">Rate</TableHead>
+                    <TableHead className="text-center">
+                      <Coins className="w-4 h-4 inline text-warning" />
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {userStats.map((u) => (
+                    <TableRow key={u.userId}>
+                      <TableCell className="font-medium text-sm max-w-[150px] truncate">
+                        {u.username}
+                      </TableCell>
+                      <TableCell className="text-center font-medium">
+                        {u.totalRuns}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {u.totalAnswered}
+                      </TableCell>
+                      <TableCell className="text-center text-success font-medium">
+                        {u.correctAnswers}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {u.totalAnswered > 0 ? (
+                          <span className={cn(
+                            'font-medium',
+                            Math.round((u.correctAnswers / u.totalAnswered) * 100) >= 70 ? 'text-success' :
+                            Math.round((u.correctAnswers / u.totalAnswered) * 100) >= 40 ? 'text-warning' :
+                            'text-destructive'
+                          )}>
+                            {Math.round((u.correctAnswers / u.totalAnswered) * 100)}%
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center font-bold text-warning">
+                        {u.balance.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {!isLoading && userStats.length > 0 && (
+            <p className="text-xs text-muted-foreground text-center">
+              {userStats.length} players • {userStats.filter(u => u.totalRuns > 0).length} have played
+            </p>
           )}
         </section>
       </main>
