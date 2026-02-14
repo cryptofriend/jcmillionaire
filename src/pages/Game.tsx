@@ -21,7 +21,7 @@ import {
   completeRun,
   getTodayDayId,
   incrementAttemptsUsed,
-  fetchTodayQuestions,
+  fetchUserQuestions,
   fetchAnswerStats,
 } from '@/lib/gameService';
 import {
@@ -109,15 +109,19 @@ const Game: React.FC = () => {
   const [bannerCorrect, setBannerCorrect] = useState(false);
   const [currentQuestionStats, setCurrentQuestionStats] = useState<AnswerStats | null>(null);
 
-  // Load questions from database on mount
+  // Load questions for this user's session (excluding already-answered ones)
   useEffect(() => {
+    if (!user) return;
+
     const loadQuestions = async () => {
       const currentLang = (localStorage.getItem('jc_language') as 'en' | 'es' | 'th' | 'hi' | 'id') || 'en';
-      const { questions: loadedQuestions, correctAnswers, error } = await fetchTodayQuestions(currentLang);
+      const { questions: loadedQuestions, correctAnswers, error } = await fetchUserQuestions(user.id, currentLang);
       
       if (error || loadedQuestions.length === 0) {
         console.error('Failed to load questions:', error);
-        setQuestionLoadError(error || 'No questions available for today');
+        setQuestionLoadError(error === 'all_questions_answered' 
+          ? 'You have answered all available questions! Check back later for new ones.' 
+          : error || 'No questions available');
         setQuestionsLoaded(true);
         return;
       }
@@ -126,11 +130,11 @@ const Game: React.FC = () => {
       setCorrectAnswersMap(correctAnswers);
       setCurrentQuestion(loadedQuestions[0]);
       setQuestionsLoaded(true);
-      console.log(`Loaded ${loadedQuestions.length} questions for today's game in ${currentLang}`);
+      console.log(`Loaded ${loadedQuestions.length} unseen questions for session`);
     };
 
     loadQuestions();
-  }, []);
+  }, [user]);
 
   // Initialize game run in database - check attempts first
   useEffect(() => {
