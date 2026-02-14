@@ -17,6 +17,28 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Validate admin authorization (skip for cron/scheduled invocations)
+    const isCron = req.headers.get('x-supabase-cron') === 'true' || 
+                   req.headers.get('authorization')?.includes(supabaseServiceKey);
+    if (!isCron) {
+      let body: Record<string, unknown> = {};
+      try { body = await req.json(); } catch { /* no body */ }
+      const adminUserId = body?.admin_user_id as string | undefined;
+      if (!adminUserId) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Admin user ID required' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const { data: isAdmin } = await supabase.rpc('is_admin', { _user_id: adminUserId });
+      if (!isAdmin) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Unauthorized: admin role required' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     // Get today's date (UTC)
     const today = new Date().toISOString().split('T')[0];
 
