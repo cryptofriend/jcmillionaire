@@ -212,11 +212,29 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Starting question sync from Google Sheets (multi-language with matching)...');
-    
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Validate admin authorization
+    let body: Record<string, unknown> = {};
+    try { body = await req.json(); } catch { /* no body is fine */ }
+    const adminUserId = body?.admin_user_id as string | undefined;
+    if (!adminUserId) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Admin user ID required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const { data: isAdmin } = await supabase.rpc('is_admin', { _user_id: adminUserId });
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized: admin role required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Starting question sync from Google Sheets (multi-language with matching)...');
 
     // Fetch questions from all language sheets in parallel
     const sheetDataPromises = LANGUAGE_SHEETS.map(async (sheetName) => {
