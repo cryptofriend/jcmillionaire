@@ -47,16 +47,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify the SIWE message signature
-    // The message contains the nonce, so we verify it matches
-    if (!payload.message.includes(nonce)) {
-      console.error('Nonce mismatch in SIWE message');
-      return new Response(
-        JSON.stringify({ success: false, error: 'Invalid nonce' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Verify signature is present
     if (!payload.signature || !payload.address) {
       return new Response(
@@ -65,12 +55,59 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('SIWE message verified, address:', payload.address);
-
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify nonce exists, is unused, and not expired (5 min)
+    const { data: nonceRecord } = await supabase
+      .from('auth_nonces')
+      .select('created_at, used_at')
+      .eq('nonce', nonce)
+      .maybeSingle();
+
+    if (!nonceRecord) {
+      console.error('Nonce not found in database');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid or expired nonce' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (nonceRecord.used_at) {
+      console.error('Nonce already used');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Nonce already used' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const nonceAge = Date.now() - new Date(nonceRecord.created_at).getTime();
+    if (nonceAge > 5 * 60 * 1000) {
+      console.error('Nonce expired');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Nonce expired' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify the SIWE message signature contains the nonce
+    if (!payload.message.includes(nonce)) {
+      console.error('Nonce mismatch in SIWE message');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid nonce' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('SIWE message verified, address:', payload.address);
+
+    // Mark nonce as used
+    await supabase
+      .from('auth_nonces')
+      .update({ used_at: new Date().toISOString() })
+      .eq('nonce', nonce);
 
     // Use wallet address as the unique identifier (nullifier_hash equivalent)
     const walletAddress = payload.address.toLowerCase();

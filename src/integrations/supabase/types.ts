@@ -135,6 +135,27 @@ export type Database = {
           },
         ]
       }
+      auth_nonces: {
+        Row: {
+          created_at: string
+          nonce: string
+          used_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          nonce: string
+          used_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          nonce?: string
+          used_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       claims: {
         Row: {
           amount: number

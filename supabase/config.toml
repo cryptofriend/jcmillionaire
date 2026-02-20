@@ -15,3 +15,6 @@ schedule = "0 0 * * *"
 
 [functions.verify-phantom]
 verify_jwt = false
+
+[functions.generate-nonce]
+verify_jwt = false
