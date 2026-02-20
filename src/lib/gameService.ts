@@ -387,10 +387,10 @@ export async function fetchUserQuestions(userId: string, language: Language = 'e
     return { questions: [], correctAnswers: {}, error: 'all_questions_answered' };
   }
 
-  // 5. Pick balanced set: 1 funny (diff 1), up to 4 medium (diff 2-3), up to 10 hard (diff 4-15)
-  const funny = unseen.filter((q) => q.difficulty === 1);
-  const medium = unseen.filter((q) => q.difficulty >= 2 && q.difficulty <= 3);
-  const hard = unseen.filter((q) => q.difficulty >= 4 && q.difficulty <= 15);
+  // 5. Pick balanced set: 5 easy (diff 1), 5 medium (diff 2), 5 hard (diff 3)
+  const easy = unseen.filter((q) => q.difficulty === 1);
+  const medium = unseen.filter((q) => q.difficulty === 2);
+  const hard = unseen.filter((q) => q.difficulty === 3);
 
   // Shuffle helper
   const shuffle = <T,>(arr: T[]): T[] => {
@@ -403,9 +403,9 @@ export async function fetchUserQuestions(userId: string, language: Language = 'e
   };
 
   const selected = [
-    ...shuffle(funny).slice(0, 1),
-    ...shuffle(medium).slice(0, 4),
-    ...shuffle(hard).slice(0, 10),
+    ...shuffle(easy).slice(0, 5),
+    ...shuffle(medium).slice(0, 5),
+    ...shuffle(hard).slice(0, 5),
   ];
 
   // Sort by difficulty ascending for gameplay progression
