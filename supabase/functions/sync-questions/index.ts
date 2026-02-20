@@ -30,7 +30,6 @@ interface SheetQuestion {
   hint: string;
   category: string;
   difficulty: number;
-  active_dates: string;
   is_active: boolean;
 }
 
@@ -81,21 +80,21 @@ async function fetchSheetData(sheetName: string): Promise<SheetQuestion[]> {
       continue;
     }
 
-    let difficulty = parseInt(rowObj.difficulty) || 1;
-    difficulty = Math.max(1, Math.min(15, difficulty));
-
-    let activeDates = rowObj.active_dates;
-    if (!activeDates || !/^\d{4}-\d{2}-\d{2}$/.test(activeDates)) {
-      const dateMatch = activeDates?.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-      if (dateMatch) {
-        activeDates = `${dateMatch[3]}-${dateMatch[1].padStart(2, '0')}-${dateMatch[2].padStart(2, '0')}`;
-      } else {
-        activeDates = new Date().toISOString().split('T')[0];
-      }
+    // Map difficulty: support text labels (easy/medium/hard) or numeric
+    let difficulty = 1;
+    const diffRaw = (rowObj.difficulty || '').toString().toLowerCase().trim();
+    if (diffRaw === 'easy') difficulty = 1;
+    else if (diffRaw === 'medium') difficulty = 2;
+    else if (diffRaw === 'hard') difficulty = 3;
+    else {
+      const parsed = parseInt(diffRaw);
+      difficulty = isNaN(parsed) ? 1 : Math.max(1, Math.min(3, parsed));
     }
 
     const isActiveRaw = rowObj.is_active?.toLowerCase().trim();
     const isActive = isActiveRaw !== 'false' && isActiveRaw !== '0' && isActiveRaw !== 'no';
+
+    const category = rowObj.category?.trim() || 'General';
 
     questions.push({
       question: rowObj.question.trim(),
@@ -105,9 +104,8 @@ async function fetchSheetData(sheetName: string): Promise<SheetQuestion[]> {
       choice_d: rowObj.choice_d?.trim() || '',
       correct_choice: rowObj.correct_choice?.trim().toUpperCase() || 'A',
       hint: rowObj.hint?.trim() || 'Think carefully!',
-      category: rowObj.category?.trim() || 'General',
+      category,
       difficulty,
-      active_dates: activeDates,
       is_active: isActive,
     });
   }
@@ -264,13 +262,13 @@ serve(async (req) => {
       });
     }
 
-    // Build translation maps indexed by (active_dates, difficulty, row_index)
+    // Build translation maps indexed by (difficulty, row_index)
     const translationsByKey: Record<string, Record<LanguageCode, SheetQuestion>> = {};
     
     allSheetData.forEach(({ sheetName, questions }) => {
       const langCode = SHEET_TO_LANG[sheetName];
       questions.forEach((q, idx) => {
-        const key = `${q.active_dates}|${q.difficulty}|${idx}`;
+        const key = `${q.difficulty}|${idx}`;
         if (!translationsByKey[key]) {
           translationsByKey[key] = {} as Record<LanguageCode, SheetQuestion>;
         }
@@ -281,8 +279,7 @@ serve(async (req) => {
     // Fetch existing questions from database indexed by text_hash
     const { data: existingQuestions, error: fetchError } = await supabase
       .from('questions')
-      .select('id, active_dates, difficulty, question, text_hash, image_url')
-      .order('active_dates', { ascending: true })
+      .select('id, difficulty, question, text_hash, image_url')
       .order('difficulty', { ascending: true });
 
     if (fetchError) {
@@ -291,9 +288,9 @@ serve(async (req) => {
     }
 
     // Index existing questions by text_hash for quick lookup
-    const existingByTextHash: Record<string, { id: string; question: string; text_hash: string; active_dates: string; difficulty: number; image_url: string | null }> = {};
+    const existingByTextHash: Record<string, { id: string; question: string; text_hash: string; difficulty: number; image_url: string | null }> = {};
     (existingQuestions || []).forEach(q => {
-      existingByTextHash[q.text_hash] = { id: q.id, question: q.question, text_hash: q.text_hash, active_dates: q.active_dates, difficulty: q.difficulty, image_url: q.image_url };
+      existingByTextHash[q.text_hash] = { id: q.id, question: q.question, text_hash: q.text_hash, difficulty: q.difficulty, image_url: q.image_url };
     });
 
     let updatedCount = 0;
@@ -304,7 +301,7 @@ serve(async (req) => {
     // Process English questions and match by text_hash
     for (let idx = 0; idx < enData.questions.length; idx++) {
       const enQ = enData.questions[idx];
-      const fullKey = `${enQ.active_dates}|${enQ.difficulty}|${idx}`;
+      const fullKey = `${enQ.difficulty}|${idx}`;
       
       const textHash = generateTextHash(enQ.question, [enQ.choice_a, enQ.choice_b, enQ.choice_c, enQ.choice_d]);
       
@@ -340,7 +337,7 @@ serve(async (req) => {
         hint: enQ.hint,
         category: enQ.category,
         difficulty: enQ.difficulty,
-        active_dates: enQ.active_dates,
+        active_dates: new Date().toISOString().split('T')[0],
         is_active: enQ.is_active,
         text_hash: textHash,
         image_url: imageUrl,
@@ -429,7 +426,7 @@ serve(async (req) => {
           hint: solQ.hint,
           category,
           difficulty: solQ.difficulty,
-          active_dates: solQ.active_dates,
+          active_dates: new Date().toISOString().split('T')[0],
           is_active: solQ.is_active,
           text_hash: textHash,
           image_url: imageUrl,
