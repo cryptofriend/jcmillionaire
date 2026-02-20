@@ -18,12 +18,14 @@ export function getPhantomProvider(): PhantomProvider | null {
 }
 
 /**
- * Generate a random nonce for signing
+ * Fetch a server-generated nonce for signing
  */
-function generateNonce(): string {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+async function fetchNonce(): Promise<string> {
+  const { data, error } = await supabase.functions.invoke('generate-nonce');
+  if (error || !data?.success) {
+    throw new Error('Failed to generate nonce');
+  }
+  return data.nonce;
 }
 
 /**
@@ -52,8 +54,8 @@ export async function authenticateWithPhantom(): Promise<{
     const publicKey = resp.publicKey.toString();
     console.log('Connected to Phantom, public key:', publicKey);
 
-    // Generate nonce for signing
-    const nonce = generateNonce();
+    // Fetch server-generated nonce
+    const nonce = await fetchNonce();
     const message = `Sign in to Jackie Chain: Millionaire\n\nNonce: ${nonce}\nAddress: ${publicKey}`;
     const encodedMessage = new TextEncoder().encode(message);
 

@@ -21,11 +21,13 @@ export function getWalletAddress(): string | null {
   }
 }
 
-// Generate a random nonce for SIWE
-export function generateNonce(): string {
-  const array = new Uint8Array(16);
-  crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+// Fetch a server-generated nonce for SIWE
+export async function generateNonce(): Promise<string> {
+  const { data, error } = await supabase.functions.invoke('generate-nonce');
+  if (error || !data?.success) {
+    throw new Error('Failed to generate nonce');
+  }
+  return data.nonce;
 }
 
 export interface WalletAuthResult {
@@ -98,7 +100,7 @@ export async function authenticateWithWallet(
   }
 
   try {
-    const nonce = generateNonce();
+    const nonce = await generateNonce();
     console.log('Starting wallet auth with nonce:', nonce);
 
     // Request wallet authentication

@@ -41,6 +41,43 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Initialize Supabase client early for nonce check
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify nonce exists, is unused, and not expired (5 min)
+    const { data: nonceRecord } = await supabase
+      .from('auth_nonces')
+      .select('created_at, used_at')
+      .eq('nonce', nonce)
+      .maybeSingle();
+
+    if (!nonceRecord) {
+      console.error('Nonce not found in database');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid or expired nonce' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (nonceRecord.used_at) {
+      console.error('Nonce already used');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Nonce already used' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const nonceAge = Date.now() - new Date(nonceRecord.created_at).getTime();
+    if (nonceAge > 5 * 60 * 1000) {
+      console.error('Nonce expired');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Nonce expired' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Verify the message contains the nonce
     if (!message.includes(nonce)) {
       console.error('Nonce mismatch in message');
@@ -84,10 +121,11 @@ Deno.serve(async (req) => {
 
     console.log('Signature verified successfully for:', publicKey);
 
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Mark nonce as used
+    await supabase
+      .from('auth_nonces')
+      .update({ used_at: new Date().toISOString() })
+      .eq('nonce', nonce);
 
     // Use Solana address as the unique identifier
     const nullifierHash = `solana_${publicKey}`;
