@@ -13,7 +13,7 @@ import { TrailerCard } from '@/components/home/TrailerCard';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { UsernamePrompt } from '@/components/UsernamePrompt';
 import { useGame } from '@/contexts/GameContext';
-import { Play, ChevronRight, X, Zap, Gift, UserCheck, Share2, Copy, Loader2 } from 'lucide-react';
+import { Play, ChevronRight, X, Zap, Gift, UserCheck, Share2, Copy, Loader2, MessageCircle } from 'lucide-react';
 import { generateReferralCode } from '@/lib/referralService';
 import { getWorldAppLink } from '@/lib/constants';
 import { toast } from 'sonner';
@@ -404,15 +404,32 @@ const Home: React.FC = () => {
                 <ChevronRight className="w-5 h-5" />
               </Button>
             ) : (
-              <Button
-                variant="gold"
-                size="xl"
-                className="w-full opacity-60"
-                disabled
-              >
-                <Zap className="w-6 h-6" />
-                {t('home.no_plays_remaining', 'No Plays Remaining')}
-              </Button>
+              <div className="flex flex-col gap-3 w-full">
+                <Button
+                  variant="gold"
+                  size="xl"
+                  className="w-full opacity-60"
+                  disabled
+                >
+                  <Zap className="w-6 h-6" />
+                  {t('home.no_plays_remaining', 'No Plays Remaining')}
+                </Button>
+                <a
+                  href="https://t.me/jackiechainbot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full"
+                >
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full gap-2"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    Chat with Jackie
+                  </Button>
+                </a>
+              </div>
             )}
           </div>
         )}
