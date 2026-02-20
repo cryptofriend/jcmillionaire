@@ -114,8 +114,9 @@ const Game: React.FC = () => {
     if (!user) return;
 
     const loadQuestions = async () => {
-      const currentLang = (localStorage.getItem('jc_language') as 'en' | 'es' | 'th' | 'hi' | 'id') || 'en';
-      const { questions: loadedQuestions, correctAnswers, error } = await fetchUserQuestions(user.id, currentLang);
+      const walletType = user.walletType || localStorage.getItem('jc_wallet_type') || 'world_id';
+      const currentLang = walletType === 'solana' ? 'en' : ((localStorage.getItem('jc_language') as 'en' | 'es' | 'th' | 'hi' | 'id') || 'en');
+      const { questions: loadedQuestions, correctAnswers, error } = await fetchUserQuestions(user.id, currentLang, walletType);
       
       if (error || loadedQuestions.length === 0) {
         console.error('Failed to load questions:', error);

@@ -8,6 +8,8 @@ const corsHeaders = {
 
 // Sheet names for each language
 const LANGUAGE_SHEETS = ['En', 'Es', 'Th', 'Hi', 'In'] as const;
+// Solana-specific sheet (English only)
+const SOLANA_SHEET = 'Solana';
 type LanguageCode = 'en' | 'es' | 'th' | 'hi' | 'id';
 
 const SHEET_TO_LANG: Record<string, LanguageCode> = {
@@ -395,17 +397,73 @@ serve(async (req) => {
         }
       }
     }
+
+    // ===== Process Solana sheet (English only, tagged with 'Solana:' category prefix) =====
+    let solanaInserted = 0;
+    let solanaUpdated = 0;
+    try {
+      const solanaQuestions = await fetchSheetData(SOLANA_SHEET);
+      console.log(`Found ${solanaQuestions.length} questions in Solana sheet`);
+
+      for (const solQ of solanaQuestions) {
+        // Prefix category with "Solana:" to distinguish from regular questions
+        const category = solQ.category ? `Solana:${solQ.category}` : 'Solana:General';
+        const textHash = generateTextHash(solQ.question, [solQ.choice_a, solQ.choice_b, solQ.choice_c, solQ.choice_d]);
+        
+        const matchedQuestion = existingByTextHash[textHash];
+        
+        let imageUrl: string | null = matchedQuestion?.image_url || null;
+        if (!imageUrl) {
+          const questionId = matchedQuestion?.id || crypto.randomUUID();
+          imageUrl = await generateQuestionImage(solQ.question, category, questionId, supabase);
+          if (imageUrl) imagesGenerated++;
+        }
+
+        const questionData: Record<string, unknown> = {
+          question: solQ.question,
+          choice_a: solQ.choice_a,
+          choice_b: solQ.choice_b,
+          choice_c: solQ.choice_c,
+          choice_d: solQ.choice_d,
+          correct_choice: solQ.correct_choice,
+          hint: solQ.hint,
+          category,
+          difficulty: solQ.difficulty,
+          active_dates: solQ.active_dates,
+          is_active: solQ.is_active,
+          text_hash: textHash,
+          image_url: imageUrl,
+        };
+
+        if (matchedQuestion) {
+          const { error: updateError } = await supabase
+            .from('questions')
+            .update(questionData)
+            .eq('id', matchedQuestion.id);
+          if (!updateError) solanaUpdated++;
+        } else {
+          const { error: insertError } = await supabase
+            .from('questions')
+            .insert(questionData);
+          if (!insertError) solanaInserted++;
+        }
+      }
+      console.log(`Solana sheet: ${solanaUpdated} updated, ${solanaInserted} inserted`);
+    } catch (solanaError) {
+      console.warn('Solana sheet sync skipped or failed:', solanaError);
+    }
     
-    console.log(`Sync complete: ${updatedCount} updated, ${insertedCount} inserted, ${imagesGenerated} images generated`);
+    console.log(`Sync complete: ${updatedCount + solanaUpdated} updated, ${insertedCount + solanaInserted} inserted, ${imagesGenerated} images generated`);
     console.log('Translation summary:', translationSummary);
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: `Synced questions: ${updatedCount} updated, ${insertedCount} inserted, ${imagesGenerated} images generated`,
-      updated: updatedCount,
-      inserted: insertedCount,
+      message: `Synced questions: ${updatedCount + solanaUpdated} updated, ${insertedCount + solanaInserted} inserted, ${imagesGenerated} images generated`,
+      updated: updatedCount + solanaUpdated,
+      inserted: insertedCount + solanaInserted,
       imagesGenerated,
-      translations: translationSummary
+      translations: translationSummary,
+      solana: { updated: solanaUpdated, inserted: solanaInserted },
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
