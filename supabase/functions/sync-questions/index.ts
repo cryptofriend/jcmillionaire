@@ -219,6 +219,7 @@ serve(async (req) => {
     // Validate admin authorization
     let body: Record<string, unknown> = {};
     try { body = await req.json(); } catch { /* no body is fine */ }
+    const skipImages = body?.skip_images === true;
     const adminUserId = body?.admin_user_id as string | undefined;
     if (!adminUserId) {
       return new Response(
@@ -321,7 +322,7 @@ serve(async (req) => {
 
       // Generate image if question doesn't already have one
       let imageUrl: string | null = matchedQuestion?.image_url || null;
-      if (!imageUrl) {
+      if (!imageUrl && !skipImages) {
         const questionId = matchedQuestion?.id || crypto.randomUUID();
         imageUrl = await generateQuestionImage(enQ.question, enQ.category, questionId, supabase);
         if (imageUrl) imagesGenerated++;
@@ -410,7 +411,7 @@ serve(async (req) => {
         const matchedQuestion = existingByTextHash[textHash];
         
         let imageUrl: string | null = matchedQuestion?.image_url || null;
-        if (!imageUrl) {
+        if (!imageUrl && !skipImages) {
           const questionId = matchedQuestion?.id || crypto.randomUUID();
           imageUrl = await generateQuestionImage(solQ.question, category, questionId, supabase);
           if (imageUrl) imagesGenerated++;
