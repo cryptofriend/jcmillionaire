@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { GameProvider, useGame } from "@/contexts/GameContext";
 import { MiniKitProvider } from "@/components/MiniKitProvider";
+import { SolanaProvider } from "@/components/SolanaProvider";
 import BottomNav from "@/components/BottomNav";
 import XBanner from "@/components/XBanner";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -52,19 +53,21 @@ const AppContent = () => {
 };
 
 const App = () => (
-  <MiniKitProvider>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <GameProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppContent />
-          </BrowserRouter>
-        </GameProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </MiniKitProvider>
+  <SolanaProvider>
+    <MiniKitProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <GameProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppContent />
+            </BrowserRouter>
+          </GameProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </MiniKitProvider>
+  </SolanaProvider>
 );
 
 export default App;
