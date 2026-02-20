@@ -6,6 +6,7 @@ export interface User {
   username?: string;
   profilePictureUrl?: string;
   referralCode?: string;
+  walletType?: string;
 }
 
 export interface DayState {

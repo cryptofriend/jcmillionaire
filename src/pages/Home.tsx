@@ -235,7 +235,7 @@ const Home: React.FC = () => {
             <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
           </div>
         </div>
-        <LanguageSwitcher />
+        {(!user?.walletType || user.walletType !== 'solana') && <LanguageSwitcher />}
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-start px-4 pb-24 gap-5 overflow-y-auto">

@@ -336,11 +336,13 @@ export async function incrementAttemptsUsed(
  * Picks a balanced set: 1 from difficulty 1, up to 4 from difficulty 2-3, up to 10 from difficulty 4-15.
  * Returns up to 15 questions ordered by difficulty.
  */
-export async function fetchUserQuestions(userId: string, language: Language = 'en'): Promise<{
+export async function fetchUserQuestions(userId: string, language: Language = 'en', walletType: string = 'world_id'): Promise<{
   questions: QuestionWithHiddenChoices[];
   correctAnswers: Record<string, 'A' | 'B' | 'C' | 'D'>;
   error: string | null;
 }> {
+  const isSolana = walletType === 'solana';
+  
   // 1. Get IDs of questions this user has already answered
   const { data: answeredData, error: answeredError } = await supabase
     .from('answers')
@@ -372,14 +374,20 @@ export async function fetchUserQuestions(userId: string, language: Language = 'e
     return { questions: [], correctAnswers: {}, error: 'No questions available' };
   }
 
-  // 3. Filter out already-answered questions
-  const unseen = data.filter((q) => !answeredIds.has(q.id));
+  // 3. Filter by wallet type: Solana users get Solana-prefixed questions, others get non-Solana
+  const walletFiltered = data.filter((q) => {
+    const isSolanaQuestion = q.category?.startsWith('Solana:');
+    return isSolana ? isSolanaQuestion : !isSolanaQuestion;
+  });
+
+  // 4. Filter out already-answered questions
+  const unseen = walletFiltered.filter((q) => !answeredIds.has(q.id));
 
   if (unseen.length === 0) {
     return { questions: [], correctAnswers: {}, error: 'all_questions_answered' };
   }
 
-  // 4. Pick balanced set: 1 funny (diff 1), up to 4 medium (diff 2-3), up to 10 hard (diff 4-15)
+  // 5. Pick balanced set: 1 funny (diff 1), up to 4 medium (diff 2-3), up to 10 hard (diff 4-15)
   const funny = unseen.filter((q) => q.difficulty === 1);
   const medium = unseen.filter((q) => q.difficulty >= 2 && q.difficulty <= 3);
   const hard = unseen.filter((q) => q.difficulty >= 4 && q.difficulty <= 15);
@@ -436,7 +444,7 @@ export async function fetchUserQuestions(userId: string, language: Language = 'e
     correctAnswers[q.id] = q.correct_choice as 'A' | 'B' | 'C' | 'D';
   });
 
-  console.log(`Loaded ${questions.length} unseen questions for user ${userId} in ${language} (${answeredIds.size} already answered)`);
+  console.log(`Loaded ${questions.length} unseen questions for user ${userId} in ${language} (wallet: ${walletType}, ${answeredIds.size} already answered)`);
   return { questions, correctAnswers, error: null };
 }
 

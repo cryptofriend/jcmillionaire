@@ -31,6 +31,7 @@ export async function createOrGetUser(
         verificationLevel: existingUser.verification_level,
         createdAt: existingUser.created_at,
         referralCode: existingUser.referral_code || undefined,
+        walletType: existingUser.wallet_type || 'world_id',
       };
       
       // Store user ID in localStorage
@@ -61,6 +62,7 @@ export async function createOrGetUser(
       verificationLevel: newUser.verification_level,
       createdAt: newUser.created_at,
       referralCode: newUser.referral_code || undefined,
+      walletType: newUser.wallet_type || 'world_id',
     };
 
     // Store user ID in localStorage
@@ -99,6 +101,7 @@ export async function getUserById(userId: string): Promise<{ user: User | null; 
       verificationLevel: data.verification_level,
       createdAt: data.created_at,
       referralCode: data.referral_code || undefined,
+      walletType: data.wallet_type || 'world_id',
     };
 
     return { user, error: null };
