@@ -183,17 +183,37 @@ const Home: React.FC = () => {
       }
     };
 
-    // Open Telegram OAuth in popup
+    // Open Telegram Login Widget in a popup page
     const width = 550;
     const height = 470;
     const left = Math.floor(screen.width / 2 - width / 2);
     const top = Math.floor(screen.height / 2 - height / 2);
 
-    window.open(
-      `https://oauth.telegram.org/auth?bot_id=${botName}&origin=${encodeURIComponent(window.location.origin)}&embed=0&request_access=write&return_to=${encodeURIComponent(window.location.origin)}`,
-      'telegram_login',
-      `width=${width},height=${height},left=${left},top=${top}`
-    );
+    // Create a temporary page with the Telegram Login Widget script
+    const popup = window.open('about:blank', 'telegram_login', `width=${width},height=${height},left=${left},top=${top}`);
+    if (popup) {
+      popup.document.write(`
+        <!DOCTYPE html>
+        <html><head><title>Login with Telegram</title>
+        <style>body{display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#1a1a2e;color:white;font-family:sans-serif;flex-direction:column;gap:16px;}p{opacity:0.7;}</style>
+        </head><body>
+        <p>Loading Telegram Login...</p>
+        <div id="tg-widget"></div>
+        <script async src="https://telegram.org/js/telegram-widget.js?22"
+          data-telegram-login="${botName}"
+          data-size="large"
+          data-onauth="onTelegramAuth(user)"
+          data-request-access="write"></script>
+        <script>
+          function onTelegramAuth(user) {
+            window.opener.onTelegramAuth(user);
+            window.close();
+          }
+        </script>
+        </body></html>
+      `);
+      popup.document.close();
+    }
 
     // Fallback timeout
     setTimeout(() => setIsTelegramLogging(false), 60000);
