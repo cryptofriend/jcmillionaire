@@ -13,13 +13,15 @@ import { TrailerCard } from '@/components/home/TrailerCard';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { UsernamePrompt } from '@/components/UsernamePrompt';
 import { useGame } from '@/contexts/GameContext';
-import { Play, ChevronRight, X, Zap, Gift, UserCheck, Share2, Copy, Loader2, MessageCircle } from 'lucide-react';
+import { Play, ChevronRight, X, Zap, Gift, UserCheck, Share2, Copy, Loader2, MessageCircle, Send } from 'lucide-react';
 import { generateReferralCode } from '@/lib/referralService';
 import { getWorldAppLink } from '@/lib/constants';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { isPhantomAvailable, authenticateWithPhantom } from '@/lib/phantomWallet';
 import { isInWorldApp } from '@/lib/minikit';
+import { TelegramIcon } from '@/components/icons/TelegramIcon';
+import { authenticateWithTelegram, TelegramUser } from '@/lib/telegramLogin';
 import { persistUser } from '@/lib/userService';
 import { linkPendingReferralToUser } from '@/hooks/useReferralTracking';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,6 +60,7 @@ const Home: React.FC = () => {
   const [activePopup, setActivePopup] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isSolanaLogging, setIsSolanaLogging] = useState(false);
+  const [isTelegramLogging, setIsTelegramLogging] = useState(false);
   const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   
@@ -142,6 +145,58 @@ const Home: React.FC = () => {
     } finally {
       setIsSolanaLogging(false);
     }
+  };
+
+  const handleTelegramLogin = () => {
+    setIsTelegramLogging(true);
+
+    // Use the Telegram Login Widget via script injection
+    const botName = 'jackiechainbot'; // Your bot username without @
+
+    // Set up global callback
+    (window as any).onTelegramAuth = async (tgUser: TelegramUser) => {
+      try {
+        const result = await authenticateWithTelegram(tgUser);
+        if (!result.success || !result.user) {
+          throw new Error(result.error || 'Telegram authentication failed');
+        }
+
+        const userObj = {
+          id: result.user.id,
+          verificationLevel: result.user.verification_level as 'device' | 'orb',
+          nullifierHash: `telegram_${tgUser.id}`,
+          createdAt: result.user.created_at,
+          username: result.user.username,
+          walletType: 'telegram' as const,
+        };
+
+        localStorage.setItem('jc_wallet_type', 'telegram');
+        persistUser(userObj);
+        await linkPendingReferralToUser(userObj.id);
+        dispatch({ type: 'SET_USER', payload: userObj });
+        toast.success('Logged in with Telegram!');
+      } catch (error) {
+        console.error('Telegram login failed:', error);
+        toast.error(error instanceof Error ? error.message : 'Telegram login failed');
+      } finally {
+        setIsTelegramLogging(false);
+      }
+    };
+
+    // Open Telegram OAuth in popup
+    const width = 550;
+    const height = 470;
+    const left = Math.floor(screen.width / 2 - width / 2);
+    const top = Math.floor(screen.height / 2 - height / 2);
+
+    window.open(
+      `https://oauth.telegram.org/auth?bot_id=${botName}&origin=${encodeURIComponent(window.location.origin)}&embed=0&request_access=write&return_to=${encodeURIComponent(window.location.origin)}`,
+      'telegram_login',
+      `width=${width},height=${height},left=${left},top=${top}`
+    );
+
+    // Fallback timeout
+    setTimeout(() => setIsTelegramLogging(false), 60000);
   };
 
   const handleUsernameComplete = async (username: string) => {
@@ -273,26 +328,40 @@ const Home: React.FC = () => {
                   <ChevronRight className="w-5 h-5" />
                 </Button>
               ) : (
-                <Button
-                  variant="gold"
-                  size="xl"
-                  className="w-full bg-gradient-to-r from-[#AB9FF2] to-[#7B6FC4] hover:from-[#9B8FE2] hover:to-[#6B5FB4] text-white border-0"
-                  onClick={handleSolanaLogin}
-                  disabled={isSolanaLogging}
-                >
-                  {isSolanaLogging ? (
-                    <>
+                <div className="flex gap-2 w-full">
+                  <Button
+                    variant="gold"
+                    size="xl"
+                    className="flex-1 bg-gradient-to-r from-[#AB9FF2] to-[#7B6FC4] hover:from-[#9B8FE2] hover:to-[#6B5FB4] text-white border-0"
+                    onClick={handleSolanaLogin}
+                    disabled={isSolanaLogging}
+                  >
+                    {isSolanaLogging ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Connecting...
-                    </>
-                  ) : (
-                    <>
-                      <PhantomIcon size={20} />
-                      {t('home.login_solana')}
-                      <ChevronRight className="w-5 h-5" />
-                    </>
-                  )}
-                </Button>
+                    ) : (
+                      <>
+                        <PhantomIcon size={20} />
+                        <span className="hidden sm:inline">Solana</span>
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="gold"
+                    size="xl"
+                    className="flex-1 bg-gradient-to-r from-[#0088cc] to-[#0066aa] hover:from-[#0077bb] hover:to-[#005599] text-white border-0"
+                    onClick={handleTelegramLogin}
+                    disabled={isTelegramLogging}
+                  >
+                    {isTelegramLogging ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <TelegramIcon size={20} />
+                        Telegram
+                      </>
+                    )}
+                  </Button>
+                </div>
               )}
             </div>
           </div>
