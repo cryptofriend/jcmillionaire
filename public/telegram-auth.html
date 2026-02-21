@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head><title>Telegram Auth</title></head>
+<body>
+<script>
+  // This page handles the Telegram OAuth redirect callback
+  // Parse hash fragment for auth data
+  const params = new URLSearchParams(window.location.hash.substring(1));
+  const user = {};
+  for (const [key, value] of params) {
+    user[key] = value;
+  }
+  
+  // Also check query params
+  const qp = new URLSearchParams(window.location.search);
+  for (const [key, value] of qp) {
+    user[key] = value;
+  }
+
+  if (user.id && user.hash) {
+    // Convert numeric fields
+    user.id = parseInt(user.id);
+    user.auth_date = parseInt(user.auth_date);
+    
+    if (window.opener && window.opener.onTelegramAuth) {
+      window.opener.onTelegramAuth(user);
+      window.close();
+    } else {
+      // Fallback: post message to opener
+      window.opener?.postMessage({ type: 'telegram_auth', user }, window.location.origin);
+      window.close();
+    }
+  }
+</script>
+<p>Authenticating with Telegram...</p>
+</body>
+</html>
