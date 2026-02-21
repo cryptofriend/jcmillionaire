@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
 import { WorldIdIcon } from '@/components/icons/WorldIdIcon';
-import { PhantomIcon } from '@/components/icons/PhantomIcon';
+import { SolanaIcon } from '@/components/icons/SolanaIcon';
 import { PoolStats } from '@/components/game/PoolStats';
 import { UserBalance } from '@/components/game/UserBalance';
 import { MiniLeaderboard } from '@/components/game/MiniLeaderboard';
@@ -313,8 +313,17 @@ const Home: React.FC = () => {
           </p>
         </div>
 
+        {/* Trailer visible to everyone */}
+        <div className="w-full max-w-sm animate-slide-up stagger-1">
+          <TrailerCard 
+            onDismiss={handleDismissTrailer} 
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+        </div>
+
         {!isVerified && (
-          <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-1">
+          <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-2">
             <div className="w-full space-y-2">
               {isInWorldApp() ? (
                 <Button
@@ -332,7 +341,7 @@ const Home: React.FC = () => {
                   <Button
                     variant="gold"
                     size="xl"
-                    className="flex-1 bg-gradient-to-r from-[#AB9FF2] to-[#7B6FC4] hover:from-[#9B8FE2] hover:to-[#6B5FB4] text-white border-0"
+                    className="flex-1 bg-gradient-to-r from-[#9945FF] to-[#14F195] hover:from-[#8835EF] hover:to-[#0DE185] text-white border-0"
                     onClick={handleSolanaLogin}
                     disabled={isSolanaLogging}
                   >
@@ -340,8 +349,8 @@ const Home: React.FC = () => {
                       <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
                       <>
-                        <PhantomIcon size={20} />
-                        <span className="hidden sm:inline">Solana</span>
+                        <SolanaIcon size={20} />
+                        Solana
                       </>
                     )}
                   </Button>
@@ -366,15 +375,6 @@ const Home: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* Trailer visible to everyone */}
-        <div className="w-full max-w-sm animate-slide-up stagger-1">
-          <TrailerCard 
-            onDismiss={handleDismissTrailer} 
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-          />
-        </div>
 
         {isVerified && (
           <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-1">
