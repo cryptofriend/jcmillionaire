@@ -374,10 +374,10 @@ export async function fetchUserQuestions(userId: string, language: Language = 'e
     return { questions: [], correctAnswers: {}, error: 'No questions available' };
   }
 
-  // 3. Filter by wallet type: Solana users get Solana-prefixed questions, others get non-Solana
+  // 3. Filter by wallet type: Solana/TG users get ALL questions (both Solana + World), others get non-Solana only
   const walletFiltered = data.filter((q) => {
     const isSolanaQuestion = q.category?.startsWith('Solana:');
-    return isSolana ? isSolanaQuestion : !isSolanaQuestion;
+    return isSolana ? true : !isSolanaQuestion;
   });
 
   // 4. Filter out already-answered questions
