@@ -7,10 +7,12 @@ import { SolanaIcon } from '@/components/icons/SolanaIcon';
 import { NotificationSubscription } from '@/components/NotificationSubscription';
 import { UsernamePrompt } from '@/components/UsernamePrompt';
 import { useGame } from '@/contexts/GameContext';
-import { ArrowLeft, CheckCircle, Loader2, AlertCircle, Gift, Wallet } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Loader2, AlertCircle, Gift, Wallet, Send } from 'lucide-react';
 import { persistUser } from '@/lib/userService';
 import { isInWorldApp, authenticateWithWallet } from '@/lib/minikit';
 import { isPhantomAvailable, authenticateWithPhantom } from '@/lib/phantomWallet';
+import { TelegramIcon } from '@/components/icons/TelegramIcon';
+import { authenticateWithTelegram, TelegramUser } from '@/lib/telegramLogin';
 import { linkPendingReferralToUser } from '@/hooks/useReferralTracking';
 import { toast } from 'sonner';
 
@@ -18,8 +20,9 @@ const Verify: React.FC = () => {
   const navigate = useNavigate();
   const { dispatch } = useGame();
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verifyingWith, setVerifyingWith] = useState<'world' | 'phantom' | null>(null);
+  const [verifyingWith, setVerifyingWith] = useState<'world' | 'phantom' | 'telegram' | null>(null);
   const verificationLevel: 'device' | 'orb' = 'device';
+  const [isTelegramLogging, setIsTelegramLogging] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
@@ -190,6 +193,66 @@ const Verify: React.FC = () => {
     }
   };
 
+  const handleTelegramLogin = () => {
+    setIsTelegramLogging(true);
+    setVerifyingWith('telegram');
+    const botName = 'jackiechainbot';
+
+    (window as any).onTelegramAuth = async (tgUser: TelegramUser) => {
+      try {
+        const result = await authenticateWithTelegram(tgUser);
+        if (!result.success || !result.user) {
+          throw new Error(result.error || 'Telegram authentication failed');
+        }
+        await handleVerifySuccess({
+          id: result.user.id,
+          verification_level: result.user.verification_level,
+          wallet_address: result.user.wallet_address || `tg_${tgUser.id}`,
+          created_at: result.user.created_at,
+          username: result.user.username,
+          profile_picture_url: result.user.profile_picture_url,
+        }, 'solana');
+      } catch (error) {
+        console.error('Telegram login failed:', error);
+        toast.error(error instanceof Error ? error.message : 'Telegram login failed');
+        setIsTelegramLogging(false);
+        setVerifyingWith(null);
+      }
+    };
+
+    const width = 550;
+    const height = 470;
+    const left = Math.floor(screen.width / 2 - width / 2);
+    const top = Math.floor(screen.height / 2 - height / 2);
+
+    const popup = window.open('about:blank', 'telegram_login', `width=${width},height=${height},left=${left},top=${top}`);
+    if (popup) {
+      popup.document.write(`
+        <!DOCTYPE html>
+        <html><head><title>Login with Telegram</title>
+        <style>body{display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#1a1a2e;color:white;font-family:sans-serif;flex-direction:column;gap:16px;}p{opacity:0.7;}</style>
+        </head><body>
+        <p>Loading Telegram Login...</p>
+        <div id="tg-widget"></div>
+        <script async src="https://telegram.org/js/telegram-widget.js?22"
+          data-telegram-login="${botName}"
+          data-size="large"
+          data-onauth="onTelegramAuth(user)"
+          data-request-access="write"></script>
+        <script>
+          function onTelegramAuth(user) {
+            window.opener.onTelegramAuth(user);
+            window.close();
+          }
+        </script>
+        </body></html>
+      `);
+      popup.document.close();
+    }
+
+    setTimeout(() => { setIsTelegramLogging(false); setVerifyingWith(null); }, 60000);
+  };
+
   const handleUsernameComplete = async (username: string) => {
     setShowUsernamePrompt(false);
     
@@ -264,6 +327,12 @@ const Verify: React.FC = () => {
                 <span className="text-sm font-medium text-[#9945FF]">Solana Wallet</span>
               </div>
             )}
+            {verifyingWith === 'telegram' && (
+              <div className="flex items-center justify-center gap-2 px-3 py-1.5 bg-[#0088cc]/20 rounded-full">
+                <TelegramIcon size={20} className="text-[#0088cc]" />
+                <span className="text-sm font-medium text-[#0088cc]">Telegram</span>
+              </div>
+            )}
             <p className="text-muted-foreground">Welcome to Jackie Chain: Millionaire</p>
           </div>
         )}
@@ -291,10 +360,10 @@ const Verify: React.FC = () => {
         <div className="text-center space-y-4 animate-fade-in">
           <JackieIcon size={80} className="mx-auto animate-float" />
           <h1 className="text-2xl font-display font-bold text-foreground">
-            Login with Solana
+            Login to Play
           </h1>
           <p className="text-muted-foreground max-w-xs mx-auto">
-            Connect your wallet to play and earn $JC tokens. One account per wallet.
+            Connect with Solana or Telegram to play and earn $JC tokens.
           </p>
         </div>
 
@@ -318,27 +387,42 @@ const Verify: React.FC = () => {
 
         {/* Login Options */}
         <div className="w-full max-w-sm space-y-3 animate-slide-up stagger-2">
-          {/* Phantom Button - Primary */}
-          <Button
-            variant="gold"
-            size="xl"
-            className="w-full bg-gradient-to-r from-[#9945FF] to-[#14F195] hover:from-[#8835EF] hover:to-[#0DE185] text-white border-0"
-            onClick={handleVerifyPhantom}
-            disabled={isVerifying || isCheckingEnv || !phantomAvailable}
-          >
-            {isVerifying && verifyingWith === 'phantom' ? (
-              <>
-                <Loader2 className="w-6 h-6 animate-spin" />
-                Connecting...
-              </>
-            ) : (
-              <>
-                <SolanaIcon size={24} />
-                Login with Solana
-              </>
-            )}
-          </Button>
-          
+          {/* Solana & Telegram side by side */}
+          <div className="flex gap-2 w-full">
+            <Button
+              variant="gold"
+              size="xl"
+              className="flex-1 bg-gradient-to-r from-[#9945FF] to-[#14F195] hover:from-[#8835EF] hover:to-[#0DE185] text-white border-0"
+              onClick={handleVerifyPhantom}
+              disabled={isVerifying || isTelegramLogging || isCheckingEnv || !phantomAvailable}
+            >
+              {isVerifying && verifyingWith === 'phantom' ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <SolanaIcon size={20} />
+                  Solana
+                </>
+              )}
+            </Button>
+            <Button
+              variant="gold"
+              size="xl"
+              className="flex-1 bg-gradient-to-r from-[#0088cc] to-[#0066aa] hover:from-[#0077bb] hover:to-[#005599] text-white border-0"
+              onClick={handleTelegramLogin}
+              disabled={isVerifying || isTelegramLogging || isCheckingEnv}
+            >
+              {isTelegramLogging ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <TelegramIcon size={20} />
+                  Telegram
+                </>
+              )}
+            </Button>
+          </div>
+
           {!phantomAvailable && !isCheckingEnv && (
             <a 
               href="https://phantom.app"
@@ -384,37 +468,6 @@ const Verify: React.FC = () => {
             </p>
           )}
         </div>
-
-        {/* No wallet available warning */}
-        {!isCheckingEnv && !inWorldApp && !phantomAvailable && (
-          <div className="flex flex-col items-center gap-3 px-4 py-4 bg-destructive/10 border border-destructive/30 rounded-lg animate-slide-up max-w-sm">
-            <AlertCircle className="w-8 h-8 text-destructive" />
-            <p className="text-sm text-center text-foreground">
-              <span className="font-bold">No Wallet Detected</span>
-            </p>
-            <p className="text-xs text-center text-muted-foreground">
-              Please install World App or Phantom Wallet to play.
-            </p>
-            <div className="flex gap-3 text-sm">
-              <a 
-                href="https://world.org/download"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary underline hover:no-underline"
-              >
-                World App →
-              </a>
-              <a 
-                href="https://phantom.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#AB9FF2] underline hover:no-underline"
-              >
-                Phantom →
-              </a>
-            </div>
-          </div>
-        )}
 
       </main>
     </div>
