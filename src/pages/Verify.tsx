@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
 import { WorldIdIcon, WorldIdBadge, PoweredByWorldId } from '@/components/icons/WorldIdIcon';
-import { PhantomIcon } from '@/components/icons/PhantomIcon';
+import { SolanaIcon } from '@/components/icons/SolanaIcon';
 import { NotificationSubscription } from '@/components/NotificationSubscription';
 import { UsernamePrompt } from '@/components/UsernamePrompt';
 import { useGame } from '@/contexts/GameContext';
@@ -259,9 +259,9 @@ const Verify: React.FC = () => {
             <h2 className="text-2xl font-display font-bold text-foreground">Verified!</h2>
             {verifyingWith === 'world' && <WorldIdBadge />}
             {verifyingWith === 'phantom' && (
-              <div className="flex items-center justify-center gap-2 px-3 py-1.5 bg-[#AB9FF2]/20 rounded-full">
-                <PhantomIcon size={20} />
-                <span className="text-sm font-medium text-[#AB9FF2]">Phantom Wallet</span>
+              <div className="flex items-center justify-center gap-2 px-3 py-1.5 bg-[#9945FF]/20 rounded-full">
+                <SolanaIcon size={20} />
+                <span className="text-sm font-medium text-[#9945FF]">Solana Wallet</span>
               </div>
             )}
             <p className="text-muted-foreground">Welcome to Jackie Chain: Millionaire</p>
@@ -322,7 +322,7 @@ const Verify: React.FC = () => {
           <Button
             variant="gold"
             size="xl"
-            className="w-full bg-gradient-to-r from-[#AB9FF2] to-[#7B6FC4] hover:from-[#9B8FE2] hover:to-[#6B5FB4] text-white border-0"
+            className="w-full bg-gradient-to-r from-[#9945FF] to-[#14F195] hover:from-[#8835EF] hover:to-[#0DE185] text-white border-0"
             onClick={handleVerifyPhantom}
             disabled={isVerifying || isCheckingEnv || !phantomAvailable}
           >
@@ -333,8 +333,8 @@ const Verify: React.FC = () => {
               </>
             ) : (
               <>
-                <PhantomIcon size={24} />
-                Login with Phantom
+                <SolanaIcon size={24} />
+                Login with Solana
               </>
             )}
           </Button>

@@ -341,7 +341,7 @@ export async function fetchUserQuestions(userId: string, language: Language = 'e
   correctAnswers: Record<string, 'A' | 'B' | 'C' | 'D'>;
   error: string | null;
 }> {
-  const isSolana = walletType === 'solana';
+  const isSolana = walletType === 'solana' || walletType === 'telegram';
   
   // 1. Get IDs of questions this user has already answered
   const { data: answeredData, error: answeredError } = await supabase
