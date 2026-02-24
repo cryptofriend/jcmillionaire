@@ -55,6 +55,7 @@ const Leaderboard: React.FC = () => {
   const [userRankChange, setUserRankChange] = useState<number | null>(null);
   const [countdown, setCountdown] = useState(getTimeUntilAirdrop());
   const [visibleCount, setVisibleCount] = useState(50);
+  const [walletFilter, setWalletFilter] = useState<'all' | 'solana' | 'world'>('all');
 
   // Countdown timer
   useEffect(() => {
@@ -417,14 +418,45 @@ const Leaderboard: React.FC = () => {
         </div>
       )}
 
-      {/* TOP PLAYERS Header */}
-      <div className="px-4 pb-2">
+      {/* TOP PLAYERS Header + Filter */}
+      <div className="px-4 pb-2 space-y-3">
         <div className="flex items-center gap-2">
           <Trophy className="w-5 h-5 text-primary" />
           <h2 className="font-display font-bold text-foreground">TOP PLAYERS</h2>
           <span className="text-sm text-muted-foreground">
             ({totalPlayers.toLocaleString()})
           </span>
+        </div>
+        <div className="flex gap-1 bg-muted/50 rounded-lg p-1">
+          <button
+            onClick={() => setWalletFilter('all')}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+              walletFilter === 'all' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setWalletFilter('solana')}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+              walletFilter === 'solana' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <PhantomIcon size={14} />
+            Solana
+          </button>
+          <button
+            onClick={() => setWalletFilter('world')}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+              walletFilter === 'world' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <WorldIdIcon size={14} />
+            World
+          </button>
         </div>
       </div>
 
@@ -442,23 +474,31 @@ const Leaderboard: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-2">
-            {entries.slice(0, visibleCount).map((entry) => {
+            {entries
+              .filter(e => {
+                if (walletFilter === 'all') return true;
+                if (walletFilter === 'solana') return e.wallet_type === 'solana' || e.wallet_type === 'telegram';
+                return e.wallet_type !== 'solana' && e.wallet_type !== 'telegram';
+              })
+              .slice(0, visibleCount)
+              .map((entry, idx) => {
               const isCurrentUser = state.user?.id === entry.user_id;
-              const isSolana = entry.wallet_type === 'solana';
+              const isSolana = entry.wallet_type === 'solana' || entry.wallet_type === 'telegram';
+              const displayRank = walletFilter === 'all' ? entry.rank : idx + 1;
               
               return (
                 <div
                   key={entry.user_id}
                   className={cn(
                     'flex items-center gap-3 p-3 rounded-xl border transition-all',
-                    getRankStyle(entry.rank),
+                    getRankStyle(displayRank),
                     isCurrentUser && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
                   )}
                 >
                   {/* Rank */}
                   <div className="flex flex-col items-center justify-center w-10">
-                    {getRankIcon(entry.rank)}
-                    {getRankChangeIndicator(entry.rank_change)}
+                    {getRankIcon(displayRank)}
+                    {walletFilter === 'all' && getRankChangeIndicator(entry.rank_change)}
                   </div>
 
                   {/* User Avatar */}
@@ -487,7 +527,7 @@ const Leaderboard: React.FC = () => {
                       )}>
                         {isCurrentUser ? 'You' : (
                           entry.username || 
-                          (isSolana && entry.solana_address ? shortenAddress(entry.solana_address) : `Player ${entry.rank}`)
+                          (isSolana && entry.solana_address ? shortenAddress(entry.solana_address) : `Player ${displayRank}`)
                         )}
                       </p>
                       {getWalletIcon(entry.wallet_type)}

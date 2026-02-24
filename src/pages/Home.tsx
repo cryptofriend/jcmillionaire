@@ -60,7 +60,7 @@ const Home: React.FC = () => {
   const [activePopup, setActivePopup] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isSolanaLogging, setIsSolanaLogging] = useState(false);
-  const [isTelegramLogging, setIsTelegramLogging] = useState(false);
+  
   const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   
@@ -147,77 +147,7 @@ const Home: React.FC = () => {
     }
   };
 
-  const handleTelegramLogin = () => {
-    setIsTelegramLogging(true);
-
-    // Use the Telegram Login Widget via script injection
-    const botName = 'jackiechainbot'; // Your bot username without @
-
-    // Set up global callback
-    (window as any).onTelegramAuth = async (tgUser: TelegramUser) => {
-      try {
-        const result = await authenticateWithTelegram(tgUser);
-        if (!result.success || !result.user) {
-          throw new Error(result.error || 'Telegram authentication failed');
-        }
-
-        const userObj = {
-          id: result.user.id,
-          verificationLevel: result.user.verification_level as 'device' | 'orb',
-          nullifierHash: `telegram_${tgUser.id}`,
-          createdAt: result.user.created_at,
-          username: result.user.username,
-          walletType: 'telegram' as const,
-        };
-
-        localStorage.setItem('jc_wallet_type', 'telegram');
-        persistUser(userObj);
-        await linkPendingReferralToUser(userObj.id);
-        dispatch({ type: 'SET_USER', payload: userObj });
-        toast.success('Logged in with Telegram!');
-      } catch (error) {
-        console.error('Telegram login failed:', error);
-        toast.error(error instanceof Error ? error.message : 'Telegram login failed');
-      } finally {
-        setIsTelegramLogging(false);
-      }
-    };
-
-    // Open Telegram Login Widget in a popup page
-    const width = 550;
-    const height = 470;
-    const left = Math.floor(screen.width / 2 - width / 2);
-    const top = Math.floor(screen.height / 2 - height / 2);
-
-    // Create a temporary page with the Telegram Login Widget script
-    const popup = window.open('about:blank', 'telegram_login', `width=${width},height=${height},left=${left},top=${top}`);
-    if (popup) {
-      popup.document.write(`
-        <!DOCTYPE html>
-        <html><head><title>Login with Telegram</title>
-        <style>body{display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#1a1a2e;color:white;font-family:sans-serif;flex-direction:column;gap:16px;}p{opacity:0.7;}</style>
-        </head><body>
-        <p>Loading Telegram Login...</p>
-        <div id="tg-widget"></div>
-        <script async src="https://telegram.org/js/telegram-widget.js?22"
-          data-telegram-login="${botName}"
-          data-size="large"
-          data-onauth="onTelegramAuth(user)"
-          data-request-access="write"></script>
-        <script>
-          function onTelegramAuth(user) {
-            window.opener.onTelegramAuth(user);
-            window.close();
-          }
-        </script>
-        </body></html>
-      `);
-      popup.document.close();
-    }
-
-    // Fallback timeout
-    setTimeout(() => setIsTelegramLogging(false), 60000);
-  };
+  
 
   const handleUsernameComplete = async (username: string) => {
     setShowUsernamePrompt(false);
@@ -357,40 +287,22 @@ const Home: React.FC = () => {
                   <ChevronRight className="w-5 h-5" />
                 </Button>
               ) : (
-                <div className="flex gap-2 w-full">
-                  <Button
-                    variant="gold"
-                    size="xl"
-                    className="flex-1 bg-gradient-to-r from-[#9945FF] to-[#14F195] hover:from-[#8835EF] hover:to-[#0DE185] text-white border-0"
-                    onClick={handleSolanaLogin}
-                    disabled={isSolanaLogging}
-                  >
-                    {isSolanaLogging ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <>
-                        <SolanaIcon size={20} />
-                        Solana
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="gold"
-                    size="xl"
-                    className="flex-1 bg-gradient-to-r from-[#0088cc] to-[#0066aa] hover:from-[#0077bb] hover:to-[#005599] text-white border-0"
-                    onClick={handleTelegramLogin}
-                    disabled={isTelegramLogging}
-                  >
-                    {isTelegramLogging ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <>
-                        <TelegramIcon size={20} />
-                        Telegram
-                      </>
-                    )}
-                  </Button>
-                </div>
+                <Button
+                  variant="gold"
+                  size="xl"
+                  className="w-full bg-gradient-to-r from-[#9945FF] to-[#14F195] hover:from-[#8835EF] hover:to-[#0DE185] text-white border-0"
+                  onClick={handleSolanaLogin}
+                  disabled={isSolanaLogging}
+                >
+                  {isSolanaLogging ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <SolanaIcon size={20} />
+                      Login with Solana
+                    </>
+                  )}
+                </Button>
               )}
             </div>
           </div>
