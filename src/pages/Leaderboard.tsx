@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { JackieIcon, CoinIcon } from '@/components/icons/JackieIcon';
-import { PhantomIcon } from '@/components/icons/PhantomIcon';
+import { SolanaIcon } from '@/components/icons/SolanaIcon';
 import { WorldIdIcon } from '@/components/icons/WorldIdIcon';
 import { supabase } from '@/integrations/supabase/client';
 import { useGame } from '@/contexts/GameContext';
@@ -297,7 +297,7 @@ const Leaderboard: React.FC = () => {
 
   const getWalletIcon = (walletType?: string) => {
     if (walletType === 'solana') {
-      return <PhantomIcon size={14} />;
+      return <SolanaIcon size={14} />;
     }
     return <WorldIdIcon size={14} />;
   };
@@ -436,7 +436,7 @@ const Leaderboard: React.FC = () => {
               walletFilter === 'solana' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
             )}
           >
-            <PhantomIcon size={14} />
+            <SolanaIcon size={14} />
             Solana
           </button>
           <button
@@ -502,7 +502,7 @@ const Leaderboard: React.FC = () => {
                         className="w-full h-full object-cover"
                       />
                     ) : isSolana ? (
-                      <PhantomIcon size={24} />
+                      <SolanaIcon size={24} />
                     ) : (
                       <span className="text-sm font-bold text-primary">
                         {entry.username ? entry.username.charAt(0).toUpperCase() : `#${entry.rank}`}
