@@ -113,11 +113,18 @@ const Leaderboard: React.FC = () => {
 
       const userIds = balances.map(b => b.user_id);
 
-      // Fetch only users in the balance list (avoids 1000-row default limit issue)
-      const { data: users } = await supabase
-        .from('users')
-        .select('id, username, profile_picture_url, wallet_type, solana_address')
-        .in('id', userIds);
+      // Fetch user profiles in batches to avoid URL length limits with .in()
+      const batchSize = 100;
+      const allUsers: { id: string; username: string | null; profile_picture_url: string | null; wallet_type: string; solana_address: string | null }[] = [];
+      for (let i = 0; i < userIds.length; i += batchSize) {
+        const batch = userIds.slice(i, i + batchSize);
+        const { data: batchUsers } = await supabase
+          .from('users')
+          .select('id, username, profile_picture_url, wallet_type, solana_address')
+          .in('id', batch);
+        if (batchUsers) allUsers.push(...batchUsers);
+      }
+      const users = allUsers;
 
       const userMap = new Map((users || []).map((u: { id: string; username: string | null; profile_picture_url: string | null; wallet_type: string; solana_address: string | null }) => [u.id, u]));
 
