@@ -86,12 +86,13 @@ const Leaderboard: React.FC = () => {
       
       setTotalPlayers(playerCount || 0);
 
-      // Fetch all balances ordered by total_claimed
+      // Fetch all balances ordered by total_claimed (no limit to ensure filtered views show all players)
       const { data: balances, error: balanceError } = await supabase
         .from('user_balances')
         .select('user_id, total_claimed')
+        .gt('total_claimed', 0)
         .order('total_claimed', { ascending: false })
-        .limit(200);
+        .limit(1000);
 
       if (balanceError) {
         console.error('Error fetching leaderboard:', balanceError);
