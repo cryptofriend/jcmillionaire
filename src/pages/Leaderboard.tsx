@@ -79,27 +79,12 @@ const Leaderboard: React.FC = () => {
     const fetchLeaderboard = async () => {
       setLoading(true);
       
-      // Fetch all users
-      const { data: users, error: usersError } = await supabase
+      // Get total player count
+      const { count: playerCount } = await supabase
         .from('users')
-        .select('id, username, profile_picture_url, wallet_type, solana_address');
-
-      if (usersError) {
-        console.error('Error fetching users:', usersError);
-        setLoading(false);
-        return;
-      }
-
-      // Set total player count
-      setTotalPlayers(users?.length || 0);
-
-      const allUserIds = users?.map(u => u.id) || [];
+        .select('*', { count: 'exact', head: true });
       
-      if (allUserIds.length === 0) {
-        setEntries([]);
-        setLoading(false);
-        return;
-      }
+      setTotalPlayers(playerCount || 0);
 
       // Fetch all balances ordered by total_claimed
       const { data: balances, error: balanceError } = await supabase
@@ -120,8 +105,15 @@ const Leaderboard: React.FC = () => {
         return;
       }
 
-      const userMap = new Map(users?.map(u => [u.id, u]) || []);
       const userIds = balances.map(b => b.user_id);
+
+      // Fetch only users in the balance list (avoids 1000-row default limit issue)
+      const { data: users } = await supabase
+        .from('users')
+        .select('id, username, profile_picture_url, wallet_type, solana_address')
+        .in('id', userIds);
+
+      const userMap = new Map((users || []).map((u: { id: string; username: string | null; profile_picture_url: string | null; wallet_type: string; solana_address: string | null }) => [u.id, u]));
 
       // Get additional data
       const today = new Date().toISOString().split('T')[0];
