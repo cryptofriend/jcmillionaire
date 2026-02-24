@@ -57,6 +57,11 @@ const Leaderboard: React.FC = () => {
   const [visibleCount, setVisibleCount] = useState(50);
   const [walletFilter, setWalletFilter] = useState<'all' | 'solana' | 'world'>('all');
 
+  const handleFilterChange = (filter: 'all' | 'solana' | 'world') => {
+    setWalletFilter(filter);
+    setVisibleCount(50);
+  };
+
   // Countdown timer
   useEffect(() => {
     let animationFrameId: number;
@@ -422,7 +427,7 @@ const Leaderboard: React.FC = () => {
         </div>
         <div className="flex gap-1 bg-muted/50 rounded-lg p-1">
           <button
-            onClick={() => setWalletFilter('all')}
+            onClick={() => handleFilterChange('all')}
             className={cn(
               'flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
               walletFilter === 'all' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
@@ -431,7 +436,7 @@ const Leaderboard: React.FC = () => {
             All
           </button>
           <button
-            onClick={() => setWalletFilter('solana')}
+            onClick={() => handleFilterChange('solana')}
             className={cn(
               'flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
               walletFilter === 'solana' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
@@ -441,7 +446,7 @@ const Leaderboard: React.FC = () => {
             Solana
           </button>
           <button
-            onClick={() => setWalletFilter('world')}
+            onClick={() => handleFilterChange('world')}
             className={cn(
               'flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
               walletFilter === 'world' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
@@ -467,14 +472,15 @@ const Leaderboard: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-2">
-            {entries
-              .filter(e => {
+            {(() => {
+              const filtered = entries.filter(e => {
                 if (walletFilter === 'all') return true;
                 if (walletFilter === 'solana') return e.wallet_type === 'solana' || e.wallet_type === 'telegram';
                 return e.wallet_type !== 'solana' && e.wallet_type !== 'telegram';
-              })
-              .slice(0, visibleCount)
-              .map((entry, idx) => {
+              });
+              const visible = filtered.slice(0, visibleCount);
+              return (<>
+              {visible.map((entry, idx) => {
               const isCurrentUser = state.user?.id === entry.user_id;
               const isSolana = entry.wallet_type === 'solana' || entry.wallet_type === 'telegram';
               const displayRank = walletFilter === 'all' ? entry.rank : idx + 1;
@@ -566,15 +572,17 @@ const Leaderboard: React.FC = () => {
               );
             })}
             
-            {visibleCount < entries.length && (
+            {visibleCount < filtered.length && (
               <Button
                 variant="outline"
                 className="w-full mt-4"
-                onClick={() => setVisibleCount(prev => Math.min(prev + 50, entries.length))}
+                onClick={() => setVisibleCount(prev => Math.min(prev + 50, filtered.length))}
               >
-                Load More ({entries.length - visibleCount} remaining)
+                Load More ({filtered.length - visibleCount} remaining)
               </Button>
             )}
+              </>);
+            })()}
           </div>
         )}
       </main>
