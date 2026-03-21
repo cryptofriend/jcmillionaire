@@ -58,8 +58,8 @@ const TweetEmbed: React.FC<{ tweetId: string; className?: string }> = ({ tweetId
 
 const About: React.FC = () => {
   const [currentSlide, setCurrentSlide] = React.useState(0);
+  const [currentEpisode, setCurrentEpisode] = React.useState(0);
   const [isDownloading, setIsDownloading] = React.useState(false);
-  const episodesRef = useRef<HTMLDivElement>(null);
   const testimonialsRef = useRef<HTMLDivElement>(null);
 
   const handleDownloadBook = async () => {
@@ -173,17 +173,29 @@ const About: React.FC = () => {
 
         {/* Episodes Section */}
         <section className="px-4 py-10 max-w-4xl mx-auto">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">Episodes</h3>
-          <div
-            ref={episodesRef}
-            className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide"
-          >
-            {EPISODES.map((ep) => (
-              <div key={ep.tweetId} className="snap-start flex-shrink-0 w-[260px] space-y-2">
-                <TweetEmbed tweetId={ep.tweetId} className="w-[260px]" />
-                <p className="text-xs font-medium text-muted-foreground text-center">{ep.title}</p>
-              </div>
-            ))}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Watch the Trailer!</h3>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentEpisode((p) => (p - 1 + EPISODES.length) % EPISODES.length)}
+                className="p-1.5 rounded-full bg-card border border-border hover:bg-secondary transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-xs font-medium text-muted-foreground min-w-[60px] text-center">
+                {currentEpisode + 1} / {EPISODES.length}
+              </span>
+              <button
+                onClick={() => setCurrentEpisode((p) => (p + 1) % EPISODES.length)}
+                className="p-1.5 rounded-full bg-card border border-border hover:bg-secondary transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <TweetEmbed tweetId={EPISODES[currentEpisode].tweetId} className="w-full" />
+            <p className="text-sm font-medium text-muted-foreground text-center">{EPISODES[currentEpisode].title}</p>
           </div>
         </section>
 
