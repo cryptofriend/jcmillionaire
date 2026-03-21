@@ -58,8 +58,8 @@ const TweetEmbed: React.FC<{ tweetId: string; className?: string }> = ({ tweetId
 
 const About: React.FC = () => {
   const [currentSlide, setCurrentSlide] = React.useState(0);
+  const [currentEpisode, setCurrentEpisode] = React.useState(0);
   const [isDownloading, setIsDownloading] = React.useState(false);
-  const episodesRef = useRef<HTMLDivElement>(null);
   const testimonialsRef = useRef<HTMLDivElement>(null);
 
   const handleDownloadBook = async () => {
