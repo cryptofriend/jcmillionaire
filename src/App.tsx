@@ -18,6 +18,7 @@ import Profile from "./pages/Profile";
 import Leaderboard from "./pages/Leaderboard";
 import Admin from "./pages/Admin";
 import Analytics from "./pages/Analytics";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const AppContent = () => {
       <ReferralTracker />
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
         <Route path="/verify" element={<Verify />} />
         <Route path="/game" element={<Game />} />
         <Route path="/result" element={<Result />} />
