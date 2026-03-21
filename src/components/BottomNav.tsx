@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Home, Trophy, User } from 'lucide-react';
+import { Home, Trophy, User, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NavItemProps {
