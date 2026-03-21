@@ -18,6 +18,7 @@ import Profile from "./pages/Profile";
 import Leaderboard from "./pages/Leaderboard";
 import Admin from "./pages/Admin";
 import Analytics from "./pages/Analytics";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
