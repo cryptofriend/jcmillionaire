@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -13,10 +13,8 @@ import { LoginButtons } from '@/components/LoginButtons';
 import { useGame } from '@/contexts/GameContext';
 import { Play, ChevronRight, X, Zap, Gift, Share2, Copy, MessageCircle } from 'lucide-react';
 import { generateReferralCode } from '@/lib/referralService';
-import { getWorldAppLink } from '@/lib/constants';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { isInWorldApp } from '@/lib/minikit';
 
 
 interface InfoPopupProps {
