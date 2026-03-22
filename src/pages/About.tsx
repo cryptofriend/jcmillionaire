@@ -1,11 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import { JackieIcon } from '@/components/icons/JackieIcon';
-import { WalletLoginButton } from '@/components/WalletLoginButton';
+import { LoginButtons } from '@/components/LoginButtons';
 import { Button } from '@/components/ui/button';
 import { Download, ChevronLeft, ChevronRight, Gamepad2, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useGame } from '@/contexts/GameContext';
 
 // Social icons
 const XIcon = () => (

@@ -3,28 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { JackieIcon } from '@/components/icons/JackieIcon';
-import { WorldIdIcon } from '@/components/icons/WorldIdIcon';
-import { SolanaIcon } from '@/components/icons/SolanaIcon';
 import { PoolStats } from '@/components/game/PoolStats';
 import { UserBalance } from '@/components/game/UserBalance';
 import { MiniLeaderboard } from '@/components/game/MiniLeaderboard';
 import { ShareModal } from '@/components/referral/ShareModal';
 import { TrailerCard } from '@/components/home/TrailerCard';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { UsernamePrompt } from '@/components/UsernamePrompt';
+import { LoginButtons } from '@/components/LoginButtons';
 import { useGame } from '@/contexts/GameContext';
-import { Play, ChevronRight, X, Zap, Gift, UserCheck, Share2, Copy, Loader2, MessageCircle, Send } from 'lucide-react';
+import { Play, ChevronRight, X, Zap, Gift, Share2, Copy, MessageCircle } from 'lucide-react';
 import { generateReferralCode } from '@/lib/referralService';
 import { getWorldAppLink } from '@/lib/constants';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { isPhantomAvailable, authenticateWithPhantom } from '@/lib/phantomWallet';
 import { isInWorldApp } from '@/lib/minikit';
-import { TelegramIcon } from '@/components/icons/TelegramIcon';
-import { authenticateWithTelegram, TelegramUser } from '@/lib/telegramLogin';
-import { persistUser } from '@/lib/userService';
-import { linkPendingReferralToUser } from '@/hooks/useReferralTracking';
-import { supabase } from '@/integrations/supabase/client';
 
 
 interface InfoPopupProps {
