@@ -38,8 +38,8 @@ const BottomNav: React.FC = () => {
   const { t } = useTranslation();
 
   const navItems = [
-    { icon: <Info className="w-5 h-5" />, label: 'Story', path: '/about' },
-    { icon: <Home className="w-5 h-5" />, label: 'Game', path: '/' },
+    { icon: <BookOpen className="w-5 h-5" />, label: 'Story', path: '/about' },
+    { icon: <Gamepad2 className="w-5 h-5" />, label: 'Game', path: '/' },
     { icon: <Trophy className="w-5 h-5" />, label: t('nav.leaderboard'), path: '/leaderboard' },
     { icon: <User className="w-5 h-5" />, label: t('nav.profile'), path: '/profile' },
   ];
