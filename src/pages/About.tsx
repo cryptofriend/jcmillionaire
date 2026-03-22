@@ -179,7 +179,7 @@ const About: React.FC = () => {
         {/* Episodes Section */}
         <section className="px-4 py-10 max-w-4xl mx-auto">
           <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">Watch the Trailer!</h3>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {EPISODES.map((ep) => (
               <div key={ep.tweetId} className="space-y-1">
                 <TweetEmbed tweetId={ep.tweetId} className="w-full" iframeHeight="360px" />
