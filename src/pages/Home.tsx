@@ -122,14 +122,6 @@ const Home: React.FC = () => {
         referralCode={referralCode}
       />
 
-      {showUsernamePrompt && pendingUserId && (
-        <UsernamePrompt
-          open={showUsernamePrompt}
-          userId={pendingUserId}
-          onComplete={handleUsernameComplete}
-          onSkip={handleUsernameSkip}
-        />
-      )}
 
       {activePopup && (
         <InfoPopup
