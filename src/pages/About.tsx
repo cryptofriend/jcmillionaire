@@ -26,11 +26,11 @@ const TikTokIcon = () => (
   </svg>
 );
 
-const BOOK_IMAGES = [
-  'https://vybdoouamvxvxkjkrnyf.supabase.co/storage/v1/object/public/question-images/book-cover.jpg',
-  'https://vybdoouamvxvxkjkrnyf.supabase.co/storage/v1/object/public/question-images/book-page1.jpg',
-  'https://vybdoouamvxvxkjkrnyf.supabase.co/storage/v1/object/public/question-images/book-page2.jpg',
-];
+import bookCover from '@/assets/book-cover.jpg';
+import bookPage2 from '@/assets/book-page2.jpg';
+import bookPage3 from '@/assets/book-page3.jpg';
+
+const BOOK_IMAGES = [bookCover, bookPage2, bookPage3];
 
 const EPISODES = [
   { title: 'Official Trailer', tweetId: '2023789539500650640' },
