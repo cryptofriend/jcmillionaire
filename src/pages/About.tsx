@@ -118,7 +118,7 @@ const About: React.FC = () => {
             </a>
           </div>
 
-          <WalletLoginButton />
+          {!isVerified ? <LoginButtons compact /> : <div />}
         </div>
       </header>
 
