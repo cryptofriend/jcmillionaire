@@ -1,11 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import { JackieIcon } from '@/components/icons/JackieIcon';
-import { WalletLoginButton } from '@/components/WalletLoginButton';
+import { LoginButtons } from '@/components/LoginButtons';
 import { Button } from '@/components/ui/button';
 import { Download, ChevronLeft, ChevronRight, Gamepad2, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useGame } from '@/contexts/GameContext';
 
 // Social icons
 const XIcon = () => (
@@ -57,6 +58,8 @@ const TweetEmbed: React.FC<{ tweetId: string; className?: string }> = ({ tweetId
 );
 
 const About: React.FC = () => {
+  const { state } = useGame();
+  const { isVerified } = state;
   const [currentSlide, setCurrentSlide] = React.useState(0);
   const [currentEpisode, setCurrentEpisode] = React.useState(0);
   const [isDownloading, setIsDownloading] = React.useState(false);
@@ -115,7 +118,7 @@ const About: React.FC = () => {
             </a>
           </div>
 
-          <WalletLoginButton />
+          {!isVerified ? <LoginButtons compact /> : <div />}
         </div>
       </header>
 
