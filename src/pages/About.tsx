@@ -46,11 +46,12 @@ const TESTIMONIAL_IDS = [
   '1861483513800991025',
 ];
 
-const TweetEmbed: React.FC<{ tweetId: string; className?: string }> = ({ tweetId, className }) => (
+const TweetEmbed: React.FC<{ tweetId: string; className?: string; iframeHeight?: string }> = ({ tweetId, className, iframeHeight = '180px' }) => (
   <div className={cn('rounded-xl overflow-hidden border border-border/20 bg-card flex-shrink-0', className)}>
     <iframe
       src={`https://platform.x.com/embed/Tweet.html?id=${tweetId}&theme=dark`}
-      className="w-full h-[180px] border-0"
+      className="w-full border-0"
+      style={{ height: iframeHeight }}
       allowFullScreen
       loading="lazy"
     />
