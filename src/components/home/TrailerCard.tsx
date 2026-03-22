@@ -10,9 +10,10 @@ interface TrailerCardProps {
 }
 
 const EPISODES = [
-  { title: 'Official Trailer', type: 'youtube' as const, videoId: 'GVCSKeS-GfI' },
-  { title: 'The Mother Hacker (1/3)', type: 'tweet' as const, tweetId: '2026298838999593426' },
-  { title: 'Episode 3', type: 'tweet' as const, tweetId: '2029574483707855000' },
+  { title: 'Trailer', type: 'youtube' as const, videoId: 'GVCSKeS-GfI' },
+  { title: 'Ep 1.1', type: 'tweet' as const, tweetId: '2026298838999593426' },
+  { title: 'Ep 1.2', type: 'tweet' as const, tweetId: '2026641489732985104' },
+  { title: 'Ep 1.3', type: 'tweet' as const, tweetId: '2029574483707855000' },
 ];
 
 export const TrailerCard: React.FC<TrailerCardProps> = ({ onDismiss, activeTab, onTabChange }) => {

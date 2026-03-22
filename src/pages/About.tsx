@@ -34,9 +34,10 @@ import bookPage3 from '@/assets/book-page3.jpg';
 const BOOK_IMAGES = [bookCover, bookPage2, bookPage3];
 
 const EPISODES = [
-  { title: 'Official Trailer', tweetId: '2023789539500650640' },
-  { title: 'The Mother Hacker (1/3)', tweetId: '2026298838999593426' },
-  { title: 'Episode 3', tweetId: '2029574483707855000' },
+  { title: 'Trailer', tweetId: '2023789539500650640' },
+  { title: 'Ep 1.1', tweetId: '2026298838999593426' },
+  { title: 'Ep 1.2', tweetId: '2026641489732985104' },
+  { title: 'Ep 1.3', tweetId: '2029574483707855000' },
 ];
 
 const TESTIMONIAL_IDS = [
