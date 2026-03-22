@@ -58,6 +58,8 @@ const TweetEmbed: React.FC<{ tweetId: string; className?: string }> = ({ tweetId
 );
 
 const About: React.FC = () => {
+  const { state } = useGame();
+  const { isVerified } = state;
   const [currentSlide, setCurrentSlide] = React.useState(0);
   const [currentEpisode, setCurrentEpisode] = React.useState(0);
   const [isDownloading, setIsDownloading] = React.useState(false);
