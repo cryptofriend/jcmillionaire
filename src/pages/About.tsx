@@ -97,33 +97,6 @@ const About: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      {/* Top Nav */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-b border-border px-4 py-3">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <JackieIcon size={32} className="animate-float" />
-            <span className="font-display font-bold text-foreground text-lg">Jackie Chain</span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <a href="https://pump.fun" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">
-              Pump.fun
-            </a>
-            <a href="https://instagram.com/jackiechain" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
-              <InstagramIcon />
-            </a>
-            <a href="https://tiktok.com/@jackiechain" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
-              <TikTokIcon />
-            </a>
-            <a href="https://x.com/iamjackiechain" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
-              <XIcon />
-            </a>
-          </div>
-
-          {!isVerified ? <LoginButtons compact /> : <div />}
-        </div>
-      </header>
-
       <main className="flex-1 pt-20 pb-24 overflow-y-auto">
         {/* Hero Section */}
         <section className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-12 text-center">
