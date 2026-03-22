@@ -46,11 +46,12 @@ const TESTIMONIAL_IDS = [
   '1861483513800991025',
 ];
 
-const TweetEmbed: React.FC<{ tweetId: string; className?: string }> = ({ tweetId, className }) => (
+const TweetEmbed: React.FC<{ tweetId: string; className?: string; iframeHeight?: string }> = ({ tweetId, className, iframeHeight = '180px' }) => (
   <div className={cn('rounded-xl overflow-hidden border border-border/20 bg-card flex-shrink-0', className)}>
     <iframe
       src={`https://platform.x.com/embed/Tweet.html?id=${tweetId}&theme=dark`}
-      className="w-full h-[180px] border-0"
+      className="w-full border-0"
+      style={{ height: iframeHeight }}
       allowFullScreen
       loading="lazy"
     />
@@ -175,7 +176,7 @@ const About: React.FC = () => {
         </section>
 
         {/* Episodes Section */}
-        <section className="px-4 py-10 max-w-4xl mx-auto">
+        <section className="px-4 py-10 max-w-sm mx-auto">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Watch the Trailer!</h3>
             <div className="flex items-center gap-2">
@@ -197,7 +198,7 @@ const About: React.FC = () => {
             </div>
           </div>
           <div className="space-y-2">
-            <TweetEmbed tweetId={EPISODES[currentEpisode].tweetId} className="w-full" />
+            <TweetEmbed tweetId={EPISODES[currentEpisode].tweetId} className="w-full" iframeHeight="360px" />
             <p className="text-sm font-medium text-muted-foreground text-center">{EPISODES[currentEpisode].title}</p>
           </div>
         </section>
