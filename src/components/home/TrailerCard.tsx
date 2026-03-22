@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Play } from 'lucide-react';
+import { Play, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TrailerCardProps {
@@ -9,60 +9,91 @@ interface TrailerCardProps {
   onTabChange: (tab: 'story' | 'referral') => void;
 }
 
-const YOUTUBE_VIDEO_ID = 'GVCSKeS-GfI';
+const EPISODES = [
+  { title: 'Official Trailer', type: 'youtube' as const, videoId: 'GVCSKeS-GfI' },
+  { title: 'The Mother Hacker (1/3)', type: 'tweet' as const, tweetId: '2026298838999593426' },
+  { title: 'Episode 3', type: 'tweet' as const, tweetId: '2029574483707855000' },
+];
 
 export const TrailerCard: React.FC<TrailerCardProps> = ({ onDismiss, activeTab, onTabChange }) => {
   const { t } = useTranslation();
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentEpisode, setCurrentEpisode] = useState(0);
 
-  const thumbnailUrl = `https://img.youtube.com/vi/${YOUTUBE_VIDEO_ID}/maxresdefault.jpg`;
+  const episode = EPISODES[currentEpisode];
+  const thumbnailUrl = episode.type === 'youtube'
+    ? `https://img.youtube.com/vi/${episode.videoId}/maxresdefault.jpg`
+    : '';
+
+  const prev = () => {
+    setCurrentEpisode((p) => (p - 1 + EPISODES.length) % EPISODES.length);
+    setIsPlaying(false);
+  };
+  const next = () => {
+    setCurrentEpisode((p) => (p + 1) % EPISODES.length);
+    setIsPlaying(false);
+  };
 
   return (
     <div className="px-4 py-3 bg-card rounded-xl border border-border shadow-soft space-y-3">
-      {/* Header */}
-      <div className="text-center">
-        <h3 className="font-display font-bold text-lg text-foreground">
-          🎬 {t('trailer.watch_trailer')}
-        </h3>
+      {/* Header with navigation */}
+      <div className="flex items-center justify-between">
+        <button onClick={prev} className="p-1.5 rounded-full bg-secondary border border-border hover:bg-muted transition-colors">
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <div className="text-center">
+          <h3 className="font-display font-bold text-sm text-foreground">
+            🎬 {episode.title}
+          </h3>
+          <span className="text-xs text-muted-foreground">{currentEpisode + 1} / {EPISODES.length}</span>
+        </div>
+        <button onClick={next} className="p-1.5 rounded-full bg-secondary border border-border hover:bg-muted transition-colors">
+          <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
 
-      {/* Video Container - 9:16 aspect ratio for Shorts */}
+      {/* Video Container */}
       <div className="relative w-full aspect-[9/16] max-h-[400px] mx-auto rounded-lg overflow-hidden bg-secondary">
-        {isPlaying ? (
-          <iframe
-            src={`https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=1&rel=0&modestbranding=1`}
-            title="Jackie Chain Trailer"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="absolute inset-0 w-full h-full"
-          />
-        ) : (
-          <button
-            onClick={() => setIsPlaying(true)}
-            className="absolute inset-0 w-full h-full group cursor-pointer"
-          >
-            {/* Thumbnail - with explicit dimensions to prevent CLS */}
-            <img
-              src={thumbnailUrl}
-              alt="Trailer thumbnail"
-              width={360}
-              height={640}
-              loading="lazy"
-              decoding="async"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                // Fallback to hqdefault if maxres not available
-                e.currentTarget.src = `https://img.youtube.com/vi/${YOUTUBE_VIDEO_ID}/hqdefault.jpg`;
-              }}
+        {episode.type === 'youtube' ? (
+          isPlaying ? (
+            <iframe
+              src={`https://www.youtube.com/embed/${episode.videoId}?autoplay=1&rel=0&modestbranding=1`}
+              title={episode.title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full"
             />
-            
-            {/* Play button overlay */}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
-              <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <Play className="w-8 h-8 text-primary-foreground ml-1" fill="currentColor" />
+          ) : (
+            <button
+              onClick={() => setIsPlaying(true)}
+              className="absolute inset-0 w-full h-full group cursor-pointer"
+            >
+              <img
+                src={thumbnailUrl}
+                alt="Trailer thumbnail"
+                width={360}
+                height={640}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = `https://img.youtube.com/vi/${(episode as any).videoId}/hqdefault.jpg`;
+                }}
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+                <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  <Play className="w-8 h-8 text-primary-foreground ml-1" fill="currentColor" />
+                </div>
               </div>
-            </div>
-          </button>
+            </button>
+          )
+        ) : (
+          <iframe
+            src={`https://platform.x.com/embed/Tweet.html?id=${episode.tweetId}&theme=dark`}
+            className="absolute inset-0 w-full h-full border-0"
+            allowFullScreen
+            loading="lazy"
+          />
         )}
       </div>
 
