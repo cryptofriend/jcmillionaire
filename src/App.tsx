@@ -8,6 +8,7 @@ import { MiniKitProvider } from "@/components/MiniKitProvider";
 import { SolanaProvider } from "@/components/SolanaProvider";
 import BottomNav from "@/components/BottomNav";
 import XBanner from "@/components/XBanner";
+import AppHeader from "@/components/AppHeader";
 import LoadingScreen from "@/components/LoadingScreen";
 import { ReferralTracker } from "@/components/referral/ReferralTracker";
 import Home from "./pages/Home";
