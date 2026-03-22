@@ -164,13 +164,10 @@ const About: React.FC = () => {
 
         {/* Play Game Button */}
         <section className="flex justify-center px-4 py-8">
-          <a href="https://game.jackiechain.world" target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" size="xl" className="gap-2">
-              <Gamepad2 className="w-5 h-5" />
-              Play the Game
-              <ExternalLink className="w-4 h-4" />
-            </Button>
-          </a>
+          <Button variant="outline" size="xl" className="gap-2" onClick={() => window.location.href = '/'}>
+            <Gamepad2 className="w-5 h-5" />
+            Play the Game
+          </Button>
         </section>
 
         {/* Testimonials Section */}
