@@ -114,16 +114,6 @@ const Home: React.FC = () => {
         />
       )}
 
-      <header className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2">
-          <JackieIcon size={40} className="animate-float" />
-          <div>
-            <h1 className="text-lg font-display font-bold text-foreground">{t('app_name')}</h1>
-            <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
-          </div>
-        </div>
-        {(!user?.walletType || user.walletType !== 'solana') && <LanguageSwitcher />}
-      </header>
 
       <main className="flex-1 flex flex-col items-center justify-start px-4 pb-24 gap-5 overflow-y-auto">
         <div className="text-center space-y-3 animate-fade-in">
