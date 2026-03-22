@@ -56,41 +56,26 @@ const Home: React.FC = () => {
   const hasWatchedTrailer = localStorage.getItem(TRAILER_WATCHED_KEY) === 'true';
   const [activeTab, setActiveTab] = useState<'story' | 'referral'>(hasWatchedTrailer ? 'referral' : 'story');
 
-  const handleUsernameComplete = async (username: string) => {
-    setShowUsernamePrompt(false);
-    const pendingData = localStorage.getItem('jc_pending_user_data');
-    if (pendingData) {
-      const userData = JSON.parse(pendingData);
-      localStorage.removeItem('jc_pending_user_data');
-      const userObj = {
-        id: userData.id,
-        verificationLevel: userData.verification_level as 'device' | 'orb',
-        nullifierHash: `solana_${userData.wallet_address}`,
-        createdAt: userData.created_at,
-        username,
-      };
-      persistUser(userObj);
-      await linkPendingReferralToUser(userObj.id);
-      dispatch({ type: 'SET_USER', payload: userObj });
+  const handleDismissTrailer = () => {
+    localStorage.setItem(TRAILER_WATCHED_KEY, 'true');
+    setActiveTab('referral');
+  };
+
+  const referralCode = user ? generateReferralCode(user.id) : '';
+  const canPlay = isVerified && (attempts?.remaining || 0) > 0;
+
+  const handleStartRun = () => {
+    if (!isVerified) {
+      navigate('/verify');
+      return;
+    }
+    if (canPlay) {
+      navigate('/game');
     }
   };
 
-  const handleUsernameSkip = async () => {
-    setShowUsernamePrompt(false);
-    const pendingData = localStorage.getItem('jc_pending_user_data');
-    if (pendingData) {
-      const userData = JSON.parse(pendingData);
-      localStorage.removeItem('jc_pending_user_data');
-      const userObj = {
-        id: userData.id,
-        verificationLevel: userData.verification_level as 'device' | 'orb',
-        nullifierHash: `solana_${userData.wallet_address}`,
-        createdAt: userData.created_at,
-      };
-      persistUser(userObj);
-      await linkPendingReferralToUser(userObj.id);
-      dispatch({ type: 'SET_USER', payload: userObj });
-    }
+  const handleOpenShareModal = () => {
+    setIsShareModalOpen(true);
   };
 
   const infoItems = [
