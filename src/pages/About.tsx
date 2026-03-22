@@ -50,7 +50,7 @@ const TweetEmbed: React.FC<{ tweetId: string; className?: string }> = ({ tweetId
   <div className={cn('rounded-xl overflow-hidden border border-border/20 bg-card flex-shrink-0', className)}>
     <iframe
       src={`https://platform.x.com/embed/Tweet.html?id=${tweetId}&theme=dark`}
-      className="w-full h-[300px] border-0"
+      className="w-full h-[180px] border-0"
       allowFullScreen
       loading="lazy"
     />
