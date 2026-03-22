@@ -50,7 +50,7 @@ const TweetEmbed: React.FC<{ tweetId: string; className?: string }> = ({ tweetId
   <div className={cn('rounded-xl overflow-hidden border border-border/20 bg-card flex-shrink-0', className)}>
     <iframe
       src={`https://platform.x.com/embed/Tweet.html?id=${tweetId}&theme=dark`}
-      className="w-full h-[300px] border-0"
+      className="w-full h-[180px] border-0"
       allowFullScreen
       loading="lazy"
     />
@@ -216,13 +216,10 @@ const About: React.FC = () => {
         {/* Testimonials Section */}
         <section className="px-4 py-10 max-w-4xl mx-auto">
           <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">What People Say</h3>
-          <div
-            ref={testimonialsRef}
-            className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide"
-          >
-            {TESTIMONIAL_IDS.map((id) => (
-              <div key={id} className="snap-start flex-shrink-0 w-[280px]">
-                <TweetEmbed tweetId={id} className="w-[280px]" />
+          <div className="grid grid-cols-3 gap-2">
+            {TESTIMONIAL_IDS.slice(0, 3).map((id) => (
+              <div key={id}>
+                <TweetEmbed tweetId={id} className="w-full" />
               </div>
             ))}
           </div>
