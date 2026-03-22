@@ -34,9 +34,10 @@ import bookPage3 from '@/assets/book-page3.jpg';
 const BOOK_IMAGES = [bookCover, bookPage2, bookPage3];
 
 const EPISODES = [
-  { title: 'Official Trailer', tweetId: '2023789539500650640' },
-  { title: 'The Mother Hacker (1/3)', tweetId: '2026298838999593426' },
-  { title: 'Episode 3', tweetId: '2029574483707855000' },
+  { title: 'Trailer', tweetId: '2023789539500650640' },
+  { title: 'Ep 1.1', tweetId: '2026298838999593426' },
+  { title: 'Ep 1.2', tweetId: '2026641489732985104' },
+  { title: 'Ep 1.3', tweetId: '2029574483707855000' },
 ];
 
 const TESTIMONIAL_IDS = [
@@ -178,7 +179,7 @@ const About: React.FC = () => {
         {/* Episodes Section */}
         <section className="px-4 py-10 max-w-4xl mx-auto">
           <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">Watch the Trailer!</h3>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {EPISODES.map((ep) => (
               <div key={ep.tweetId} className="space-y-1">
                 <TweetEmbed tweetId={ep.tweetId} className="w-full" iframeHeight="360px" />
