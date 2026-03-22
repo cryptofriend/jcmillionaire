@@ -143,9 +143,9 @@ export const LoginButtons: React.FC<LoginButtonsProps> = ({ compact = false }) =
         Login
       </Button>
 
-      {isOpen && (
+      {isOpen && ReactDOM.createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in"
           onClick={() => setIsOpen(false)}
         >
           <div
@@ -196,7 +196,8 @@ export const LoginButtons: React.FC<LoginButtonsProps> = ({ compact = false }) =
               <ChevronRight className="w-5 h-5" />
             </Button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
