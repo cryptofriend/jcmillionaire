@@ -33,8 +33,8 @@ const AppContent = () => {
 
   return (
     <>
+      <AppHeader />
       <XBanner />
-      {/* Track referral clicks from ?ref= param */}
       <ReferralTracker />
       <Routes>
         <Route path="/" element={<Home />} />

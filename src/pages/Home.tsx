@@ -98,7 +98,7 @@ const Home: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen gradient-hero flex flex-col">
+    <div className="min-h-screen gradient-hero flex flex-col pt-16">
       <ShareModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
