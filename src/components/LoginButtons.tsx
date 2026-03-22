@@ -6,7 +6,7 @@ import { SolanaIcon } from '@/components/icons/SolanaIcon';
 import { WorldIdIcon } from '@/components/icons/WorldIdIcon';
 import { UsernamePrompt } from '@/components/UsernamePrompt';
 import { useGame } from '@/contexts/GameContext';
-import { ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronRight, Loader2, LogIn, X } from 'lucide-react';
 import { isPhantomAvailable, authenticateWithPhantom } from '@/lib/phantomWallet';
 import { persistUser } from '@/lib/userService';
 import { linkPendingReferralToUser } from '@/hooks/useReferralTracking';
@@ -21,6 +21,7 @@ export const LoginButtons: React.FC<LoginButtonsProps> = ({ compact = false }) =
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { dispatch } = useGame();
+  const [isOpen, setIsOpen] = useState(false);
   const [isSolanaLogging, setIsSolanaLogging] = useState(false);
   const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
@@ -61,6 +62,7 @@ export const LoginButtons: React.FC<LoginButtonsProps> = ({ compact = false }) =
         persistUser(userObj);
         await linkPendingReferralToUser(userObj.id);
         dispatch({ type: 'SET_USER', payload: userObj });
+        setIsOpen(false);
       };
 
       if (existingUser?.username) {
@@ -83,6 +85,7 @@ export const LoginButtons: React.FC<LoginButtonsProps> = ({ compact = false }) =
 
   const handleUsernameComplete = async (username: string) => {
     setShowUsernamePrompt(false);
+    setIsOpen(false);
     const pendingData = localStorage.getItem('jc_pending_user_data');
     if (pendingData) {
       const userData = JSON.parse(pendingData);
@@ -102,6 +105,7 @@ export const LoginButtons: React.FC<LoginButtonsProps> = ({ compact = false }) =
 
   const handleUsernameSkip = async () => {
     setShowUsernamePrompt(false);
+    setIsOpen(false);
     const pendingData = localStorage.getItem('jc_pending_user_data');
     if (pendingData) {
       const userData = JSON.parse(pendingData);
@@ -129,41 +133,71 @@ export const LoginButtons: React.FC<LoginButtonsProps> = ({ compact = false }) =
         />
       )}
 
-      <div className="w-full space-y-3">
-        <Button
-          variant="gold"
-          size={compact ? "lg" : "xl"}
-          className="w-full bg-gradient-to-r from-[#9945FF] to-[#14F195] hover:from-[#8835EF] hover:to-[#0DE185] text-white border-0"
-          onClick={handleSolanaLogin}
-          disabled={isSolanaLogging}
-        >
-          {isSolanaLogging ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <>
-              <SolanaIcon size={20} />
-              Login with Solana
-            </>
-          )}
-        </Button>
+      <Button
+        variant="gold"
+        size={compact ? "sm" : "default"}
+        onClick={() => setIsOpen(true)}
+        className="gap-2"
+      >
+        <LogIn className="w-4 h-4" />
+        Login
+      </Button>
 
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-muted-foreground">or</span>
-          <div className="flex-1 h-px bg-border" />
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in"
+          onClick={() => setIsOpen(false)}
+        >
+          <div
+            className="bg-card rounded-2xl border border-border p-6 shadow-xl max-w-sm w-full animate-scale-in space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-display font-bold text-lg text-foreground">Choose Login</h3>
+              <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-muted rounded-full">
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+
+            <Button
+              variant="gold"
+              size="xl"
+              className="w-full bg-gradient-to-r from-[#9945FF] to-[#14F195] hover:from-[#8835EF] hover:to-[#0DE185] text-white border-0"
+              onClick={handleSolanaLogin}
+              disabled={isSolanaLogging}
+            >
+              {isSolanaLogging ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <SolanaIcon size={20} />
+                  Login with Solana
+                </>
+              )}
+            </Button>
+
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-muted-foreground">or</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            <Button
+              variant="outline"
+              size="xl"
+              className="w-full"
+              onClick={() => {
+                setIsOpen(false);
+                navigate('/verify');
+              }}
+            >
+              <WorldIdIcon size={20} />
+              {t('home.login_world_id')}
+              <ChevronRight className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
-
-        <Button
-          variant="outline"
-          size={compact ? "lg" : "xl"}
-          className="w-full"
-          onClick={() => navigate('/verify')}
-        >
-          <WorldIdIcon size={20} />
-          {t('home.login_world_id')}
-          <ChevronRight className="w-5 h-5" />
-        </Button>
-      </div>
+      )}
     </>
   );
 };
