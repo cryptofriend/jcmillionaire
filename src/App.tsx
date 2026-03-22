@@ -34,7 +34,7 @@ const AppContent = () => {
   return (
     <>
       <AppHeader />
-      <XBanner />
+      
       <ReferralTracker />
       <Routes>
         <Route path="/" element={<Home />} />
