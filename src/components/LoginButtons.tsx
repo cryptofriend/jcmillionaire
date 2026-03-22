@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -143,9 +144,9 @@ export const LoginButtons: React.FC<LoginButtonsProps> = ({ compact = false }) =
         Login
       </Button>
 
-      {isOpen && (
+      {isOpen && ReactDOM.createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in"
           onClick={() => setIsOpen(false)}
         >
           <div
@@ -196,7 +197,8 @@ export const LoginButtons: React.FC<LoginButtonsProps> = ({ compact = false }) =
               <ChevronRight className="w-5 h-5" />
             </Button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
