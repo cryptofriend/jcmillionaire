@@ -106,6 +106,7 @@ export const LoginButtons: React.FC<LoginButtonsProps> = ({ compact = false }) =
         localStorage.setItem('jc_wallet_type', 'solana');
         localStorage.setItem('jc_pending_user_data', JSON.stringify(userData));
         setIsSolanaLogging(false);
+        setIsOpen(false);
         setShowUsernamePrompt(true);
       }
     } catch (error) {
