@@ -337,7 +337,7 @@ const Verify: React.FC = () => {
             )}
           </Button>
 
-          {!phantomAvailable && !isCheckingEnv && (
+          {!phantomAvailable && !isCheckingEnv && !inWorldApp && (
             <a 
               href="https://phantom.app"
               target="_blank"
