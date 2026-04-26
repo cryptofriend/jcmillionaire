@@ -9,6 +9,7 @@ import { UsernamePrompt } from '@/components/UsernamePrompt';
 import { useGame } from '@/contexts/GameContext';
 import { ChevronRight, Loader2, LogIn, X } from 'lucide-react';
 import { isPhantomAvailable, authenticateWithPhantom } from '@/lib/phantomWallet';
+import { isInWorldApp } from '@/lib/minikit';
 import { persistUser } from '@/lib/userService';
 import { linkPendingReferralToUser } from '@/hooks/useReferralTracking';
 import { supabase } from '@/integrations/supabase/client';
@@ -137,7 +138,13 @@ export const LoginButtons: React.FC<LoginButtonsProps> = ({ compact = false }) =
       <Button
         variant="gold"
         size={compact ? "sm" : "default"}
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          if (isInWorldApp()) {
+            navigate('/verify');
+          } else {
+            setIsOpen(true);
+          }
+        }}
         className="gap-2"
       >
         <LogIn className="w-4 h-4" />
