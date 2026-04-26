@@ -2,6 +2,7 @@ import React from 'react';
 import { JackieIcon } from '@/components/icons/JackieIcon';
 import { LoginButtons } from '@/components/LoginButtons';
 import { useGame } from '@/contexts/GameContext';
+import { isInWorldApp } from '@/lib/minikit';
 
 const XIcon = () => (
   <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-label="X">
@@ -24,6 +25,7 @@ const TikTokIcon = () => (
 const AppHeader: React.FC = () => {
   const { state } = useGame();
   const { isVerified } = state;
+  const inWorldApp = isInWorldApp();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-b border-border px-4 py-3">
@@ -33,20 +35,22 @@ const AppHeader: React.FC = () => {
           <span className="font-display font-bold text-foreground text-lg">Jackie Chain</span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <a href="https://pump.fun" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">
-            Pump.fun
-          </a>
-          <a href="https://instagram.com/jackiechain" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
-            <InstagramIcon />
-          </a>
-          <a href="https://tiktok.com/@jackiechain" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
-            <TikTokIcon />
-          </a>
-          <a href="https://x.com/iamjackiechain" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
-            <XIcon />
-          </a>
-        </div>
+        {!inWorldApp && (
+          <div className="flex items-center gap-3">
+            <a href="https://pump.fun" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">
+              Pump.fun
+            </a>
+            <a href="https://instagram.com/jackiechain" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
+              <InstagramIcon />
+            </a>
+            <a href="https://tiktok.com/@jackiechain" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
+              <TikTokIcon />
+            </a>
+            <a href="https://x.com/iamjackiechain" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
+              <XIcon />
+            </a>
+          </div>
+        )}
 
         {!isVerified ? <LoginButtons compact /> : <div />}
       </div>

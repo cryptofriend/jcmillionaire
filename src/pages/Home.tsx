@@ -13,6 +13,7 @@ import { LoginButtons } from '@/components/LoginButtons';
 import { useGame } from '@/contexts/GameContext';
 import { Play, ChevronRight, X, Zap, Gift, Share2, Copy, MessageCircle } from 'lucide-react';
 import { generateReferralCode } from '@/lib/referralService';
+import { isInWorldApp } from '@/lib/minikit';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -117,15 +118,24 @@ const Home: React.FC = () => {
 
       <main className="flex-1 flex flex-col items-center justify-start px-4 pb-24 gap-5 overflow-y-auto">
         <div className="text-center space-y-3 animate-fade-in">
-          <a 
-            href="https://x.com/iamjackiechain"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="relative inline-block cursor-pointer active:scale-95 transition-all duration-300 hover:drop-shadow-[0_0_20px_hsl(var(--primary)/0.6)] hover:scale-105"
-            aria-label="Follow us on X"
-          >
-            <JackieIcon size={100} className="animate-float drop-shadow-lg transition-all duration-300" />
-          </a>
+          {isInWorldApp() ? (
+            <div
+              className="relative inline-block transition-all duration-300"
+              aria-label="Jackie Chain"
+            >
+              <JackieIcon size={100} className="animate-float drop-shadow-lg transition-all duration-300" />
+            </div>
+          ) : (
+            <a 
+              href="https://x.com/iamjackiechain"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="relative inline-block cursor-pointer active:scale-95 transition-all duration-300 hover:drop-shadow-[0_0_20px_hsl(var(--primary)/0.6)] hover:scale-105"
+              aria-label="Follow us on X"
+            >
+              <JackieIcon size={100} className="animate-float drop-shadow-lg transition-all duration-300" />
+            </a>
+          )}
           
           <h2 className="text-3xl font-display font-bold text-gradient-gold">
             {t('home.win_jackpot')}
