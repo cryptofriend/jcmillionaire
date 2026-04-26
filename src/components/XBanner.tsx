@@ -1,8 +1,12 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { isInWorldApp } from '@/lib/minikit';
 
 const XBanner: React.FC = () => {
   const { t } = useTranslation();
+
+  // Hide entirely in World Mini App — external link would redirect to Safari.
+  if (isInWorldApp()) return null;
 
   return (
     <a
