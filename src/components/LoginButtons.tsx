@@ -146,7 +146,7 @@ export const LoginButtons: React.FC<LoginButtonsProps> = ({ compact = false }) =
 
       {isOpen && ReactDOM.createPortal(
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-background/95 backdrop-blur-md animate-fade-in"
           onClick={() => setIsOpen(false)}
         >
           <div
