@@ -38,7 +38,7 @@ export function ensureMiniKitInstalled(): boolean {
 
   try {
     const result = MiniKit.install('app_7709630683b291dac751ba3175d9fbcd');
-    return result.success || (!result.success && result.errorCode === 'already_installed');
+    return result.success || (result as { errorCode?: string }).errorCode === 'already_installed';
   } catch (error) {
     console.warn('MiniKit install failed:', error);
     return false;
