@@ -171,15 +171,22 @@ export const LoginButtons: React.FC<LoginButtonsProps> = ({ compact = false }) =
         size={compact ? "sm" : "default"}
         onClick={() => {
           if (isInWorldApp()) {
-            navigate('/verify');
+            handleWorldLogin();
           } else {
             setIsOpen(true);
           }
         }}
+        disabled={isWorldLogging}
         className="gap-2"
       >
-        <LogIn className="w-4 h-4" />
-        Login
+        {isWorldLogging ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <>
+            <LogIn className="w-4 h-4" />
+            Login
+          </>
+        )}
       </Button>
 
       {isOpen && ReactDOM.createPortal(
