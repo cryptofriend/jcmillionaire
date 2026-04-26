@@ -1,20 +1,20 @@
 #!/usr/bin/env node
 /**
- * Static safety check: ensure no `target="_blank"` link in the source tree
- * is unconditionally rendered inside the World Mini App. World App treats
- * those as external navigations and bumps the user out into Safari/Chrome.
+ * Static safety check: ensure no external navigation in the source tree is
+ * unconditionally reachable inside the World Mini App. World App treats those
+ * as external navigations and bumps the user out into Safari/Chrome.
  *
  * Heuristic:
- *   For each `target="_blank"` occurrence we look at the surrounding ~30 lines
- *   above the match. If we don't see a guard like `isInWorldApp`, `inWorldApp`,
- *   or `!isInWorldApp` in that window, we flag it.
+ *   For each external-navigation occurrence we look at the surrounding ~30
+ *   lines above the match. If we don't see a guard like `isInWorldApp`,
+ *   `inWorldApp`, or `!isInWorldApp` in that window, we flag it.
  *
  *   Files in src/components/ui/** and test/script files are ignored — those
  *   are generic primitives, not app surfaces rendered in World App.
  *
  * Exit code:
  *   0 = clean
- *   1 = unguarded target="_blank" found (CI should fail)
+ *   1 = unguarded external navigation found (CI should fail)
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -37,18 +37,24 @@ function walk(dir, files = []) {
 }
 
 const offenders = [];
-const TARGET_RE = /target=["']_blank["']/g;
+const NAVIGATION_PATTERNS = [
+  /target=["']_blank["']/,
+  /\.target\s*=\s*["']_blank["']/,
+  /window\.open\s*\(/,
+  /(?:window\.)?location\.(?:assign|replace)\s*\(/,
+  /(?:window\.)?location\.href\s*=/,
+  /\.click\s*\(\)/,
+];
 const GUARD_RE = /isInWorldApp|inWorldApp/;
 
 for (const file of walk(SRC)) {
   if (IGNORE_PATH_PARTS.some((p) => file.includes(p))) continue;
   const text = readFileSync(file, 'utf8');
-  if (!TARGET_RE.test(text)) continue;
-  TARGET_RE.lastIndex = 0;
+  if (!NAVIGATION_PATTERNS.some((pattern) => pattern.test(text))) continue;
 
   const lines = text.split('\n');
   for (let i = 0; i < lines.length; i++) {
-    if (!/target=["']_blank["']/.test(lines[i])) continue;
+    if (!NAVIGATION_PATTERNS.some((pattern) => pattern.test(lines[i]))) continue;
     // Look back ~30 lines for a World App guard
     const start = Math.max(0, i - 30);
     const window = lines.slice(start, i + 1).join('\n');
@@ -63,13 +69,13 @@ for (const file of walk(SRC)) {
 }
 
 if (offenders.length === 0) {
-  console.log('✓ No unguarded target="_blank" links — safe for World Mini App.');
+  console.log('✓ No unguarded external navigation — safe for World Mini App.');
   process.exit(0);
 }
 
-console.error('✗ Unguarded target="_blank" links found.');
+console.error('✗ Unguarded external navigation found.');
 console.error('  These will redirect the user to Safari when opened inside the World Mini App.');
-console.error('  Wrap them in `{!isInWorldApp() && ...}` or hide via `inWorldApp` flag.\n');
+console.error('  Wrap them in an `isInWorldApp` / `inWorldApp` guard or use in-app navigation.\n');
 for (const o of offenders) {
   console.error(`  ${o.file}:${o.line}`);
   console.error(`    ${o.snippet}`);
