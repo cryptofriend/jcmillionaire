@@ -49,7 +49,7 @@ export function ensureMiniKitInstalled(): boolean {
 // Get the user's wallet address from World App
 export function getWalletAddress(): string | null {
   try {
-    if (!MiniKit.isInstalled()) return null;
+    if (!ensureMiniKitInstalled()) return null;
     // MiniKit provides the wallet address after wallet auth
     return (MiniKit as any).walletAddress || null;
   } catch {
@@ -89,7 +89,7 @@ export interface WorldIdUserInfo {
  * Get user info by wallet address from World ID
  */
 export async function getUserInfoByAddress(address: string): Promise<WorldIdUserInfo | null> {
-  if (!MiniKit.isInstalled()) return null;
+  if (!ensureMiniKitInstalled()) return null;
   
   try {
     const userInfo = await MiniKit.getUserByAddress(address);
@@ -108,7 +108,7 @@ export async function getUserInfoByAddress(address: string): Promise<WorldIdUser
  * Get current user info from MiniKit
  */
 export function getCurrentUserInfo(): WorldIdUserInfo | null {
-  if (!MiniKit.isInstalled()) return null;
+  if (!ensureMiniKitInstalled()) return null;
   
   try {
     const user = (MiniKit as any).user;
@@ -131,7 +131,7 @@ export function getCurrentUserInfo(): WorldIdUserInfo | null {
 export async function authenticateWithWallet(
   verificationLevel: 'device' | 'orb' = 'device'
 ): Promise<WalletAuthResult> {
-  if (!MiniKit.isInstalled()) {
+  if (!ensureMiniKitInstalled()) {
     return { success: false, error: 'World App not detected' };
   }
 
