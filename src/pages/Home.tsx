@@ -13,6 +13,7 @@ import { LoginButtons } from '@/components/LoginButtons';
 import { useGame } from '@/contexts/GameContext';
 import { Play, ChevronRight, X, Zap, Gift, Share2, Copy, MessageCircle } from 'lucide-react';
 import { generateReferralCode } from '@/lib/referralService';
+import { isInWorldApp } from '@/lib/minikit';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
