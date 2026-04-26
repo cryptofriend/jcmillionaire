@@ -10,7 +10,6 @@ import { useGame } from '@/contexts/GameContext';
 import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket, Users, Gamepad2, TrendingUp, TrendingDown, Minus, MessageCircle, ClipboardCopy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MiniKit } from '@worldcoin/minikit-js';
-import { getWorldChatDeeplinkUrl } from '@/lib/worldShare';
 import { isInWorldApp } from '@/lib/minikit';
 import { toast } from 'sonner';
 
