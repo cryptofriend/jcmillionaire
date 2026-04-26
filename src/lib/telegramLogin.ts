@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { isInWorldApp } from '@/lib/minikit';
 
 export interface TelegramUser {
   id: number;
@@ -15,6 +16,11 @@ export interface TelegramUser {
  */
 export function openTelegramLogin(botName: string): Promise<TelegramUser | null> {
   return new Promise((resolve) => {
+    if (isInWorldApp()) {
+      resolve(null);
+      return;
+    }
+
     // Set up the global callback
     (window as any).onTelegramAuth = (user: TelegramUser) => {
       resolve(user);
