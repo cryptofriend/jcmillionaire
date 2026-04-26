@@ -2,6 +2,7 @@ import React from 'react';
 import { JackieIcon } from '@/components/icons/JackieIcon';
 import { LoginButtons } from '@/components/LoginButtons';
 import { useGame } from '@/contexts/GameContext';
+import { isInWorldApp } from '@/lib/minikit';
 
 const XIcon = () => (
   <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-label="X">
