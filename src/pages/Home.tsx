@@ -258,7 +258,7 @@ const Home: React.FC = () => {
                   {t('home.no_plays_remaining', 'No Plays Remaining')}
                 </Button>
                 <a
-                  href="https://t.me/jackiechainbot"
+                  href="https://x.com/iamjackiechain"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full"
