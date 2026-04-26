@@ -13,7 +13,7 @@ import { ArrowLeft, Copy, Share2, Trophy, History, Users, CheckCircle, Loader2, 
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
+import { format } from 'date-fns/format';
 import { getCurrentUserInfo } from '@/lib/minikit';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { ReferralDashboard } from '@/components/referral/ReferralDashboard';
