@@ -138,7 +138,13 @@ export const LoginButtons: React.FC<LoginButtonsProps> = ({ compact = false }) =
       <Button
         variant="gold"
         size={compact ? "sm" : "default"}
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          if (isInWorldApp()) {
+            navigate('/verify');
+          } else {
+            setIsOpen(true);
+          }
+        }}
         className="gap-2"
       >
         <LogIn className="w-4 h-4" />
