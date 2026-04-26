@@ -9,7 +9,7 @@ import { UsernamePrompt } from '@/components/UsernamePrompt';
 import { useGame } from '@/contexts/GameContext';
 import { ChevronRight, Loader2, LogIn, X } from 'lucide-react';
 import { isPhantomAvailable, authenticateWithPhantom } from '@/lib/phantomWallet';
-import { isInWorldApp } from '@/lib/minikit';
+import { isInWorldApp, authenticateWithWallet } from '@/lib/minikit';
 import { persistUser } from '@/lib/userService';
 import { linkPendingReferralToUser } from '@/hooks/useReferralTracking';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,8 +25,39 @@ export const LoginButtons: React.FC<LoginButtonsProps> = ({ compact = false }) =
   const { dispatch } = useGame();
   const [isOpen, setIsOpen] = useState(false);
   const [isSolanaLogging, setIsSolanaLogging] = useState(false);
+  const [isWorldLogging, setIsWorldLogging] = useState(false);
   const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+
+  const handleWorldLogin = async () => {
+    setIsWorldLogging(true);
+    try {
+      const result = await authenticateWithWallet('device');
+      if (!result.success || !result.user) {
+        throw new Error(result.error || 'World ID authentication failed');
+      }
+      const user = result.user;
+      localStorage.setItem('jc_wallet_address', user.wallet_address);
+      localStorage.setItem('jc_wallet_type', 'world_id');
+      const userObj = {
+        id: user.id,
+        verificationLevel: user.verification_level as 'device' | 'orb',
+        nullifierHash: `wallet_${user.wallet_address}`,
+        createdAt: user.created_at,
+        username: user.username,
+        profilePictureUrl: user.profile_picture_url,
+      };
+      persistUser(userObj);
+      await linkPendingReferralToUser(userObj.id);
+      dispatch({ type: 'SET_USER', payload: userObj });
+      setIsOpen(false);
+    } catch (error) {
+      console.error('World login failed:', error);
+      toast.error(error instanceof Error ? error.message : 'World ID login failed');
+    } finally {
+      setIsWorldLogging(false);
+    }
+  };
 
   const handleSolanaLogin = async () => {
     if (!isPhantomAvailable()) {
@@ -140,15 +171,22 @@ export const LoginButtons: React.FC<LoginButtonsProps> = ({ compact = false }) =
         size={compact ? "sm" : "default"}
         onClick={() => {
           if (isInWorldApp()) {
-            navigate('/verify');
+            handleWorldLogin();
           } else {
             setIsOpen(true);
           }
         }}
+        disabled={isWorldLogging}
         className="gap-2"
       >
-        <LogIn className="w-4 h-4" />
-        Login
+        {isWorldLogging ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <>
+            <LogIn className="w-4 h-4" />
+            Login
+          </>
+        )}
       </Button>
 
       {isOpen && ReactDOM.createPortal(
