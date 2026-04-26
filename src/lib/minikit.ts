@@ -1,11 +1,46 @@
 import { MiniKit } from '@worldcoin/minikit-js';
 import { supabase } from '@/integrations/supabase/client';
 
-// Check if running inside World App
+declare global {
+  interface Window {
+    WorldApp?: unknown;
+    MiniKit?: unknown;
+  }
+}
+
+export function hasWorldAppBridge(): boolean {
+  return typeof window !== 'undefined' && Boolean(window.WorldApp);
+}
+
+function hasWorldAppUserAgent(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /WorldApp|World App|Worldcoin/i.test(navigator.userAgent);
+}
+
+// Check if running inside World App. Do not rely only on MiniKit.isInstalled()
+// because React renders once before MiniKitProvider's effect installs the SDK.
 export function isInWorldApp(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (hasWorldAppBridge() || hasWorldAppUserAgent()) return true;
+  if (!window.MiniKit) return false;
+
   try {
     return MiniKit.isInstalled();
   } catch {
+    return false;
+  }
+}
+
+export function ensureMiniKitInstalled(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (window.MiniKit) return true;
+  if (!hasWorldAppBridge()) return false;
+
+  try {
+    const result = MiniKit.install('app_7709630683b291dac751ba3175d9fbcd');
+    return result.success || result.errorCode === 'already_installed';
+  } catch (error) {
+    console.warn('MiniKit install failed:', error);
     return false;
   }
 }
