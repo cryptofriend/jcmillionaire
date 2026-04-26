@@ -267,21 +267,23 @@ const Home: React.FC = () => {
                   <Zap className="w-6 h-6" />
                   {t('home.no_plays_remaining', 'No Plays Remaining')}
                 </Button>
-                <a
-                  href="https://x.com/iamjackiechain"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full"
-                >
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="w-full gap-2"
+                {!isInWorldApp() && (
+                  <a
+                    href="https://x.com/iamjackiechain"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full"
                   >
-                    <MessageCircle className="w-5 h-5" />
-                    Chat with Jackie
-                  </Button>
-                </a>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="w-full gap-2"
+                    >
+                      <MessageCircle className="w-5 h-5" />
+                      Chat with Jackie
+                    </Button>
+                  </a>
+                )}
               </div>
             )}
           </div>
