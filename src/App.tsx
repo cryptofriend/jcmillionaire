@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { GameProvider, useGame } from "@/contexts/GameContext";
 import { MiniKitProvider } from "@/components/MiniKitProvider";
 import { SolanaProvider } from "@/components/SolanaProvider";
+import { isInWorldApp } from "@/lib/minikit";
 import BottomNav from "@/components/BottomNav";
 
 import AppHeader from "@/components/AppHeader";
@@ -56,21 +57,21 @@ const AppContent = () => {
 };
 
 const App = () => (
-  <SolanaProvider>
-    <MiniKitProvider>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <GameProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppContent />
-            </BrowserRouter>
-          </GameProvider>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </MiniKitProvider>
-  </SolanaProvider>
+  <MiniKitProvider>
+    <SolanaProvider disabled={isInWorldApp()}>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <GameProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </GameProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+    </SolanaProvider>
+  </MiniKitProvider>
 );
 
 export default App;
