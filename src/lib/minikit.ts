@@ -1,5 +1,6 @@
 import { MiniKit } from '@worldcoin/minikit-js';
 import { supabase } from '@/integrations/supabase/client';
+import { APP_ID } from '@/lib/constants';
 
 declare global {
   interface Window {
@@ -37,7 +38,7 @@ export function ensureMiniKitInstalled(): boolean {
   if (!hasWorldAppBridge()) return false;
 
   try {
-    const result = MiniKit.install('app_7709630683b291dac751ba3175d9fbcd');
+    const result = MiniKit.install(APP_ID);
     return result.success || (result as { errorCode?: string }).errorCode === 'already_installed';
   } catch (error) {
     console.warn('MiniKit install failed:', error);
