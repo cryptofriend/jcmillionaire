@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { JackieIcon } from '@/components/icons/JackieIcon';
 import { LoginButtons } from '@/components/LoginButtons';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useGame } from '@/contexts/GameContext';
+import { isInWorldApp } from '@/lib/minikit';
 
 // Social icons
 const XIcon = () => (
@@ -60,6 +62,7 @@ const TweetEmbed: React.FC<{ tweetId: string; className?: string; iframeHeight?:
 );
 
 const About: React.FC = () => {
+  const navigate = useNavigate();
   const { state } = useGame();
   const { isVerified } = state;
   const [currentSlide, setCurrentSlide] = React.useState(0);
@@ -68,6 +71,11 @@ const About: React.FC = () => {
   const testimonialsRef = useRef<HTMLDivElement>(null);
 
   const handleDownloadBook = async () => {
+    if (isInWorldApp()) {
+      toast.error('Book download opens outside the Mini App. Please use the web version.');
+      return;
+    }
+
     setIsDownloading(true);
     try {
       const { data, error } = await supabase.storage
@@ -164,7 +172,7 @@ const About: React.FC = () => {
 
         {/* Play Game Button */}
         <section className="flex justify-center px-4 py-8">
-          <Button variant="outline" size="xl" className="gap-2" onClick={() => window.location.href = '/'}>
+          <Button variant="outline" size="xl" className="gap-2" onClick={() => navigate('/')}>
             <Gamepad2 className="w-5 h-5" />
             Play the Game
           </Button>

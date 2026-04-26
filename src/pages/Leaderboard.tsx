@@ -10,7 +10,6 @@ import { useGame } from '@/contexts/GameContext';
 import { ArrowLeft, Trophy, Crown, Medal, Loader2, Rocket, Users, Gamepad2, TrendingUp, TrendingDown, Minus, MessageCircle, ClipboardCopy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MiniKit } from '@worldcoin/minikit-js';
-import { getWorldChatDeeplinkUrl } from '@/lib/worldShare';
 import { isInWorldApp } from '@/lib/minikit';
 import { toast } from 'sonner';
 
@@ -282,13 +281,7 @@ const Leaderboard: React.FC = () => {
     } catch (error) {
       console.warn('[Leaderboard] MiniKit chat failed', error);
     }
-
-    const url = getWorldChatDeeplinkUrl({ username, message });
-    try {
-      window.location.assign(url);
-    } catch {
-      window.open(url, '_blank');
-    }
+    toast.error('Could not open World Chat. Please try again.');
   };
 
   const handleCopyLogs = () => {
