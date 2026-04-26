@@ -282,13 +282,7 @@ const Leaderboard: React.FC = () => {
     } catch (error) {
       console.warn('[Leaderboard] MiniKit chat failed', error);
     }
-
-    const url = getWorldChatDeeplinkUrl({ username, message });
-    try {
-      window.location.assign(url);
-    } catch {
-      window.open(url, '_blank');
-    }
+    toast.error('Could not open World Chat. Please try again.');
   };
 
   const handleCopyLogs = () => {
