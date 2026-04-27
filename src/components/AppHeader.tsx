@@ -37,7 +37,7 @@ const AppHeader: React.FC = () => {
 
         {!inWorldApp && (
           <div className="flex items-center gap-3">
-            <a href="https://pump.fun" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">
+            <a href="https://pump.fun/coin/BTfxgSELtGJmWcjePoKwQuoFhSUYCxhkGv2VpcYBpump" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">
               Pump.fun
             </a>
             <a href="https://instagram.com/jackiechain" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
