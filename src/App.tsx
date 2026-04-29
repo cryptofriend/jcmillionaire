@@ -3,10 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ReactNode, useEffect, useState } from "react";
 import { GameProvider, useGame } from "@/contexts/GameContext";
 import { MiniKitProvider } from "@/components/MiniKitProvider";
-import { isInWorldApp } from "@/lib/minikit";
 import BottomNav from "@/components/BottomNav";
 
 import AppHeader from "@/components/AppHeader";
@@ -24,28 +22,6 @@ import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
-
-type SolanaProviderComponent = (props: { children: ReactNode }) => JSX.Element;
-
-const WorldSafeSolanaProvider = ({ children }: { children: ReactNode }) => {
-  const [Provider, setProvider] = useState<SolanaProviderComponent | null>(null);
-
-  useEffect(() => {
-    if (isInWorldApp()) return;
-
-    let cancelled = false;
-    import("@/components/SolanaProvider").then((mod) => {
-      if (!cancelled) setProvider(() => mod.SolanaProvider);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (!Provider) return <>{children}</>;
-  return <Provider>{children}</Provider>;
-};
 
 const AppContent = () => {
   const { isLoading } = useGame();
@@ -80,7 +56,6 @@ const AppContent = () => {
 
 const App = () => (
   <MiniKitProvider>
-    <WorldSafeSolanaProvider>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <GameProvider>
@@ -92,7 +67,6 @@ const App = () => (
         </GameProvider>
       </TooltipProvider>
     </QueryClientProvider>
-    </WorldSafeSolanaProvider>
   </MiniKitProvider>
 );
 
