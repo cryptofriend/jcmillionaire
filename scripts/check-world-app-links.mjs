@@ -16,11 +16,18 @@
  *   0 = clean
  *   1 = unguarded external navigation found (CI should fail)
  */
+import { request } from 'node:https';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const SRC = join(ROOT, 'src');
+const WORLD_APP_ENTRY_URLS = [
+  'https://jackiechain.world/',
+  'https://game.jackiechain.world/',
+  'https://www.jackiechain.world/',
+  'https://jcmillionaire.lovable.app/',
+];
 
 const IGNORE_DIRS = new Set(['node_modules', 'dist', 'build', '.git']);
 const IGNORE_PATH_PARTS = ['/components/ui/', '/__tests__/', '/scripts/'];
@@ -47,6 +54,24 @@ const NAVIGATION_PATTERNS = [
 ];
 const GUARD_RE = /isInWorldApp|inWorldApp/;
 
+function checkNoRedirect(url) {
+  return new Promise((resolve) => {
+    const req = request(url, { method: 'HEAD', timeout: 10_000 }, (res) => {
+      const status = res.statusCode || 0;
+      const location = res.headers.location;
+      res.resume();
+      resolve({ url, status, location, ok: status >= 200 && status < 300 && !location });
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ url, status: 0, ok: false, error: 'timeout' });
+    });
+    req.on('error', (error) => resolve({ url, status: 0, ok: false, error: error.message }));
+    req.end();
+  });
+}
+
 for (const file of walk(SRC)) {
   if (IGNORE_PATH_PARTS.some((p) => file.includes(p))) continue;
   const text = readFileSync(file, 'utf8');
@@ -68,16 +93,22 @@ for (const file of walk(SRC)) {
   }
 }
 
-if (offenders.length === 0) {
-  console.log('✓ No unguarded external navigation — safe for World Mini App.');
+const redirectResults = await Promise.all(WORLD_APP_ENTRY_URLS.map(checkNoRedirect));
+const redirectOffenders = redirectResults.filter((result) => !result.ok);
+
+if (offenders.length === 0 && redirectOffenders.length === 0) {
+  console.log('✓ No unguarded external navigation or redirecting World App entry URLs.');
   process.exit(0);
 }
 
-console.error('✗ Unguarded external navigation found.');
-console.error('  These will redirect the user to Safari when opened inside the World Mini App.');
-console.error('  Wrap them in an `isInWorldApp` / `inWorldApp` guard or use in-app navigation.\n');
+console.error('✗ World Mini App navigation risk found.');
+console.error('  These can redirect the user to Safari when opened inside the World Mini App.\n');
 for (const o of offenders) {
   console.error(`  ${o.file}:${o.line}`);
   console.error(`    ${o.snippet}`);
+}
+for (const result of redirectOffenders) {
+  console.error(`  ${result.url}`);
+  console.error(`    status: ${result.status}${result.location ? `, location: ${result.location}` : ''}${result.error ? `, error: ${result.error}` : ''}`);
 }
 process.exit(1);
