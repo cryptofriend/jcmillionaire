@@ -10,7 +10,7 @@ import {
 import { clusterApiUrl } from '@solana/web3.js';
 import '@solana/wallet-adapter-react-ui/styles.css';
 
-export const SolanaProvider = ({ children, disabled = false }: { children: ReactNode; disabled?: boolean }) => {
+export const SolanaProvider = ({ children }: { children: ReactNode }) => {
   const endpoint = useMemo(() => clusterApiUrl('mainnet-beta'), []);
   const wallets = useMemo(
     () => [
@@ -21,10 +21,6 @@ export const SolanaProvider = ({ children, disabled = false }: { children: React
     ],
     []
   );
-
-  if (disabled) {
-    return <>{children}</>;
-  }
 
   return (
     <ConnectionProvider endpoint={endpoint}>
